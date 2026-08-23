@@ -687,16 +687,43 @@ int selfTest(HINSTANCE instance) {
     if (dosFrames != 3633) throw std::runtime_error("DOS Pak frame count is not 3,633");
     std::size_t dosMovieCommands = 0;
     std::size_t dosResolvedMovies = 0;
+    std::size_t dosMovieImageGeometryChecks = 0;
     std::vector<int> dosUnresolvedMovies;
     for (int id : dosAssets.ids("MuV ")) {
         mf::Movie movie(dosAssets, id);
         dosMovieCommands += movie.commandCount();
-        if (movie.resolved()) ++dosResolvedMovies;
-        else dosUnresolvedMovies.push_back(id);
+        if (movie.resolved()) {
+            ++dosResolvedMovies;
+            for (std::size_t image = 0; image < movie.imageCount(); ++image) {
+                const mf::Rect source = movie.imageBounds(image);
+                const mf::Sprite& frame = dosGraphics.sprite(
+                    movie.imageSheetId(), static_cast<int>(image));
+                if (source.width() != frame.width || source.height() != frame.height) {
+                    throw std::runtime_error(
+                        "DOS Img geometry does not match its Pak frame dimensions");
+                }
+                ++dosMovieImageGeometryChecks;
+            }
+        } else {
+            dosUnresolvedMovies.push_back(id);
+        }
     }
     if (dosMovieCommands != 10614 || dosResolvedMovies != 573 ||
-        dosUnresolvedMovies != std::vector<int>{10001}) {
+        dosMovieImageGeometryChecks == 0 || dosUnresolvedMovies != std::vector<int>{10001}) {
         throw std::runtime_error("DOS movie audit differs from the extracted timelines");
+    }
+    // DOS MuV/Img records are conventional x/y structures, not QuickDraw's
+    // vertical-first records.  These exact bounds cover both the persistent
+    // blank board and the final 1125 flip cel; swapping either axis reproduces
+    // the clipped, off-center release-candidate rendering.
+    const mf::Movie dosMenuReveal(dosAssets, 1125);
+    const mf::Rect dosMenuBase = dosMenuReveal.imageBounds(0, 45, 55);
+    const mf::Rect dosMenuFinal = dosMenuReveal.imageBounds(15, 45, 55);
+    if (dosMenuBase.left != 46 || dosMenuBase.top != 56 ||
+        dosMenuBase.right != 151 || dosMenuBase.bottom != 187 ||
+        dosMenuFinal.left != 55 || dosMenuFinal.top != 77 ||
+        dosMenuFinal.right != 139 || dosMenuFinal.bottom != 153) {
+        throw std::runtime_error("DOS movie coordinate dialect regression");
     }
     mf::Audio dosAudio(dosAssets);
     std::size_t dosMidiEvents = 0;

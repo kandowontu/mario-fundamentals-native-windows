@@ -191,11 +191,20 @@ The animation system uses three coordinated resource types:
 - `Ply `: 16-byte commands with opcodes for markers, image/base-image layers, offsets, sounds, and end.
 - `Img `: 12-byte placement/source-rectangle records.
 
-The `MuV ` origin/extents and the first two `Img ` placement words follow QuickDraw's native
+The Macintosh `MuV ` origin/extents and first two `Img ` placement words follow QuickDraw's native
 vertical-then-horizontal ordering. CODE 18 confirms the Yacht title actors at horizontal anchors
 `-149` and `-208`: after decoding that ordering, movie 6100's upper boat ends at y=240 and movie
-6150's lower hull begins at y=240. The same correction places movie 1125's final menu-wipe cel at
-`(26,135)`, exactly over the matching pixels in Pak 1001.
+6150's lower hull begins at y=240. The same correction places the Macintosh movie 1125 final
+menu-wipe cel at `(26,135)`, exactly over the matching pixels in Pak 1001.
+
+The DOS records deliberately differ: `MuV ` uses `x, y, width, height`, while `Img ` uses
+`x, y, left, top, right, bottom`. This is proven across all 1,213 same-ID DOS Img/Pak pairs: every
+decoded source rectangle exactly equals its Pak frame dimensions under conventional DOS ordering,
+whereas 1,169 rectangles exceed their frames if QuickDraw ordering is incorrectly applied. Overlay
+25 places movie 1125 at object coordinates `(46,56)`; after its `(1,1)` movie origin, the native
+instance input `(45,55)` gives a base bound of `(46,56)-(151,187)` and final-cel bound of
+`(55,77)-(139,153)`, centered within the authored easel. The movie's persistent base cel conceals
+Pak 1001's already-complete menu until the flip timeline begins.
 
 Timeline opcode 7 dispatches authored sound events. Native host playback treats a movie's
 time-zero cue as its tracked speech line and later cues as concurrent effects, so multi-hit

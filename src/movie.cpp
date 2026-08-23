@@ -17,14 +17,22 @@ Movie::Movie(const AssetStore& assets, int resourceId) : id_(resourceId) {
     const auto longWord = [dos](std::span<const std::uint8_t> data, std::size_t offset) {
         return dos ? readLe32(data, offset) : readBe32(data, offset);
     };
-    // QuickDraw stores point/extent pairs in vertical, horizontal order.
-    // Treating these fields as x, y displaced every registered movie and also
-    // turned the Yacht hull's authored horizontal frame offsets into vertical
-    // jumps.
-    originY_ = signedWord(header, 2);
-    originX_ = signedWord(header, 4);
-    height_ = word(header, 10);
-    width_ = word(header, 12);
+    // The Macintosh resources preserve QuickDraw's vertical/horizontal field
+    // order.  The DOS port rewrote these records as conventional x/y and
+    // width/height structures.  Mixing the two dialects swaps every DOS movie
+    // axis: source rectangles are then clipped, moving the board flip and
+    // punching apparent holes through talking-head cels.
+    if (dos) {
+        originX_ = signedWord(header, 2);
+        originY_ = signedWord(header, 4);
+        width_ = word(header, 10);
+        height_ = word(header, 12);
+    } else {
+        originY_ = signedWord(header, 2);
+        originX_ = signedWord(header, 4);
+        height_ = word(header, 10);
+        width_ = word(header, 12);
+    }
     duration_ = longWord(header, 14);
     timeScale_ = word(header, 18);
     tickDuration_ = word(header, 20);
@@ -36,10 +44,21 @@ Movie::Movie(const AssetStore& assets, int resourceId) : id_(resourceId) {
     images_.reserve(imageData.size() / 12);
     for (std::size_t offset = 0; offset < imageData.size(); offset += 12) {
         ImageRecord image;
-        image.yOffset = signedWord(imageData, offset);
-        image.xOffset = signedWord(imageData, offset + 2);
-        image.source = {signedWord(imageData, offset + 6), signedWord(imageData, offset + 4),
-                        signedWord(imageData, offset + 10), signedWord(imageData, offset + 8)};
+        if (dos) {
+            image.xOffset = signedWord(imageData, offset);
+            image.yOffset = signedWord(imageData, offset + 2);
+            image.source = {signedWord(imageData, offset + 4),
+                            signedWord(imageData, offset + 6),
+                            signedWord(imageData, offset + 8),
+                            signedWord(imageData, offset + 10)};
+        } else {
+            image.yOffset = signedWord(imageData, offset);
+            image.xOffset = signedWord(imageData, offset + 2);
+            image.source = {signedWord(imageData, offset + 6),
+                            signedWord(imageData, offset + 4),
+                            signedWord(imageData, offset + 10),
+                            signedWord(imageData, offset + 8)};
+        }
         if (image.source.right < image.source.left || image.source.bottom < image.source.top) {
             throw std::runtime_error("Img source rectangle is inverted");
         }

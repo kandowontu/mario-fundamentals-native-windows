@@ -20,6 +20,7 @@ public:
     [[nodiscard]] std::size_t activeImageCount(std::uint32_t time) const noexcept;
     [[nodiscard]] Rect visualBounds(int x = 0, int y = 0) const noexcept;
     [[nodiscard]] Rect imageBounds(std::size_t index, int x = 0, int y = 0) const noexcept;
+    [[nodiscard]] std::size_t imageCount() const noexcept { return images_.size(); }
     [[nodiscard]] int id() const noexcept { return id_; }
     [[nodiscard]] int imageSheetId() const noexcept { return imageSheetId_; }
     [[nodiscard]] std::uint32_t duration() const noexcept { return duration_; }

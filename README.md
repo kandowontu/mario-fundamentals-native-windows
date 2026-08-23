@@ -2,7 +2,10 @@
 
 [![Release](https://img.shields.io/github/v/release/kandowontu/mario-fundamentals-native-windows?display_name=tag)](https://github.com/kandowontu/mario-fundamentals-native-windows/releases/latest)
 
-Current release: [v2.0.0](https://github.com/kandowontu/mario-fundamentals-native-windows/releases/tag/v2.0.0)
+Latest public release: [v1.0.0](https://github.com/kandowontu/mario-fundamentals-native-windows/releases/tag/v1.0.0)
+
+The dual-edition `v2.0.0` candidate is withdrawn and remains unpublished while DOS presentation
+QA continues. There is currently no endorsed public 2.0 executable or tag.
 
 This repository contains clean native Win32 compatibility ports of Mario's Game Gallery DOS 1.0
 and Mario's FUNdamentals Macintosh 1.1. On boot, one self-contained executable offers either
@@ -188,11 +191,11 @@ both deterministic asset packs occur exactly once, proves all 1,707 Macintosh an
 resources against their extraction manifests when those local audit records are present, reruns the
 self-test from an empty working directory, and copies the result to `dist`.
 
-The audited release is 24,972,149 bytes with SHA-256
-`7680FF8029DF57718824DAA7790A88F0FD69C186DE9D13B300A877801119147C`. A clean second build was
-byte-identical. Its hidden self-test also passed from an otherwise empty directory containing only
-the executable, proving that no disk image, original application, DOS support file, loose asset, or
-generated sidecar is required at runtime.
+The dual-edition artifact produced here is an unreleased QA candidate. Its build-specific checksum
+is written to `dist/SHA256SUMS.txt`; no candidate should be redistributed as a 2.0 release until the
+DOS presentation audit is explicitly accepted. The hidden self-test runs from an otherwise empty
+directory containing only the executable, proving that no disk image, original application, DOS
+support file, loose asset, or generated sidecar is required at runtime.
 
 To run only the executable-level audit:
 

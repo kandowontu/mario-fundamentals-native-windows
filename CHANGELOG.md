@@ -2,7 +2,7 @@
 
 All notable native-port changes are documented here.
 
-## [2.0.0] - 2026-08-23
+## [2.0.0] - Unreleased
 
 ### Added
 
@@ -24,6 +24,18 @@ All notable native-port changes are documented here.
 - The release verifier now requires exactly one byte-identical embedded copy of both source asset
   packs and rejects DOS source/build paths in the finished PE.
 
+### Fixed
+
+- Corrected the DOS-specific conventional `x/y`, `width/height`, and rectangle field order instead
+  of applying the Macintosh QuickDraw vertical-first order. All 1,213 same-ID DOS Img/Pak records
+  now match exactly, fixing clipped talking heads and displaced movie layers throughout the port.
+- Kept movie 1125's title-picture base cel over the latent menu until the board flip starts, so the
+  completed menu is not exposed before its authored reveal.
+- Removed the full-client black erase from every DOS timer repaint. Frames are now fully composed
+  before presentation, with only the letterbox cleared, eliminating the black flash between frames.
+- Expanded hidden DOS QA output to cover the live/concealed title, talking head, four board-flip
+  stages, all five menu gestures, and start/middle/end frames for every game introduction.
+
 ## [1.0.0] - 2026-08-23
 
 ### Added
@@ -38,4 +50,3 @@ All notable native-port changes are documented here.
 - Flicker-free integer-scaled presentation and asynchronous MIDI-device prewarming.
 
 [1.0.0]: https://github.com/kandowontu/mario-fundamentals-native-windows/releases/tag/v1.0.0
-[2.0.0]: https://github.com/kandowontu/mario-fundamentals-native-windows/releases/tag/v2.0.0

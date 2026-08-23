@@ -91,7 +91,7 @@ being presented as fully named routines.
 |---|---|---|
 | DOS MZ/FBOV loading | MZ header/relocations, 133-entry segment table, 31 overlay records and fixups | Normal PE loading and typed native state; neither `MARIO.EXE` nor an overlay loader is embedded or executed |
 | DOS PRD/PRS resource services | 1,806 directory records, paired PRS headers, complete payload chain | Dialect-aware `AssetStore` over the second embedded `MARIOFPK` RCDATA; exact type/ID/flags/payload preservation |
-| DOS Pak/DIB/movie runtime | 187 Pak, 4 DIB, 574 each MuV/Ply, 177 Img resources | Dialect-aware Pak sheet/parser, DIB palette, little-endian movie parser, shared native compositor, 320×200 `Canvas` |
+| DOS Pak/DIB/movie runtime | 187 Pak, 4 DIB, 574 each MuV/Ply, 177 Img resources | Dialect-aware Pak sheet/parser, DIB palette, little-endian movie parser with DOS-conventional x/y geometry distinct from Macintosh QuickDraw ordering, exact 1,213-record Img/Pak geometry gate, shared native compositor, 320×200 `Canvas` |
 | DOS SND/XMI runtime | 278 SND, 12 XMI; overlay 20/25 resource calls | In-memory WAVE playback and fixed-120 Hz XMIDI sequencing; no original DOS driver, setup program, or sound-card configuration files |
 | DOS startup/title/menu | Overlays 20/21/25 and immediate resource/timing constants | Native Interplay, Presage, credits, dim/live title, 5012/5000/5001/12091/5011 sequence, board flip, source menu geometry, movies, shortcuts, and game dispatch |
 | Edition choice | New native collection shell | A small Win32 boot selector starts either independent embedded edition; `--edition=mac` and `--edition=dos` remain deterministic direct-launch switches |

@@ -1,8 +1,25 @@
 # Mario's Game Gallery / FUNdamentals native Windows collection 2.0.0
 
+> Draft status: this release was withdrawn from public access after DOS rendering defects were
+> found during user QA. No public `v2.0.0` release or Git tag currently exists. The draft must not
+> be republished until its replacement artifact has completed presentation review.
+
 Version 2.0.0 adds the complete embedded DOS 1.0 edition alongside the existing Macintosh 1.1
 port. The executable opens with a native edition chooser; neither route requires the original
 media, executable, emulator, installer, sound driver, or loose asset files.
+
+## Corrective QA after withdrawal
+
+- DOS MuV/Img geometry now uses its proven conventional x/y field order instead of Macintosh
+  QuickDraw ordering. All 1,213 same-ID Img/Pak records are exact, eliminating clipped cels,
+  displaced board-flip layers, and incomplete talking heads.
+- Movie 1125's framed-picture base remains over the latent menu until the flip begins; four
+  headless timeline samples verify that the reveal stays centered and the labels appear only as
+  authored.
+- DOS painting no longer erases the viewport to black before composing each timer frame. Only the
+  letterbox is cleared, after the next logical frame is complete.
+- Expanded hidden visual output covers the title/talking head, flip, five menu gestures, all five
+  game introductions at three timestamps, five game boards, first-use panels, and replay panel.
 
 ## Highlights
 
@@ -20,16 +37,11 @@ media, executable, emulator, installer, sound driver, or loose asset files.
 
 ## Release artifact
 
-- File: `MarioFundamentals.exe`
-- Architecture: native AMD64 PE32+ Windows GUI
-- Size: `24,972,149` bytes
-- SHA-256: `7680FF8029DF57718824DAA7790A88F0FD69C186DE9D13B300A877801119147C`
-- External dependencies: Windows system DLLs/API-set contracts only; no compiler redistributable
-- Self-test:
-  `PASS mac_assets=1707 mac_pak=180 mac_frames=3166 mac_movies=467 mac_commands=8586 mac_midi_events=6968 mac_sounds=313 games=5 dos_assets=1806 dos_pak=187 dos_frames=3633 dos_movies=574 dos_commands=10614 dos_xmi_events=12253 dos_sounds=278`
-
-Two clean builds produced identical byte counts and SHA-256 hashes. The same silent self-test passed
-from an empty working directory, and both deterministic asset packs occur exactly once in the PE.
+No 2.0 artifact is currently published. A replacement checksum and reproducibility record will be
+inserted only after the corrected DOS presentation has been explicitly accepted. The release gate
+still requires an AMD64 PE32+ Windows GUI binary, Windows system dependencies only, identical clean
+builds, an empty-directory silent self-test, and exactly one embedded copy of each deterministic
+asset pack.
 
 ## Credits and rights
 

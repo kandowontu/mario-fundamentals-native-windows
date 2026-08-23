@@ -34,7 +34,7 @@ and exact PRS payload bytes.
 | Type | Count | Bytes | Notes |
 |---|---:|---:|---|
 | `DIB` | 4 | 4,328 | Windows BMP palette records; DIB 1000 supplies the 256-color game palette |
-| `Img` | 177 | 22,344 | 1,862 little-endian image-placement records |
+| `Img` | 177 | 22,344 | 1,862 little-endian image-placement records; all 1,213 records with same-ID Pak frames match their frame geometry exactly under DOS x/y ordering |
 | `MuV` | 574 | 56,616 | Little-endian movie headers; all parsed |
 | `Pak` | 187 | 1,517,448 | 3,633 source frames; DOS outer tables plus Presage big-endian span records |
 | `Ply` | 574 | 170,176 | 10,614 little-endian timeline commands |
@@ -82,13 +82,13 @@ scalable `sfnt` faces for audit, but the executable deliberately uses the source
 one-bit screen strikes. CODE 5 About metrics and the complete composed raster are checked in every
 `--self-test` run.
 
-## Release artifact
+## Unreleased QA artifact
 
 | File | Bytes | SHA-256 |
 |---|---:|---|
-| `dist/MarioFundamentals.exe` | 24,972,149 | `7680FF8029DF57718824DAA7790A88F0FD69C186DE9D13B300A877801119147C` |
+| `dist/MarioFundamentals.exe` | 24,984,525 | `97F31E6CBB5843D3B5FDD37B5F434EEB1B48EB596210AACBD26B77BC4862251A` |
 
-The release verifiers require both deterministic asset packs to occur exactly once in the
+This local candidate is not published. The release verifiers require both deterministic asset packs to occur exactly once in the
 executable. They separately prove all 1,707 Macintosh and 1,806 DOS manifest entries against the
 embedded bytes. A hidden `--self-test` also runs from an otherwise empty working directory and
 must create no runtime sidecar.

@@ -2,9 +2,11 @@
 """Decode and audit Mario's Game Gallery 1.0 DOS media resources.
 
 The DOS PRS stores little-endian resource tables, movie metadata, and
-timelines.  Pak sheet headers are little-endian, while their per-frame bitmap
-records retain the original big-endian Presage span representation.  SND
-resources are six-byte little-endian headers followed by unsigned 8-bit PCM.
+timelines. Unlike the Macintosh QuickDraw records, DOS MuV/Img geometry uses
+conventional x/y and width/height field order. Pak sheet headers are
+little-endian, while their per-frame bitmap records retain the original
+big-endian Presage span representation. SND resources are six-byte
+little-endian headers followed by unsigned 8-bit PCM.
 """
 
 from __future__ import annotations
@@ -243,7 +245,7 @@ def parse_img(path: Path) -> list[dict[str, int]]:
         raise ValueError("Img resource is not a multiple of 12 bytes")
     records = []
     for offset in range(0, len(resource), 12):
-        y, x, top, left, bottom, right = struct.unpack_from("<hhhhhh", resource, offset)
+        x, y, left, top, right, bottom = struct.unpack_from("<hhhhhh", resource, offset)
         if right < left or bottom < top:
             raise ValueError("Img source rectangle is inverted")
         records.append(
@@ -270,8 +272,8 @@ def parse_movie(
     if len(header) < 44:
         raise ValueError("MuV header is shorter than 44 bytes")
     resource_id = int(path.stem)
-    origin_y, origin_x = struct.unpack_from("<hh", header, 2)
-    height, width = struct.unpack_from("<HH", header, 10)
+    origin_x, origin_y = struct.unpack_from("<hh", header, 2)
+    width, height = struct.unpack_from("<HH", header, 10)
     duration = struct.unpack_from("<I", header, 14)[0]
     time_scale, tick_duration, declared_command_count, declared_image_count = struct.unpack_from(
         "<HHHH", header, 18
@@ -494,10 +496,38 @@ def main() -> int:
         except Exception as error:
             raise ValueError(f"{path}: {error}") from error
     pak_frame_counts = {int(item["id"]): int(item["frame_count"]) for item in pak_resources}
+    pak_frames = {int(item["id"]): item["frames"] for item in pak_resources}
     image_tables = {
         int(path.stem): parse_img(path)
         for path in sorted((args.resources / "Img").glob("*.img"))
     }
+    geometry_records = 0
+    geometry_unpaired_ids: list[int] = []
+    for resource_id, records in image_tables.items():
+        frames = pak_frames.get(resource_id)
+        if frames is None:
+            # A small set of shipped Img tables is retained without a same-ID
+            # Pak; movie resolution below records whether any runtime path can
+            # use them. They cannot participate in the geometry proof.
+            geometry_unpaired_ids.append(resource_id)
+            continue
+        if len(records) > len(frames):
+            raise ValueError(f"Img {resource_id} exceeds its matching Pak frame table")
+        for record, frame in zip(records, frames):
+            source_width = int(record["right"]) - int(record["left"])
+            source_height = int(record["bottom"]) - int(record["top"])
+            if (
+                int(record["left"]) != 0
+                or int(record["top"]) != 0
+                or source_width != int(frame["width"])
+                or source_height != int(frame["height"])
+            ):
+                raise ValueError(
+                    f"Img {resource_id} frame {record['index']} geometry "
+                    f"{source_width}x{source_height} does not match Pak "
+                    f"{frame['width']}x{frame['height']}"
+                )
+            geometry_records += 1
     movies = [
         parse_movie(path, args.resources, image_tables, pak_frame_counts)
         for path in sorted((args.resources / "MuV").glob("*.muv"))
@@ -532,6 +562,8 @@ def main() -> int:
         "images": {
             "resource_count": len(image_tables),
             "record_count": sum(len(records) for records in image_tables.values()),
+            "pak_geometry_exact_count": geometry_records,
+            "pak_geometry_unpaired_ids": geometry_unpaired_ids,
             "resources": [
                 {"id": resource_id, "records": records}
                 for resource_id, records in sorted(image_tables.items())

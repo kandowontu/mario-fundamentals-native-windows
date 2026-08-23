@@ -45,7 +45,7 @@ private:
     void paint(HDC dc);
     void render();
     void drawTiledPage(int resourceId);
-    void drawLiveTitle(bool talking);
+    void drawLiveTitle(bool talking, bool concealMenu);
     void renderIntro();
     void renderMenu();
     void renderGameIntro();
@@ -71,6 +71,7 @@ private:
     Audio audio_;
     SourceRandom random_{1};
     Canvas canvas_{kDosLogicalWidth, kDosLogicalHeight};
+    Movie menuRevealMovie_;
     HostAnimation talkingTitle_;
     HostAnimation menuReveal_;
     HostAnimation menuSelection_;

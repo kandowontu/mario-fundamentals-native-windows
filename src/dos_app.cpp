@@ -28,6 +28,7 @@ DosApp::DosApp(HINSTANCE instance)
     : instance_(instance),
       assets_(instance, IDR_DOS_ASSET_PACK, AssetDialect::Dos),
       graphics_(assets_), audio_(assets_),
+      menuRevealMovie_(assets_, 1125),
       talkingTitle_(assets_, graphics_, audio_, false),
       menuReveal_(assets_, graphics_, audio_, false),
       menuSelection_(assets_, graphics_, audio_, false) {
@@ -49,7 +50,7 @@ void DosApp::createWindow(int showCommand) {
     windowClass.hIcon = LoadIconW(instance_, MAKEINTRESOURCEW(IDI_APP));
     windowClass.hIconSm = windowClass.hIcon;
     windowClass.hCursor = LoadCursorW(nullptr, IDC_ARROW);
-    windowClass.hbrBackground = static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH));
+    windowClass.hbrBackground = nullptr;
     windowClass.lpszClassName = L"MarioGameGalleryNativeWindow";
     if (!RegisterClassExW(&windowClass) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) {
         throw std::runtime_error("DOS game window class registration failed");
@@ -113,16 +114,56 @@ void DosApp::renderQaFrames(std::wstring_view outputDirectory) {
     save(L"02-credits.bmp");
     introPhase_ = IntroPhase::DimTitle;
     save(L"03-title-dim.bmp");
+    introPhase_ = IntroPhase::LightBuzz;
+    save(L"03a-title-live-concealed.bmp");
+    introPhase_ = IntroPhase::TalkingTitle;
+    talkingTitle_.showFrame(12091, 179, 48, 600);
+    save(L"03b-title-talking.bmp");
+    talkingTitle_.stop();
+
+    introPhase_ = IntroPhase::MenuReveal;
+    constexpr std::array<std::pair<std::uint32_t, std::wstring_view>, 4> revealFrames{{
+        {0, L"03c-menu-reveal-00.bmp"},
+        {180, L"03d-menu-reveal-03.bmp"},
+        {420, L"03e-menu-reveal-07.bmp"},
+        {840, L"03f-menu-reveal-14.bmp"},
+    }};
+    for (const auto& [sourceTime, name] : revealFrames) {
+        menuReveal_.showFrame(1125, 45, 55, sourceTime);
+        save(name);
+    }
+    menuReveal_.stop();
 
     screen_ = Screen::Menu;
     menuSourceSelection_ = 1;
     save(L"04-menu.bmp");
+    for (int sourceSelection = 1; sourceSelection <= 5; ++sourceSelection) {
+        menuSourceSelection_ = sourceSelection;
+        const int movieId = menu_catalog::movie(sourceSelection);
+        const Movie selection(assets_, movieId);
+        menuSelection_.showFrame(
+            movieId, 242, kSelectionY[static_cast<std::size_t>(sourceSelection - 1)],
+            selection.duration() / 2);
+        save(L"04-selection-" + std::to_wstring(sourceSelection) + L".bmp");
+    }
+    menuSelection_.stop();
 
     pendingGameIndex_ = 0;
     screen_ = Screen::Character;
     save(L"05-character.bmp");
     screen_ = Screen::Name;
     save(L"06-name.bmp");
+
+    for (int gameIndex = 0; gameIndex < 5; ++gameIndex) {
+        beginGameIntro(gameIndex);
+        gameIntroMilliseconds_ = 0;
+        save(L"07-intro-" + std::to_wstring(gameIndex) + L"-start.bmp");
+        gameIntroMilliseconds_ = gameIntroDurationMilliseconds_ / 2;
+        save(L"07-intro-" + std::to_wstring(gameIndex) + L"-middle.bmp");
+        gameIntroMilliseconds_ = gameIntroDurationMilliseconds_;
+        save(L"07-intro-" + std::to_wstring(gameIndex) + L"-end.bmp");
+    }
+    gameIntroMovies_.clear();
 
     for (int gameIndex = 0; gameIndex < 5; ++gameIndex) {
         startGame(gameIndex);
@@ -222,8 +263,22 @@ Point DosApp::toLogical(Point client) const {
 void DosApp::paint(HDC dc) {
     RECT client{};
     GetClientRect(window_, &client);
-    FillRect(dc, &client, static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH)));
+
+    // Compose the complete logical frame before touching the window DC.  The
+    // previous full-client black fill was visible while the CPU built the next
+    // frame and produced a black flash on every timer repaint.
     render();
+    if (viewport_.width() <= 0 || viewport_.height() <= 0) {
+        FillRect(dc, &client, static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH)));
+        return;
+    }
+
+    // Clear only the letterbox.  Never paint black through the game viewport
+    // immediately before presenting its already-composed frame.
+    const int savedDc = SaveDC(dc);
+    ExcludeClipRect(dc, viewport_.left, viewport_.top, viewport_.right, viewport_.bottom);
+    FillRect(dc, &client, static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH)));
+    RestoreDC(dc, savedDc);
     canvas_.present(dc, viewport_);
 }
 
@@ -235,7 +290,7 @@ void DosApp::drawTiledPage(int resourceId) {
     }
 }
 
-void DosApp::drawLiveTitle(bool talking) {
+void DosApp::drawLiveTitle(bool talking, bool concealMenu) {
     drawTiledPage(1001);
     canvas_.sprite(graphics_.sprite(1010), 154, 104, false);
     canvas_.sprite(graphics_.sprite(1020), 115, 80, false);
@@ -243,6 +298,10 @@ void DosApp::drawLiveTitle(bool talking) {
     if (!talking || !talkingTitle_.render(canvas_)) {
         canvas_.sprite(graphics_.sprite(1014), 180, 49, false);
     }
+    // Page 1001 is the final menu page and therefore already contains all five
+    // labels.  Before movie 1125 starts, its authored blank base cel must cover
+    // that area so the completed menu is not exposed ahead of the board flip.
+    if (concealMenu) menuRevealMovie_.render(canvas_, graphics_, 0, 45, 55);
 }
 
 void DosApp::renderIntro() {
@@ -263,20 +322,20 @@ void DosApp::renderIntro() {
     case IntroPhase::LightBuzz:
     case IntroPhase::Snare:
     case IntroPhase::Crash:
-        drawLiveTitle(false);
+        drawLiveTitle(false, true);
         break;
     case IntroPhase::TalkingTitle:
-        drawLiveTitle(true);
+        drawLiveTitle(true, true);
         break;
     case IntroPhase::MenuReveal:
-        drawLiveTitle(false);
+        drawLiveTitle(false, false);
         (void)menuReveal_.render(canvas_);
         break;
     }
 }
 
 void DosApp::renderMenu() {
-    drawLiveTitle(false);
+    drawLiveTitle(false, false);
     canvas_.sprite(graphics_.sprite(1040, menuSourceSelection_ - 1),
                    59, 78 + (menuSourceSelection_ - 1) * 17, false);
     (void)menuSelection_.render(canvas_);
@@ -368,7 +427,7 @@ void DosApp::selectMenu(int sourceSelection, bool animate) {
         menuSelection_.play(menu_catalog::movie(sourceSelection), 242,
                             kSelectionY[static_cast<std::size_t>(sourceSelection - 1)]);
     }
-    InvalidateRect(window_, nullptr, FALSE);
+    if (window_) InvalidateRect(window_, nullptr, FALSE);
 }
 
 void DosApp::beginGameIntro(int gameIndex) {
@@ -398,7 +457,7 @@ void DosApp::beginGameIntro(int gameIndex) {
     case 4: add(6100); add(6150); break;
     }
     screen_ = Screen::GameIntro;
-    InvalidateRect(window_, nullptr, FALSE);
+    if (window_) InvalidateRect(window_, nullptr, FALSE);
 }
 
 void DosApp::finishGameIntro() {
@@ -410,7 +469,7 @@ void DosApp::finishGameIntro() {
     } else {
         startGame(pendingGameIndex_);
     }
-    InvalidateRect(window_, nullptr, FALSE);
+    if (window_) InvalidateRect(window_, nullptr, FALSE);
 }
 
 void DosApp::startGame(int gameIndex) {
@@ -429,7 +488,7 @@ void DosApp::startGame(int gameIndex) {
     gameFinishedMilliseconds_ = 0;
     pendingGameIndex_ = -1;
     screen_ = Screen::Game;
-    InvalidateRect(window_, nullptr, FALSE);
+    if (window_) InvalidateRect(window_, nullptr, FALSE);
 }
 
 void DosApp::returnToMenu() {
@@ -442,7 +501,7 @@ void DosApp::returnToMenu() {
     audio_.playMusic(audio_catalog::kDosMenuMusic);
     screen_ = Screen::Menu;
     selectMenu(menuSourceSelection_, false);
-    InvalidateRect(window_, nullptr, FALSE);
+    if (window_) InvalidateRect(window_, nullptr, FALSE);
 }
 
 void DosApp::clickDialog(Point point) {
@@ -499,7 +558,7 @@ void DosApp::click(Point point) {
         if (characterConfirmed_) {
             audio_.playEffect(9204);
             if (nameConfirmed_) startGame(pendingGameIndex_);
-            else InvalidateRect(window_, nullptr, FALSE);
+            else if (window_) InvalidateRect(window_, nullptr, FALSE);
         }
     } else if (screen_ == Screen::Name) {
         if (Rect{79, 113, 128, 127}.contains(point)) {
@@ -529,7 +588,7 @@ void DosApp::key(unsigned virtualKey) {
     }
     if (screen_ == Screen::Game && virtualKey == 'N' && dialog_ == Dialog::None) {
         dialog_ = Dialog::ConfirmReset;
-        InvalidateRect(window_, nullptr, FALSE);
+        if (window_) InvalidateRect(window_, nullptr, FALSE);
         return;
     }
     if (screen_ != Screen::Name && virtualKey == 'S') {
@@ -557,12 +616,12 @@ void DosApp::key(unsigned virtualKey) {
     } else if (screen_ == Screen::Character) {
         if (virtualKey == VK_LEFT || virtualKey == VK_RIGHT) {
             playerIsYoshi_ = !playerIsYoshi_;
-            InvalidateRect(window_, nullptr, FALSE);
+            if (window_) InvalidateRect(window_, nullptr, FALSE);
         } else if (virtualKey == VK_RETURN) {
             characterConfirmed_ = true;
             screen_ = nameConfirmed_ ? Screen::Game : Screen::Name;
             if (nameConfirmed_) startGame(pendingGameIndex_);
-            else InvalidateRect(window_, nullptr, FALSE);
+            else if (window_) InvalidateRect(window_, nullptr, FALSE);
         }
     } else if (screen_ == Screen::Name && virtualKey == VK_RETURN) {
         nameConfirmed_ = true;
@@ -581,7 +640,7 @@ void DosApp::characterInput(wchar_t character) {
     } else {
         return;
     }
-    InvalidateRect(window_, nullptr, FALSE);
+    if (window_) InvalidateRect(window_, nullptr, FALSE);
 }
 
 void DosApp::tick() {
