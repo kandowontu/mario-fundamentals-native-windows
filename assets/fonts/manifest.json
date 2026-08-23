@@ -1,0 +1,59 @@
+{
+  "source_image_sha256": "2F898FEC2605D9855D67DF69F6E90BD4D97BFF7E5199163A3462BC2DBA64F0A7",
+  "fonts": [
+    {
+      "suitcase": "Times",
+      "resource_type": "sfnt",
+      "resource_id": 30457,
+      "resource_name": "Times Bold",
+      "file": "times-bold.ttf",
+      "bytes": 62212,
+      "sha256": "60654A5748D966EA1528400A95718C01C38029500D3C4506C9FE75F5622B5394"
+    },
+    {
+      "suitcase": "Geneva",
+      "resource_type": "sfnt",
+      "resource_id": 11527,
+      "resource_name": "Geneva",
+      "file": "geneva.ttf",
+      "bytes": 54684,
+      "sha256": "8DEA419507846909D5DC1788CBF233BF7C7FAB6E7A829E4A7B1E04CBA85F5113"
+    },
+    {
+      "suitcase": "Monaco",
+      "resource_type": "sfnt",
+      "resource_id": 16704,
+      "resource_name": "Monaco",
+      "file": "monaco.ttf",
+      "bytes": 49816,
+      "sha256": "F7FCA74DDFC6B70859242CD6E365ED029BE9D6C8D6421503CF5B8FB22119683E"
+    },
+    {
+      "suitcase": "Times",
+      "resource_type": "NFNT",
+      "resource_id": 21606,
+      "resource_name": null,
+      "file": "times-14.nfnt",
+      "bytes": 4124,
+      "sha256": "C6DA9CF88E5B0CF28EF6A70AAE2D3D7D64611C6FEE5D91067F34FD5913E00E9F"
+    },
+    {
+      "suitcase": "Geneva",
+      "resource_type": "NFNT",
+      "resource_id": 3160,
+      "resource_name": null,
+      "file": "geneva-9.nfnt",
+      "bytes": 2152,
+      "sha256": "B2BBBA4A4CD1E78320C6A4256BD5D08E01326349804905A1E5D577521F03C754"
+    },
+    {
+      "suitcase": "Monaco",
+      "resource_type": "NFNT",
+      "resource_id": 18819,
+      "resource_name": null,
+      "file": "monaco-12.nfnt",
+      "bytes": 2464,
+      "sha256": "4593CB0D3CC92A5C8ACB8A0C2C9D7BA5B59731A12387944795CA00AD1801B9DD"
+    }
+  ]
+}

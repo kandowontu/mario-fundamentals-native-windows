@@ -1,0 +1,9 @@
+/build/
+/work/
+/dist/*.exe
+__pycache__/
+*.pyc
+*.user
+*.suo
+*.obj
+*.o

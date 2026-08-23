@@ -1,0 +1,54 @@
+name: Fidelity or runtime bug
+description: Report behavior that differs from the source game or a Windows runtime failure.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Startup or title
+        - Main menu
+        - Checkers
+        - Go Fish
+        - Dominoes
+        - Backgammon
+        - Yacht
+        - Audio
+        - Menus, help, About, or Credits
+        - Build or packaging
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: v1.0.0 or commit SHA
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: Give the shortest exact sequence that triggers the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected source behavior
+      description: Describe what the original Macintosh version does and how you verified it.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual port behavior
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Add screenshots, captures, logs, resource IDs, or CODE offsets when available.
