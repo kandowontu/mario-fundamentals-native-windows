@@ -23,6 +23,8 @@ if ($test.ExitCode -ne 0) { throw "Executable self-test failed with exit code $(
 $auditRoot = Join-Path $projectRoot "work/audit"
 New-Item -ItemType Directory -Force -Path $auditRoot | Out-Null
 python (Join-Path $PSScriptRoot "verify_release.py") $executable `
+    --asset-pack (Join-Path $projectRoot "assets/MarioFundamentals.pack") `
+    --asset-pack (Join-Path $projectRoot "assets/MarioGameGallery.pack") `
     --report (Join-Path $auditRoot "release-verification.json")
 if ($LASTEXITCODE -ne 0) { throw "Static PE/dependency verification failed." }
 
@@ -43,6 +45,51 @@ if (Test-Path -LiteralPath $manifestPath) {
     }
     python @preservationArguments
     if ($LASTEXITCODE -ne 0) { throw "Byte-exact preservation verification failed." }
+}
+
+$dosManifestPath = Join-Path $projectRoot "work/audit/dos-resource-manifest.json"
+$dosResourceRoot = Join-Path $projectRoot "work/rip/dos/resources"
+$dosPackPath = Join-Path $projectRoot "assets/MarioGameGallery.pack"
+if (Test-Path -LiteralPath $dosManifestPath) {
+    if (-not (Test-Path -LiteralPath $dosResourceRoot)) {
+        throw "DOS preservation manifest is present but its extracted resource directory is missing."
+    }
+    $dosArguments = @(
+        (Join-Path $PSScriptRoot "verify_dos_preservation.py"),
+        $dosManifestPath,
+        $dosResourceRoot,
+        $dosPackPath,
+        $executable,
+        "--report",
+        (Join-Path $auditRoot "dos-preservation-verification.json")
+    )
+    $dosManifest = Get-Content -LiteralPath $dosManifestPath -Raw | ConvertFrom-Json
+    $dosPrd = [System.IO.Path]::GetFullPath((Join-Path $projectRoot $dosManifest.source.prd.path))
+    $dosPrs = [System.IO.Path]::GetFullPath((Join-Path $projectRoot $dosManifest.source.prs.path))
+    if ((Test-Path -LiteralPath $dosPrd) -and (Test-Path -LiteralPath $dosPrs)) {
+        $dosArguments += @("--prd", $dosPrd, "--prs", $dosPrs)
+    }
+    python @dosArguments
+    if ($LASTEXITCODE -ne 0) { throw "DOS byte-exact preservation verification failed." }
+}
+
+$isolationRoot = Join-Path (Join-Path $projectRoot "work") ("release-isolation-" + [guid]::NewGuid().ToString("N"))
+New-Item -ItemType Directory -Path $isolationRoot | Out-Null
+try {
+    $isolationOutput = Join-Path $isolationRoot "self-test.out"
+    $isolationError = Join-Path $isolationRoot "self-test.err"
+    $isolationTest = Start-Process -FilePath $executable -ArgumentList "--self-test" `
+        -WorkingDirectory $isolationRoot -WindowStyle Hidden -RedirectStandardOutput $isolationOutput `
+        -RedirectStandardError $isolationError -Wait -PassThru
+    Get-Content $isolationOutput, $isolationError
+    if ($isolationTest.ExitCode -ne 0) {
+        throw "Empty-directory executable self-test failed with exit code $($isolationTest.ExitCode)."
+    }
+}
+finally {
+    Remove-Item -LiteralPath $isolationOutput -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $isolationError -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $isolationRoot -ErrorAction SilentlyContinue
 }
 
 New-Item -ItemType Directory -Force -Path $distributionRoot | Out-Null

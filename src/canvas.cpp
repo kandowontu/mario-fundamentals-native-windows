@@ -261,4 +261,42 @@ void Canvas::present(HDC target, Rect destination) const {
                       &info, DIB_RGB_COLORS);
 }
 
+void Canvas::saveBmp(std::wstring_view path) const {
+    const std::wstring ownedPath(path);
+    HANDLE file = CreateFileW(ownedPath.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS,
+                              FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (file == INVALID_HANDLE_VALUE) throw std::runtime_error("could not create QA bitmap");
+
+    const DWORD pixelBytes = static_cast<DWORD>(
+        static_cast<std::size_t>(width_) * height_ * sizeof(std::uint32_t));
+    BITMAPFILEHEADER fileHeader{};
+    fileHeader.bfType = 0x4d42;
+    fileHeader.bfOffBits = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER);
+    fileHeader.bfSize = fileHeader.bfOffBits + pixelBytes;
+    BITMAPINFOHEADER imageHeader{};
+    imageHeader.biSize = sizeof(BITMAPINFOHEADER);
+    imageHeader.biWidth = width_;
+    imageHeader.biHeight = -height_;
+    imageHeader.biPlanes = 1;
+    imageHeader.biBitCount = 32;
+    imageHeader.biCompression = BI_RGB;
+    imageHeader.biSizeImage = pixelBytes;
+
+    const auto write = [file](const void* data, DWORD bytes) {
+        DWORD written = 0;
+        if (!WriteFile(file, data, bytes, &written, nullptr) || written != bytes) {
+            throw std::runtime_error("could not write QA bitmap");
+        }
+    };
+    try {
+        write(&fileHeader, sizeof(fileHeader));
+        write(&imageHeader, sizeof(imageHeader));
+        write(pixels_, pixelBytes);
+    } catch (...) {
+        CloseHandle(file);
+        throw;
+    }
+    CloseHandle(file);
+}
+
 }  // namespace mf

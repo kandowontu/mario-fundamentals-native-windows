@@ -33,6 +33,7 @@ public:
     void bitmap(HBITMAP bitmap, int x, int y);
     void bitmap(HBITMAP bitmap, Rect destination);
     void present(HDC target, Rect destination) const;
+    void saveBmp(std::wstring_view path) const;
     [[nodiscard]] std::uint64_t pixelHash(Rect rect) const noexcept;
 
     [[nodiscard]] HDC dc() const noexcept { return memoryDc_; }

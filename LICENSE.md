@@ -27,8 +27,9 @@ The MIT License above applies only to newly authored native-port source and tool
 grant any rights in:
 
 - Mario, other Nintendo characters, names, or trademarks;
-- the original game's artwork, animation, audio, music, fonts, text, or other data;
-- `assets/MarioFundamentals.pack`, converted assets under `assets/`, or builds that embed them; or
+- the original games' artwork, animation, audio, music, fonts, text, or other data;
+- `assets/MarioFundamentals.pack`, `assets/MarioGameGallery.pack`, other converted assets under
+  `assets/`, or builds that embed them; or
 - any original executable, disk image, resource fork, or other pre-existing software.
 
 Those materials remain subject to the rights and terms of their respective owners. No ownership,

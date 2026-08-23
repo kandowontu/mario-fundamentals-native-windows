@@ -2,6 +2,8 @@
 
 ## Source preservation
 
+### Macintosh 1.1
+
 The input is a 24 MiB bootable classic Macintosh HFS image containing System 7 and `Mario's FUNdamentals 1.1`. The application has Macintosh type `APPL`, creator `ZarK`, an empty data fork, and a 7,270,326-byte resource fork.
 
 | Artifact | Bytes | SHA-256 |
@@ -24,7 +26,28 @@ stage and easel menu. Character and name choices are first-use game/session stat
 screens. Reference captures and logical-resolution comparisons are retained under `work/references`
 and `work/qa`.
 
-## Resource fork
+### DOS 1.0
+
+The second supplied source is an AO486 installation disk backed by a fixed VHD, accompanied by its
+CD-ROM CHD. The installed `README.TXT` identifies `MARIO'S GAME GALLERY - DOS ver. 1.0 2/95`.
+The installed game core and the matching CD files are:
+
+| Artifact | Bytes | SHA-256 |
+|---|---:|---|
+| Fixed VHD `marios game gallery.vhd` | 8,389,120 | `092C319B1EE2FBA79F12648AE1757953A6C7A2A837B5E38C7418169FC434085A` |
+| CD CHD `marios game gallery.chd` | 221,698,560 | `A31033A28F3B1BC4744D36B90FD4B6867EBC236E8A7F754235E6D1A5881EB466` |
+| `MARIO.EXE` | 402,576 | `D722F8B08E02C53020B1428A224A2D4EA4FAB4A6B3E79FC9D294613C2AE70877` |
+| `MARIO.PRD` | 43,560 | `9AFFFF6B76AFDC49675E5ADB424E997B6F6E53B7D6D6330B870EC622F5D5871E` |
+| `MARIO.PRS` | 6,131,939 | `8C1C4D52C5EDC9199F68DECF7A1C8D7A3E913D405DA301712B379D5B3DBAEB82` |
+| `MARPREFS.DAT` | 44 | `C95E712B6A920611FEEFE6EEB45B5113123D205C15E91ABE548ECCDD799A7817` |
+| Embedded DOS native asset pack | 6,118,104 | `A59AE03A7C0E050067BD10C54FAB1CBD2B3A137F56C387BE2FA9925425184D54` |
+
+The VHD and CHD were inventoried read-only. Their 65- and 197-file manifests are retained as
+`work/audit/dos-vhd-manifest.json` and `work/audit/dos-cd-manifest.json`. The release does not embed
+or execute the VHD, CHD, DOS executable, PRD, PRS, drivers, installer, setup program, or preferences
+file.
+
+## Macintosh resource fork
 
 `tools/rip_resources.py` parses the resource map directly and emits every resource plus `work/rip/manifest.json`. The result is 1,707 resources across 46 types. No resource type was filtered from the native pack.
 
@@ -34,6 +57,63 @@ The deterministic pack format is:
 2. Little-endian version, entry count, and 20-byte entry size.
 3. Sorted entries containing four-byte Macintosh type, signed ID, attributes, offset, and length.
 4. Four-byte-aligned, byte-identical resource payloads.
+
+## DOS PRD/PRS resources
+
+`MARIO.PRD` begins its version-6 directory at offset `0x80`; its 1,806 fixed 24-byte records start
+at `0xB0`. Each record supplies a little-endian payload offset, four-byte type, ID, length,
+metadata, and flags. The offset points past a 28-byte header in `MARIO.PRS`, which independently
+repeats the type, ID, name, reserved word, and complete record length.
+
+`tools/rip_dos_prs.py` validates both copies, rejects duplicate type/ID keys, requires the first
+header at `0x30`, proves every later record begins exactly where the preceding payload ends, and
+requires the final payload to end at the final PRS byte. It extracts 1,806 resources across seven
+types: 4 DIB, 177 Img, 574 MuV, 187 Pak, 574 Ply, 278 SND, and 12 XMI. The native pack uses the same
+`MARIOFPK` structure as the Macintosh pack, with short DOS type names space-padded to four bytes.
+`tools/verify_dos_preservation.py` rechecks the original PRD/PRS records, every extracted hash, all
+pack metadata and alignment, and the single byte-identical embedded occurrence in the PE.
+
+## DOS MZ and FBOV overlays
+
+`MARIO.EXE` is a 16-bit Borland C++ 1991 large-memory-model MZ program linked with TLINK 5.0. Its
+declared resident image is 262,544 bytes: a 13,312-byte header, 249,232 image bytes, and 2,839 MZ
+relocations. An `FBOV` payload at file offset `0x40190` contains 140,016 bytes. Its 133-entry segment
+table starts at file offset `0x34B80`; 31 entries are real code overlays containing 132,146 code
+bytes plus their fixup records.
+
+`tools/analyze_dos_exe.py` validates every MZ relocation target, resident segment record, original
+overlay stub, code/fixup bound, and content hash, then writes an FBOV-merged analysis image and all
+31 exact overlay/fixup blobs under ignored `work/disassembly/dos`. The original five-byte
+`INT 3F` stubs expose 505 exact overlay exports. A second Capstone pass adds compiler-prologue and
+near-call evidence to create the conservative 591-candidate overlay ledger documented in
+[`FUNCTION_AUDIT.md`](FUNCTION_AUDIT.md).
+
+Resource/control-flow landmarks establish the publisher controller in overlay 20, live title/menu
+in 21, eight-state title controller in 25, and the five game core/intro families. Overlay 25 fixes
+the 15/2/5 source-count sequence around SND 5012, 5000, and 5001; movie 12091; SND 5011; full
+title/menu music 130 versus the smaller low-memory fallback 150; Pak 708/1001 title bases; actors
+709/710/1010/1014/1100/1020; and movie 1125 board flip. Overlay 21 maps the source menu order C/G/D/B/Y to native indices Checkers, Go Fish,
+Dominoes, Backgammon, and Yacht and fixes movies 1111–1115 at x=242 with y=79/79/77/82/78.
+
+## DOS media dialect
+
+The DOS edition shares Presage's span image concept but not the Macintosh outer byte order:
+
+- Pak sheet flags/count/tag/offset tables are little-endian; individual frame origin, dimensions,
+  and extended span counts remain big-endian.
+- DIB 1000 is a complete 1×1 indexed Windows BMP whose 256 BGR entries supply the DOS palette.
+- MuV, Ply, and Img fields are little-endian. Thirty-two 1,024-byte MuV records and fourteen Ply
+  records contain nonsemantic bytes after their declared data, which are preserved but ignored by
+  the bounded parser.
+- SND uses a little-endian `<encoding=3, sample-count, sample-rate>` header followed by unsigned
+  8-bit mono PCM.
+- XMI uses the standard `FORM`/`XDIR`/`CAT`/`XMID`/`EVNT` container and Miles' fixed 120 Hz delta
+  timing rather than applying its embedded tempo meta values as SMF tempo changes.
+
+The independent converter decodes all 187 Pak sheets/3,633 frames, all 574 movies/10,614 commands,
+all 278 sounds/4,279,281 sample bytes, and all 12 XMI tracks/12,253 native events. Exactly 573 movie
+image sources resolve. Movie 10001 is the sole source-orphaned visual timeline; it is preserved and
+reported rather than supplied with invented art.
 
 ## 68k CODE and DATA
 

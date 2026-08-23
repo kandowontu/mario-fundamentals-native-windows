@@ -1,11 +1,11 @@
 # Music and sound audit
 
-This audit maps the shipped Macintosh audio resources and the recovered CODE call sites to the
-native port. It covers sampled speech/effects, movie-timeline cues, and MIDI playback. Resource IDs
-below are the original IDs from `MarioFundamentals.img`; the Windows executable reads their embedded
-copies and does not need the disk image at runtime.
+This audit maps both shipped editions' audio resources and recovered call sites to the native port.
+It covers sampled speech/effects, movie-timeline cues, MIDI/XMIDI playback, and the DOS title
+controller. The Windows executable reads embedded copies and needs neither source medium at
+runtime.
 
-## Resource coverage
+## Macintosh 1.1 resource coverage
 
 - All 313 `snd ` resources decode successfully as classic Sound Manager format 1 or 2 command
   lists. Playback converts their 8-bit mono payloads to in-memory RIFF/WAVE data and supports
@@ -22,7 +22,54 @@ copies and does not need the disk image at runtime.
 The release self-test checks all of these counts, validates every sampled sound and MIDI file, and
 asserts that the dangling-cue set is exactly `{23019, 23020, 23021, 23022, 23023}`.
 
-## Music routing
+## DOS 1.0 resource coverage
+
+- All 278 `SND` resources decode from their six-byte little-endian header into unsigned 8-bit mono
+  PCM. Their payloads contain 4,279,281 sample bytes.
+- All 12 `XMI` resources parse from the `FORM`/`XDIR`/`CAT`/`XMID`/`EVNT` structure into 12,253
+  native MIDI events, including generated note-offs. No shipped note-on uses zero velocity and no
+  track contains an internal XMIDI loop controller; source-requested whole-track looping is used.
+- All 574 `MuV`/`Ply` timelines parse. Their 10,614 commands contain 743 opcode-7 sound references
+  covering 308 unique IDs. Of those, 245 resolve to shipped `SND` resources. The remaining 63 are
+  absent from the original PRS, not lost during extraction; they are recorded exactly in
+  `work/audit/dos-decoded-media-manifest.json` and retain the source runtime's missing-resource
+  no-op behavior.
+- The release self-test decodes every `SND`, checks all 12 track event counts and exact durations,
+  and pins all direct publisher/title/menu/gameplay IDs used by the native DOS shell and shared game
+  controllers.
+
+Miles XMIDI advances its delta units at a fixed 120 Hz. The native parser therefore models 60 PPQN
+at a forced 500,000 microseconds per quarter note and ignores the SMF-like tempo meta values stored
+in these files, as the original XMIDI driver does. This behavior was independently checked against
+[ScummVM's XMIDI parser](https://github.com/scummvm/scummvm/blob/master/audio/midiparser_xmidi.cpp).
+Applying those values as ordinary Standard MIDI File tempos makes several tracks 20–40 percent too
+slow.
+
+| DOS purpose | `XMI` | Events | Native duration (ms) |
+|---|---:|---:|---:|
+| Main title/menu | 130 | 4,370 | 104,201 |
+| Dominoes gameplay | 134 | 540 | 5,451 |
+| Dominoes player win | 135 | 272 | 3,309 |
+| Go Fish gameplay | 136 | 397 | 6,734 |
+| Go Fish player win | 137 | 950 | 8,667 |
+| Yacht gameplay | 138 | 435 | 6,701 |
+| Yacht player win | 139 | 216 | 4,376 |
+| Backgammon gameplay | 140 | 674 | 9,901 |
+| Backgammon player win | 141 | 400 | 7,601 |
+| Checkers gameplay | 142 | 946 | 7,634 |
+| Checkers player win | 143 | 601 | 4,209 |
+| Low-memory title/menu fallback | 150 | 2,452 | 59,034 |
+
+DOS overlay 20 identifies the two publisher calls (`SND` 8039 and 8042). Overlay 25's eight-state
+title controller fixes the subsequent sequence: 15 source ticks, 5012, two ticks, 5000, then 5001,
+five ticks, movie 12091, 5011, and XMI 130/150 routing. The executable compares available memory
+with 11,000 bytes before choosing full title/menu track 130 or the smaller fallback 150; a modern
+native process takes the full-track branch while both resources remain decoded and regression
+checked. The native controller waits for each tracked sample before applying the post-sound
+countdown, preventing either an overlap or a false loading pause. Movie opcode-7 cues are advanced
+during the five game-introduction timelines as well as normal gameplay.
+
+## Macintosh 1.1 music routing
 
 The source `SONG` table is not numerically sequential by game. The exact mapping is:
 

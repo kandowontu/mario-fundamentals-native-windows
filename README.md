@@ -1,12 +1,32 @@
-# Mario's FUNdamentals — native Windows preservation port
+# Mario's Game Gallery / FUNdamentals — native Windows preservation collection
 
 [![Release](https://img.shields.io/github/v/release/kandowontu/mario-fundamentals-native-windows?display_name=tag)](https://github.com/kandowontu/mario-fundamentals-native-windows/releases/latest)
 
-Current release: [v1.0.0](https://github.com/kandowontu/mario-fundamentals-native-windows/releases/tag/v1.0.0)
+Current release: [v2.0.0](https://github.com/kandowontu/mario-fundamentals-native-windows/releases/tag/v2.0.0)
 
-This repository contains a clean native Win32 compatibility port of the classic Macintosh game. The release executable embeds the complete original resource fork and does **not** need the disk image, original application, an emulator, or loose asset files at runtime.
+This repository contains clean native Win32 compatibility ports of Mario's Game Gallery DOS 1.0
+and Mario's FUNdamentals Macintosh 1.1. On boot, one self-contained executable offers either
+edition. It embeds both complete source resource collections and needs no original disk image,
+original executable, emulator, installer, DOS driver, or loose asset file at runtime.
 
-## Active fidelity rebuild
+## Dual-edition release
+
+- A native boot selector launches either the 320×200 DOS 1.0 presentation or the 512×384
+  Macintosh 1.1 presentation. `--edition=dos` and `--edition=mac` bypass it for deterministic use.
+- The DOS route includes the Interplay and Presage cards, original production-credits page, dim and
+  live title stages, voiced Mario sequence, board flip, animated C/G/D/B/Y easel menu, five game
+  introductions, source character/name panels, all five games, and original reset/replay panels.
+- All 1,806 DOS resources are preserved from the exact PRD/PRS chain: 187 Pak sheets/3,633 frames,
+  574 movies/10,614 commands, 278 SND resources, and 12 XMI tracks. The DOS asset dialect is decoded
+  directly; no screenshot reconstruction or replacement voice/music library is used.
+- The original 16-bit Borland MZ/FBOV executable is not shipped or executed. Its 2,839 relocations,
+  133 segment records, 31 overlays, 505 exact export stubs, and 591 conservative overlay entry
+  candidates are independently cataloged and mapped to native subsystems.
+- Shared games use the recovered native rule/AI/dialogue/outcome controllers with edition-specific
+  source art, animation, audio, coordinates, hit targets, and shell behavior. Every behavioral
+  regression runs against both asset dialects.
+
+## Macintosh 1.1 fidelity rebuild
 
 - The original BrainStorm and Stepping Stone publisher screens, black/fade timing, title stage,
   voiced Mario introduction, original easel menu, and all five animated game title sequences run
@@ -129,15 +149,22 @@ This repository contains a clean native Win32 compatibility port of the classic 
   partially rendered frame.
 - No translated 68k code is executed by the port.
 
-The executable is the self-contained native fidelity target for the supplied 1.1 Macintosh image.
-It semantically replaces the original 68k and Macintosh Toolbox routines; it does not embed or run
-the original application code. See [the function audit](docs/FUNCTION_AUDIT.md) for the evidence and
-coverage statement.
+The executable is a self-contained native fidelity target for both supplied editions. It
+semantically replaces the original 68k/8086 code and Macintosh/DOS platform services; it does not
+embed or run either original application executable. See
+[the function audit](docs/FUNCTION_AUDIT.md) for the evidence and coverage statement.
 
 The supplied `MarioFundamentals.img` is the exact emulator-start image from the linked Internet
 Archive item: its 25,165,824-byte size, MD5 `EEAD810A2DF2FD4B6ED62D52F363F74C`, and SHA-1
 `4423EDDDE3BE15D80EF2822B2DB861BF094FB2F4` all match the Archive.org metadata. Its independently
 recorded SHA-256 is `2F898FEC2605D9855D67DF69F6E90BD4D97BFF7E5199163A3462BC2DBA64F0A7`.
+
+The DOS source set is pinned independently: the supplied fixed VHD is 8,389,120 bytes with SHA-256
+`092C319B1EE2FBA79F12648AE1757953A6C7A2A837B5E38C7418169FC434085A`; its CD CHD is
+221,698,560 bytes with SHA-256
+`A31033A28F3B1BC4744D36B90FD4B6867EBC236E8A7F754235E6D1A5881EB466`. The matching game core is
+MARIO.EXE/PRD/PRS with hashes recorded in
+[the reverse-engineering report](docs/REVERSE_ENGINEERING.md).
 
 ## Build and run
 
@@ -157,14 +184,15 @@ From PowerShell:
 
 The release script configures a static C++ runtime build, compiles the resources, runs the
 executable's full hidden/silent self-test, verifies the PE architecture and dependency set, proves
-the deterministic asset pack against all 1,707 ripped-resource hashes when the audit manifest is
-present, and copies the result to `dist`.
+both deterministic asset packs occur exactly once, proves all 1,707 Macintosh and 1,806 DOS ripped
+resources against their extraction manifests when those local audit records are present, reruns the
+self-test from an empty working directory, and copies the result to `dist`.
 
-The audited release is 16,635,711 bytes with SHA-256
-`09871AAE96170BBE53251E4334D4A87D31C4D0890F815B5CA14E0AB7E14313E5`. A clean second build was
+The audited release is 24,972,149 bytes with SHA-256
+`7680FF8029DF57718824DAA7790A88F0FD69C186DE9D13B300A877801119147C`. A clean second build was
 byte-identical. Its hidden self-test also passed from an otherwise empty directory containing only
-the executable, proving that no disk image, original application, loose asset, or generated sidecar
-is required at runtime.
+the executable, proving that no disk image, original application, DOS support file, loose asset, or
+generated sidecar is required at runtime.
 
 To run only the executable-level audit:
 
@@ -175,11 +203,12 @@ Start-Process .\build\MarioFundamentals.exe -ArgumentList '--self-test' -WindowS
 The expected report begins:
 
 ```text
-PASS assets=1707 pak=180 frames=3166 movies=467 commands=8586 midi_events=6968 sounds=313 games=5
+PASS mac_assets=1707 mac_pak=180 mac_frames=3166 mac_movies=467 mac_commands=8586 mac_midi_events=6968 mac_sounds=313 games=5 dos_assets=1806 dos_pak=187 dos_frames=3633 dos_movies=574 dos_commands=10614 dos_xmi_events=12253 dos_sounds=278
 ```
 
 ## Controls
 
+- Boot selector: choose Macintosh 1.1 or DOS 1.0; closing it exits without starting either game.
 - Mouse: select games, pieces, cards, dice, score lines, and buttons.
 - Main menu: arrow keys cycle in source C/G/D/B/Y order; those letters select directly; `Enter`
   starts the selected game.
@@ -192,21 +221,30 @@ PASS assets=1707 pak=180 frames=3166 movies=467 commands=8586 midi_events=6968 s
 - `Ctrl+Q`: source File-menu shortcut; exit the current game, or quit from the main shell.
 - Credits: click anywhere to return.
 
+The DOS edition retains its source-sized UI and primary keyboard routes: C/G/D/B/Y select games,
+arrows cycle the easel, Return/Space starts, `N` opens the original New Game confirmation, and
+`S`/`M` toggle sound/music. Escape skips the active startup stage, returns from a game to the menu,
+or exits from the menu. Macintosh-only menu-bar/help/preferences controls remain in the Macintosh
+edition rather than being invented for the DOS shell.
+
 ## Preservation records
 
 - [Reverse-engineering report](docs/REVERSE_ENGINEERING.md)
 - [Function and subsystem audit](docs/FUNCTION_AUDIT.md)
 - [Music and sound audit](docs/AUDIO_AUDIT.md)
 - [Asset catalog](docs/ASSET_CATALOG.md)
-- Machine-readable disassembly, decoded DATA image, movie catalog, converted media, and visual QA captures are generated under ignored `work/` directories. The complete 1,299-row routine
-  disposition ledger is `work/audit/function-traceability.csv`; preservation and PE reports are
-  `work/audit/preservation-verification.json` and `work/audit/release-verification.json`.
+- [Version 2.0.0 release notes](docs/RELEASE_NOTES_2.0.0.md)
+- Machine-readable disassembly, decoded DATA image, overlay records, movie catalogs, converted
+  media, and visual QA captures are generated under ignored `work/` directories. The Macintosh
+  1,299-row routine disposition ledger is `work/audit/function-traceability.csv`; the exact DOS
+  591-row overlay ledger is `work/audit/dos-overlay-function-traceability.csv`. Separate Macintosh,
+  DOS, and PE reports are produced by the release pipeline.
 
 ## Credits and legal status
 
 The native port was created by [kandowontu](https://github.com/kandowontu), with engineering
-assistance from OpenAI Codex. The original game's complete production credits—including Charles
-Martinet as the voice of Mario—are preserved in [CREDITS.md](CREDITS.md).
+assistance from OpenAI Codex. Both editions' production credits—including Charles Martinet as the
+voice of Mario—are separately preserved in [CREDITS.md](CREDITS.md).
 
 The repository's original native-port source and tooling are available under the terms in
 [LICENSE.md](LICENSE.md). That license does **not** cover Nintendo characters, original artwork,

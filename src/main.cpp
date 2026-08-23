@@ -1,4 +1,6 @@
 #include "app.hpp"
+#include "dos_app.hpp"
+#include "launcher.hpp"
 #include "about.hpp"
 #include "audio_catalog.hpp"
 #include "games/backgammon.hpp"
@@ -659,9 +661,185 @@ int selfTest(HINSTANCE instance) {
     games[4]->click({400, 80});
     for (const auto& game : games) game->render(canvas);
 
+    // The DOS edition is embedded as a separate resource store because its
+    // PRS uses different byte order, palette, sample, and music formats.  This
+    // exhaustive decode remains silent: it never opens WinMM output devices.
+    mf::AssetStore dosAssets(instance, IDR_DOS_ASSET_PACK, mf::AssetDialect::Dos);
+    if (dosAssets.count() != 1806 || dosAssets.ids("Pak ").size() != 187 ||
+        dosAssets.ids("MuV ").size() != 574 || dosAssets.ids("Ply ").size() != 574 ||
+        dosAssets.ids("Img ").size() != 177 || dosAssets.ids("SND ").size() != 278 ||
+        dosAssets.ids("XMI ").size() != 12 || dosAssets.ids("DIB ").size() != 4) {
+        throw std::runtime_error("DOS embedded resource counts do not match the PRD/PRS audit");
+    }
+    mf::GraphicsAssets dosGraphics(dosAssets);
+    std::size_t dosFrames = 0;
+    for (int id : dosAssets.ids("Pak ")) {
+        mf::PakSheet sheet(dosAssets.get("Pak ", id), mf::AssetDialect::Dos);
+        for (int frame = 0; frame < sheet.frameCount(); ++frame) {
+            const mf::Sprite decoded = sheet.decodeFrame(frame, dosGraphics.palette());
+            if (decoded.width <= 0 || decoded.height <= 0 ||
+                decoded.colors.size() != decoded.alpha.size()) {
+                throw std::runtime_error("DOS Pak frame decode returned invalid dimensions");
+            }
+            ++dosFrames;
+        }
+    }
+    if (dosFrames != 3633) throw std::runtime_error("DOS Pak frame count is not 3,633");
+    std::size_t dosMovieCommands = 0;
+    std::size_t dosResolvedMovies = 0;
+    std::vector<int> dosUnresolvedMovies;
+    for (int id : dosAssets.ids("MuV ")) {
+        mf::Movie movie(dosAssets, id);
+        dosMovieCommands += movie.commandCount();
+        if (movie.resolved()) ++dosResolvedMovies;
+        else dosUnresolvedMovies.push_back(id);
+    }
+    if (dosMovieCommands != 10614 || dosResolvedMovies != 573 ||
+        dosUnresolvedMovies != std::vector<int>{10001}) {
+        throw std::runtime_error("DOS movie audit differs from the extracted timelines");
+    }
+    mf::Audio dosAudio(dosAssets);
+    std::size_t dosMidiEvents = 0;
+    for (int id : dosAssets.ids("XMI ")) dosMidiEvents += dosAudio.midiEventCount(id);
+    constexpr std::array<std::pair<int, std::uint64_t>, 12> dosMusicDurations{{
+        {130, 104201}, {134, 5451}, {135, 3309}, {136, 6734},
+        {137, 8667}, {138, 6701}, {139, 4376}, {140, 9901},
+        {141, 7601}, {142, 7634}, {143, 4209}, {150, 59034},
+    }};
+    for (const auto& [id, duration] : dosMusicDurations) {
+        if (dosAudio.midiDurationMilliseconds(id) != duration)
+            throw std::runtime_error("DOS XMI fixed-rate timing audit failed");
+    }
+    if (mf::audio_catalog::kDosMenuMusic != 130 ||
+        mf::audio_catalog::kDosPrimaryGameMusic !=
+            std::array<int, 5>{140, 134, 142, 136, 138} ||
+        mf::audio_catalog::kDosPlayerWinMusic !=
+            std::array<int, 5>{141, 135, 143, 137, 139}) {
+        throw std::runtime_error("DOS native music routing table changed");
+    }
+    std::size_t dosSoundBytes = 0;
+    for (int id : dosAssets.ids("SND ")) dosSoundBytes += dosAudio.soundWaveSize(id);
+    if (dosMidiEvents == 0 || dosSoundBytes == 0) {
+        throw std::runtime_error("DOS XMI/SND media did not pass the native parsers");
+    }
+    constexpr std::array<int, 27> dosDirectSoundIds{
+        5000, 5001, 5003, 5010, 5011, 5012, 5013, 5017, 5018,
+        5019, 5023, 5024, 5028, 5032, 5034, 5042, 5043, 5044,
+        5053, 5054, 5057, 5072, 8039, 8042, 9202, 9204, 26015};
+    for (int id : dosDirectSoundIds) {
+        if (!dosAssets.contains("SND ", id) || dosAudio.soundWaveSize(id) <= 44)
+            throw std::runtime_error("DOS native direct SFX/voice mapping is incomplete");
+    }
+    dosAudio.setEnabled(false);
+    mf::SourceRandom dosRandom(0x4d474731U);
+    mf::GameContext dosContext{dosAssets, dosGraphics, dosAudio, dosRandom,
+                               [] {}, L"PLAYER", true};
+    auto dosBackgammon = std::make_unique<mf::BackgammonGame>(dosContext);
+    auto dosBackgammonStartup = std::make_unique<mf::BackgammonGame>(dosContext);
+    auto dosBackgammonSetup = std::make_unique<mf::BackgammonGame>(dosContext);
+    auto dosBackgammonHumanOutcome = std::make_unique<mf::BackgammonGame>(dosContext);
+    auto dosBackgammonMarioOutcome = std::make_unique<mf::BackgammonGame>(dosContext);
+    if (!dosBackgammon->sourceStrategyRegressionTest() ||
+        !dosBackgammon->sourceDialogueRegressionTest() ||
+        !dosBackgammonStartup->sourceStartupRegressionTest() ||
+        !dosBackgammonSetup->sourceSetupRevealRegressionTest() ||
+        !dosBackgammonHumanOutcome->sourceOutcomeRegressionTest(true) ||
+        !dosBackgammonMarioOutcome->sourceOutcomeRegressionTest(false)) {
+        throw std::runtime_error("DOS Backgammon native behavior regression");
+    }
+    if (dosAudio.requestedMusicResourceId() != 141)
+        throw std::runtime_error("DOS Backgammon player-win XMI routing regression");
+    auto dosDominoes = std::make_unique<mf::DominoesGame>(dosContext);
+    auto dosDominoesHumanOutcome = std::make_unique<mf::DominoesGame>(dosContext);
+    auto dosDominoesMarioOutcome = std::make_unique<mf::DominoesGame>(dosContext);
+    auto dosDominoesBlockedHumanOutcome = std::make_unique<mf::DominoesGame>(dosContext);
+    auto dosDominoesBlockedMarioOutcome = std::make_unique<mf::DominoesGame>(dosContext);
+    auto dosDominoesBlockedTieOutcome = std::make_unique<mf::DominoesGame>(dosContext);
+    if (!dosDominoes->sourceStrategyRegressionTest())
+        throw std::runtime_error("DOS Dominoes strategy regression");
+    if (!dosDominoes->sourceDragRegressionTest())
+        throw std::runtime_error("DOS Dominoes drag regression");
+    if (!dosDominoesHumanOutcome->sourceOutcomeRegressionTest(1, false))
+        throw std::runtime_error("DOS Dominoes player outcome regression");
+    if (!dosDominoesMarioOutcome->sourceOutcomeRegressionTest(-1, false))
+        throw std::runtime_error("DOS Dominoes Mario outcome regression");
+    if (!dosDominoesBlockedHumanOutcome->sourceOutcomeRegressionTest(1, true))
+        throw std::runtime_error("DOS Dominoes blocked-player outcome regression");
+    if (!dosDominoesBlockedMarioOutcome->sourceOutcomeRegressionTest(-1, true))
+        throw std::runtime_error("DOS Dominoes blocked-Mario outcome regression");
+    if (!dosDominoesBlockedTieOutcome->sourceOutcomeRegressionTest(2, true))
+        throw std::runtime_error("DOS Dominoes blocked-tie outcome regression");
+    if (!dosDominoes->sourceReplayRegressionTest())
+        throw std::runtime_error("DOS Dominoes replay regression");
+    if (dosAudio.requestedMusicResourceId() != 135)
+        throw std::runtime_error("DOS Dominoes player-win XMI routing regression");
+    auto dosCheckers = std::make_unique<mf::CheckersGame>(dosContext);
+    auto dosCheckersHumanElimination = std::make_unique<mf::CheckersGame>(dosContext);
+    auto dosCheckersHumanStuck = std::make_unique<mf::CheckersGame>(dosContext);
+    auto dosCheckersFirstMario = std::make_unique<mf::CheckersGame>(dosContext);
+    auto dosCheckersLaterMario = std::make_unique<mf::CheckersGame>(dosContext);
+    if (!dosCheckers->sourceStrategyRegressionTest() ||
+        !dosCheckersHumanElimination->sourceOutcomeRegressionTest(1) ||
+        !dosCheckersHumanStuck->sourceOutcomeRegressionTest(2) ||
+        !dosCheckersFirstMario->sourceOutcomeRegressionTest(-1) ||
+        !dosCheckersLaterMario->sourceOutcomeRegressionTest(-2) ||
+        !dosCheckers->sourceReplayRegressionTest()) {
+        throw std::runtime_error("DOS Checkers native behavior regression");
+    }
+    if (dosAudio.requestedMusicResourceId() != 143)
+        throw std::runtime_error("DOS Checkers player-win XMI routing regression");
+    auto dosGoFish = std::make_unique<mf::GoFishGame>(dosContext);
+    auto dosGoFishHumanOutcome = std::make_unique<mf::GoFishGame>(dosContext);
+    auto dosGoFishMarioOutcome = std::make_unique<mf::GoFishGame>(dosContext);
+    auto dosGoFishTieOutcome = std::make_unique<mf::GoFishGame>(dosContext);
+    if (!dosGoFish->sourceStrategyRegressionTest())
+        throw std::runtime_error("DOS Go Fish strategy regression");
+    if (!dosGoFish->sourceDialogueRegressionTest())
+        throw std::runtime_error("DOS Go Fish dialogue regression");
+    if (!dosGoFish->sourceHandSlotRegressionTest())
+        throw std::runtime_error("DOS Go Fish hand-slot regression");
+    if (!dosGoFishHumanOutcome->sourceOutcomeRegressionTest(1))
+        throw std::runtime_error("DOS Go Fish player outcome regression");
+    if (!dosGoFishMarioOutcome->sourceOutcomeRegressionTest(-1))
+        throw std::runtime_error("DOS Go Fish Mario outcome regression");
+    if (!dosGoFishTieOutcome->sourceOutcomeRegressionTest(2))
+        throw std::runtime_error("DOS Go Fish tie outcome regression");
+    if (dosAudio.requestedMusicResourceId() != 137)
+        throw std::runtime_error("DOS Go Fish player-win XMI routing regression");
+    auto dosYachtSelection = std::make_unique<mf::YachtGame>(dosContext);
+    auto dosYachtTurnOrder = std::make_unique<mf::YachtGame>(dosContext);
+    auto dosYachtHumanOutcome = std::make_unique<mf::YachtGame>(dosContext);
+    auto dosYachtMarioOutcome = std::make_unique<mf::YachtGame>(dosContext);
+    auto dosYachtTieOutcome = std::make_unique<mf::YachtGame>(dosContext);
+    if (!dosYachtSelection->sourceComputerSelectionRegressionTest() ||
+        !dosYachtTurnOrder->sourceTurnOrderRegressionTest() ||
+        !dosYachtHumanOutcome->sourceOutcomeRegressionTest(1) ||
+        !dosYachtMarioOutcome->sourceOutcomeRegressionTest(-1) ||
+        !dosYachtTieOutcome->sourceOutcomeRegressionTest(2)) {
+        throw std::runtime_error("DOS Yacht native behavior regression");
+    }
+    if (dosAudio.requestedMusicResourceId() != 139)
+        throw std::runtime_error("DOS Yacht player-win XMI routing regression");
+    mf::Canvas dosCanvas(mf::kDosLogicalWidth, mf::kDosLogicalHeight);
+    std::array<std::unique_ptr<mf::Game>, 5> dosGames{
+        std::make_unique<mf::BackgammonGame>(dosContext),
+        std::make_unique<mf::DominoesGame>(dosContext),
+        std::make_unique<mf::CheckersGame>(dosContext),
+        std::make_unique<mf::GoFishGame>(dosContext),
+        std::make_unique<mf::YachtGame>(dosContext)};
+    for (const auto& game : dosGames) {
+        game->render(dosCanvas);
+        (void)game->tick();
+        game->render(dosCanvas);
+    }
+
     std::fprintf(stdout,
-                 "PASS assets=1707 pak=180 frames=%zu movies=467 commands=%zu midi_events=%zu sounds=313 games=5\n",
-                 decodedFrames, movieCommands, midiEvents);
+                 "PASS mac_assets=1707 mac_pak=180 mac_frames=%zu mac_movies=467 "
+                 "mac_commands=%zu mac_midi_events=%zu mac_sounds=313 games=5 "
+                 "dos_assets=1806 dos_pak=187 dos_frames=%zu dos_movies=574 "
+                 "dos_commands=%zu dos_xmi_events=%zu dos_sounds=278\n",
+                 decodedFrames, movieCommands, midiEvents, dosFrames, dosMovieCommands,
+                 dosMidiEvents);
     std::fflush(stdout);
     return 0;
 }
@@ -669,7 +847,8 @@ int selfTest(HINSTANCE instance) {
 }  // namespace
 
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int showCommand) {
-    const bool isSelfTest = std::wcsstr(GetCommandLineW(), L"--self-test") != nullptr;
+    const wchar_t* commandLine = GetCommandLineW();
+    const bool isSelfTest = std::wcsstr(commandLine, L"--self-test") != nullptr;
     if (isSelfTest) {
         try {
             return selfTest(instance);
@@ -679,12 +858,41 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int showCommand) {
             return 1;
         }
     }
+    if (std::wcsstr(commandLine, L"--render-dos-qa") != nullptr) {
+        try {
+            mf::DosApp app(instance);
+            app.renderQaFrames(L"work\\qa\\dos");
+            return 0;
+        } catch (const std::exception& error) {
+            std::fprintf(stderr, "FAIL %s\n", error.what());
+            std::fflush(stderr);
+            return 1;
+        }
+    }
     try {
-        mf::App app(instance);
-        return app.run(showCommand);
+        mf::GameEdition edition = mf::GameEdition::Cancel;
+        if (std::wcsstr(commandLine, L"--edition=dos") ||
+            std::wcsstr(commandLine, L"--qa-dos")) {
+            edition = mf::GameEdition::Dos;
+        } else if (std::wcsstr(commandLine, L"--edition=mac") ||
+                   std::wcsstr(commandLine, L"--qa-")) {
+            edition = mf::GameEdition::Macintosh;
+        } else {
+            edition = mf::chooseGameEdition(instance, showCommand);
+        }
+        if (edition == mf::GameEdition::Dos) {
+            mf::DosApp app(instance);
+            return app.run(showCommand);
+        }
+        if (edition == mf::GameEdition::Macintosh) {
+            mf::App app(instance);
+            return app.run(showCommand);
+        }
+        return 0;
     } catch (const std::exception& error) {
-        const std::string text = std::string("Mario's FUNdamentals could not start:\n\n") + error.what();
-        MessageBoxA(nullptr, text.c_str(), "Mario's FUNdamentals", MB_OK | MB_ICONERROR);
+        const std::string text = std::string("The native Mario collection could not start:\n\n") +
+                                 error.what();
+        MessageBoxA(nullptr, text.c_str(), "Mario native collection", MB_OK | MB_ICONERROR);
         return 1;
     }
 }

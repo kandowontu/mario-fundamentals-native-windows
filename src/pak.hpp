@@ -15,13 +15,15 @@ struct Sprite {
 
 class PakSheet {
 public:
-    explicit PakSheet(std::span<const std::uint8_t> compressed);
+    PakSheet(std::span<const std::uint8_t> compressed,
+             AssetDialect dialect = AssetDialect::Macintosh);
 
     [[nodiscard]] int frameCount() const noexcept { return static_cast<int>(offsets_.size()); }
     [[nodiscard]] Sprite decodeFrame(int index, const std::array<std::uint32_t, 256>& palette) const;
 
 private:
     std::vector<std::uint8_t> unpacked_;
+    AssetDialect dialect_{AssetDialect::Macintosh};
     std::uint16_t flags_{};
     std::vector<std::uint32_t> offsets_;
 };

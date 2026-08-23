@@ -18,6 +18,7 @@
 #define IDR_FONT_TIMES_14 202
 #define IDR_FONT_GENEVA_9 203
 #define IDR_FONT_MONACO_12 204
+#define IDR_DOS_ASSET_PACK 205
 
 // Generated BMP assets use the resource-safe 40-byte BITMAPINFOHEADER format.
 IDI_APP ICON "@CMAKE_CURRENT_SOURCE_DIR@/assets/app.ico"
@@ -40,11 +41,12 @@ IDR_ASSET_PACK RCDATA "@CMAKE_CURRENT_SOURCE_DIR@/assets/MarioFundamentals.pack"
 IDR_FONT_TIMES_14 RCDATA "@CMAKE_CURRENT_SOURCE_DIR@/assets/fonts/times-14.nfnt"
 IDR_FONT_GENEVA_9 RCDATA "@CMAKE_CURRENT_SOURCE_DIR@/assets/fonts/geneva-9.nfnt"
 IDR_FONT_MONACO_12 RCDATA "@CMAKE_CURRENT_SOURCE_DIR@/assets/fonts/monaco-12.nfnt"
+IDR_DOS_ASSET_PACK RCDATA "@CMAKE_CURRENT_SOURCE_DIR@/assets/MarioGameGallery.pack"
 1 24 "@CMAKE_CURRENT_SOURCE_DIR@/src/app.manifest"
 
 1 VERSIONINFO
- FILEVERSION 0,1,0,0
- PRODUCTVERSION 0,1,0,0
+ FILEVERSION 2,0,0,0
+ PRODUCTVERSION 2,0,0,0
  FILEFLAGSMASK 0x3fL
  FILEOS 0x40004L
  FILETYPE 0x1L
@@ -54,12 +56,12 @@ BEGIN
         BLOCK "040904b0"
         BEGIN
             VALUE "CompanyName", "BrainStorm / Stepping Stone; native preservation port"
-            VALUE "FileDescription", "Mario's FUNdamentals native Windows port"
-            VALUE "FileVersion", "0.1.0"
+            VALUE "FileDescription", "Mario's Game Gallery / FUNdamentals native Windows collection"
+            VALUE "FileVersion", "2.0.0"
             VALUE "InternalName", "MarioFundamentals"
             VALUE "OriginalFilename", "MarioFundamentals.exe"
-            VALUE "ProductName", "Mario's FUNdamentals"
-            VALUE "ProductVersion", "1.1 compatibility port"
+            VALUE "ProductName", "Mario's Game Gallery / FUNdamentals"
+            VALUE "ProductVersion", "2.0.0 dual-edition compatibility port"
         END
     END
     BLOCK "VarFileInfo"

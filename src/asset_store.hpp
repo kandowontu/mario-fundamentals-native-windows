@@ -8,12 +8,14 @@ namespace mf {
 
 class AssetStore {
 public:
-    AssetStore(HINSTANCE instance, int resourceId);
+    AssetStore(HINSTANCE instance, int resourceId,
+               AssetDialect dialect = AssetDialect::Macintosh);
 
     [[nodiscard]] std::span<const std::uint8_t> get(std::string_view type, int id) const;
     [[nodiscard]] bool contains(std::string_view type, int id) const;
     [[nodiscard]] std::vector<int> ids(std::string_view type) const;
     [[nodiscard]] std::size_t count() const noexcept { return entries_.size(); }
+    [[nodiscard]] AssetDialect dialect() const noexcept { return dialect_; }
 
 private:
     struct Entry {
@@ -30,6 +32,7 @@ private:
     std::size_t size_{};
     std::vector<Entry> entries_;
     std::unordered_map<std::uint64_t, std::size_t> lookup_;
+    AssetDialect dialect_{AssetDialect::Macintosh};
 };
 
 }  // namespace mf

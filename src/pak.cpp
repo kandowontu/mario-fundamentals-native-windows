@@ -33,15 +33,22 @@ std::vector<std::uint8_t> decodeOuter(std::span<const std::uint8_t> source) {
 
 }  // namespace
 
-PakSheet::PakSheet(std::span<const std::uint8_t> compressed) : unpacked_(decodeOuter(compressed)) {
+PakSheet::PakSheet(std::span<const std::uint8_t> compressed, AssetDialect dialect)
+    : unpacked_(dialect == AssetDialect::Dos
+                    ? std::vector<std::uint8_t>(compressed.begin(), compressed.end())
+                    : decodeOuter(compressed)),
+      dialect_(dialect) {
     const std::span<const std::uint8_t> data(unpacked_);
-    flags_ = readBe16(data, 0);
+    flags_ = dialect_ == AssetDialect::Dos ? readLe16(data, 0) : readBe16(data, 0);
     if ((flags_ & 0x7FFFU) != 2) throw std::runtime_error("unsupported Pak span encoding");
-    const std::uint16_t count = readBe16(data, 2);
+    const std::uint16_t count =
+        dialect_ == AssetDialect::Dos ? readLe16(data, 2) : readBe16(data, 2);
     if (6ULL + count * 4ULL > data.size()) throw std::runtime_error("truncated Pak frame table");
     offsets_.reserve(count);
     for (std::uint16_t index = 0; index < count; ++index) {
-        const auto offset = readBe32(data, 6 + index * 4);
+        const auto offset = dialect_ == AssetDialect::Dos
+                                ? readLe32(data, 6 + index * 4)
+                                : readBe32(data, 6 + index * 4);
         if (offset >= data.size()) throw std::runtime_error("invalid Pak frame offset");
         offsets_.push_back(offset);
     }
@@ -119,6 +126,22 @@ Sprite PakSheet::decodeFrame(int index, const std::array<std::uint32_t, 256>& pa
 }
 
 GraphicsAssets::GraphicsAssets(const AssetStore& assets) : assets_(assets) {
+    if (assets_.dialect() == AssetDialect::Dos) {
+        const auto dib = assets_.get("DIB ", 1000);
+        if (dib.size() < 1078 || dib[0] != 'B' || dib[1] != 'M' ||
+            readLe32(dib, 10) < 54) {
+            throw std::runtime_error("DOS DIB palette is invalid");
+        }
+        const std::size_t paletteOffset = 14U + readLe32(dib, 14);
+        if (paletteOffset + palette_.size() * 4U > dib.size()) {
+            throw std::runtime_error("DOS DIB palette is truncated");
+        }
+        for (std::size_t index = 0; index < palette_.size(); ++index) {
+            const std::size_t offset = paletteOffset + index * 4U;
+            palette_[index] = rgb(dib[offset + 2], dib[offset + 1], dib[offset]);
+        }
+        return;
+    }
     const auto clut = assets_.get("clut", 1000);
     if (clut.size() < 8) throw std::runtime_error("main color table is invalid");
     const std::size_t count = readBe16(clut, 6) + 1U;
@@ -135,11 +158,20 @@ GraphicsAssets::GraphicsAssets(const AssetStore& assets) : assets_(assets) {
 }
 
 const Sprite& GraphicsAssets::sprite(int resourceId, int frame) {
+    // The DOS build carries one 8-pixel Pak font triplet (yellow/black/white)
+    // at 223-225; the Macintosh build adds a second small triplet at 226-228.
+    // Shared game code asks for the latter in score fields, so DOS resolves it
+    // to its authored color-equivalent sheet instead of manufacturing glyphs.
+    if (assets_.dialect() == AssetDialect::Dos && resourceId >= 226 && resourceId <= 228) {
+        resourceId -= 3;
+    }
     const std::uint64_t key = static_cast<std::uint64_t>(static_cast<std::uint32_t>(resourceId)) << 32U |
                               static_cast<std::uint32_t>(frame);
     if (const auto found = sprites_.find(key); found != sprites_.end()) return found->second;
     auto& sheet = sheets_[resourceId];
-    if (!sheet) sheet = std::make_shared<PakSheet>(assets_.get("Pak ", resourceId));
+    if (!sheet) {
+        sheet = std::make_shared<PakSheet>(assets_.get("Pak ", resourceId), assets_.dialect());
+    }
     return sprites_.emplace(key, sheet->decodeFrame(frame, palette_)).first->second;
 }
 

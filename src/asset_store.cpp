@@ -5,11 +5,11 @@
 namespace mf {
 namespace {
 
-std::uint16_t readLe16(const std::uint8_t* bytes) {
+std::uint16_t readPackLe16(const std::uint8_t* bytes) {
     return static_cast<std::uint16_t>(bytes[0] | bytes[1] << 8U);
 }
 
-std::uint32_t readLe32(const std::uint8_t* bytes) {
+std::uint32_t readPackLe32(const std::uint8_t* bytes) {
     return static_cast<std::uint32_t>(bytes[0]) |
            static_cast<std::uint32_t>(bytes[1]) << 8U |
            static_cast<std::uint32_t>(bytes[2]) << 16U |
@@ -18,7 +18,8 @@ std::uint32_t readLe32(const std::uint8_t* bytes) {
 
 }  // namespace
 
-AssetStore::AssetStore(HINSTANCE instance, int resourceId) {
+AssetStore::AssetStore(HINSTANCE instance, int resourceId, AssetDialect dialect)
+    : dialect_(dialect) {
     const HRSRC resource = FindResourceW(instance, MAKEINTRESOURCEW(resourceId), RT_RCDATA);
     if (!resource) throw std::runtime_error("embedded asset pack is missing");
     const HGLOBAL loaded = LoadResource(instance, resource);
@@ -29,9 +30,9 @@ AssetStore::AssetStore(HINSTANCE instance, int resourceId) {
     if (std::memcmp(bytes_, "MARIOFPK", 8) != 0) {
         throw std::runtime_error("embedded asset pack has an invalid signature");
     }
-    const auto version = readLe32(bytes_ + 8);
-    const auto count = readLe32(bytes_ + 12);
-    const auto entrySize = readLe32(bytes_ + 16);
+    const auto version = readPackLe32(bytes_ + 8);
+    const auto count = readPackLe32(bytes_ + 12);
+    const auto entrySize = readPackLe32(bytes_ + 16);
     if (version != 1 || entrySize != 20 || 20ULL + count * entrySize > size_) {
         throw std::runtime_error("unsupported embedded asset pack");
     }
@@ -40,10 +41,10 @@ AssetStore::AssetStore(HINSTANCE instance, int resourceId) {
         const std::uint8_t* raw = bytes_ + 20 + index * entrySize;
         Entry entry;
         std::memcpy(entry.type.data(), raw, 4);
-        entry.id = static_cast<std::int16_t>(readLe16(raw + 4));
-        entry.attributes = readLe16(raw + 6);
-        entry.offset = readLe32(raw + 8);
-        entry.size = readLe32(raw + 12);
+        entry.id = static_cast<std::int16_t>(readPackLe16(raw + 4));
+        entry.attributes = readPackLe16(raw + 6);
+        entry.offset = readPackLe32(raw + 8);
+        entry.size = readPackLe32(raw + 12);
         if (static_cast<std::uint64_t>(entry.offset) + entry.size > size_) {
             throw std::runtime_error("asset pack entry exceeds pack bounds");
         }
@@ -63,7 +64,7 @@ std::uint64_t AssetStore::key(std::string_view type, int id) {
 std::span<const std::uint8_t> AssetStore::get(std::string_view type, int id) const {
     const auto found = lookup_.find(key(type, id));
     if (found == lookup_.end()) {
-        throw std::runtime_error("requested Macintosh resource is absent");
+        throw std::runtime_error("requested embedded resource is absent");
     }
     const Entry& entry = entries_[found->second];
     return {bytes_ + entry.offset, entry.size};

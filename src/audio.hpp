@@ -25,6 +25,7 @@ public:
     void setSoundEnabled(bool enabled);
     void setMusicEnabled(bool enabled);
     [[nodiscard]] std::size_t midiEventCount(int resourceId) const;
+    [[nodiscard]] std::uint64_t midiDurationMilliseconds(int resourceId) const;
     [[nodiscard]] std::size_t soundWaveSize(int resourceId) const;
     [[nodiscard]] bool soundPlaying() const noexcept {
         return activeSoundRemainingMilliseconds_ != 0;
@@ -32,15 +33,21 @@ public:
     [[nodiscard]] bool enabled() const noexcept { return soundEnabled_ && musicEnabled_; }
     [[nodiscard]] bool soundEnabled() const noexcept { return soundEnabled_; }
     [[nodiscard]] bool musicEnabled() const noexcept { return musicEnabled_; }
+    [[nodiscard]] int requestedMusicResourceId() const noexcept {
+        return requestedMusicResourceId_;
+    }
 
 private:
-    static std::vector<std::uint8_t> makeWave(std::span<const std::uint8_t> sound);
+    static std::vector<std::uint8_t> makeWave(std::span<const std::uint8_t> sound,
+                                              AssetDialect dialect);
     struct MidiEvent { std::uint64_t milliseconds; std::uint32_t message; };
     struct MidiSequence {
         std::vector<MidiEvent> events;
         std::uint64_t durationMilliseconds{};
     };
     static MidiSequence parseMidi(std::span<const std::uint8_t> midi);
+    static MidiSequence parseXmi(std::span<const std::uint8_t> xmi);
+    MidiSequence parseMusic(int resourceId) const;
     bool tryAcquireMusicOutput();
     void closeMusicOutput();
     struct Voice {

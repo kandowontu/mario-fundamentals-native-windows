@@ -19,12 +19,18 @@ struct GameContext {
 
 class HostAnimation {
 public:
-    HostAnimation(const AssetStore& assets, GraphicsAssets& graphics, Audio& audio)
-        : assets_(assets), graphics_(graphics), audio_(audio) {}
+    HostAnimation(const AssetStore& assets, GraphicsAssets& graphics, Audio& audio,
+                  bool scaleDosCoordinates = true)
+        : assets_(assets), graphics_(graphics), audio_(audio),
+          scaleDosCoordinates_(scaleDosCoordinates) {}
 
     void play(int resourceId, int x, int y, bool playAudio = true,
               std::optional<std::uint32_t> holdSourceTime = std::nullopt) {
         queuedMovies_.clear();
+        if (scaleDosCoordinates_ && assets_.dialect() == AssetDialect::Dos) {
+            x = x * kDosLogicalWidth / kLogicalWidth;
+            y = y * kDosLogicalHeight / kLogicalHeight;
+        }
         x_ = x;
         y_ = y;
         audioEnabled_ = playAudio;
@@ -122,6 +128,7 @@ private:
     bool audioEnabled_{true};
     std::optional<std::uint32_t> holdSourceTime_;
     bool holdingFrame_{};
+    bool scaleDosCoordinates_{true};
 };
 
 class Game {
@@ -147,6 +154,15 @@ public:
     [[nodiscard]] virtual unsigned postFinishDelayMilliseconds() const noexcept { return 2000; }
 
 protected:
+    [[nodiscard]] bool dosEdition() const noexcept {
+        return context_.assets.dialect() == AssetDialect::Dos;
+    }
+    [[nodiscard]] static int dosX(int value) noexcept {
+        return value * kDosLogicalWidth / kLogicalWidth;
+    }
+    [[nodiscard]] static int dosY(int value) noexcept {
+        return value * kDosLogicalHeight / kLogicalHeight;
+    }
     void resetIdleConversation() noexcept {
         idleMilliseconds_ = 0;
         idleConversationStep_ = 0;
@@ -178,9 +194,10 @@ protected:
     }
 
     void drawBackground(Canvas& canvas, int resourceId) const {
+        const Sprite& first = context_.graphics.sprite(resourceId, 0);
         for (int frame = 0; frame < 64; ++frame) {
             canvas.sprite(context_.graphics.sprite(resourceId, frame),
-                          frame % 8 * 64, frame / 8 * 48, false);
+                          frame % 8 * first.width, frame / 8 * first.height, false);
         }
     }
 

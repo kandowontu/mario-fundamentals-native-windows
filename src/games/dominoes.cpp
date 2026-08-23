@@ -679,7 +679,8 @@ bool DominoesGame::tickOutcome() {
     case OutcomePhase::HumanInitialDelay: {
         if (host_.active()) return false;
         if (outcomeDelayTicks_-- > 0) return true;
-        context_.audio.playMusic(audio_catalog::kPlayerWinMusic[1]);
+        context_.audio.playMusic(dosEdition() ? audio_catalog::kDosPlayerWinMusic[1]
+                                              : audio_catalog::kPlayerWinMusic[1]);
         // $136A uses six authored player-win variants with 20/20/20/20/10/10 odds.
         static constexpr std::array movies{10051, 10087, 10055, 10053, 10086, 10052};
         static constexpr std::array weights{20, 40, 60, 80, 90, 100};
@@ -988,8 +989,14 @@ void DominoesGame::mouseDown(Point point) {
     idleElapsedSourceTicks_ = 0;
     if (winner_ || !dealComplete_ || pendingComputerOpening_ >= 0 ||
         computerTurnPending_ || host_.active()) return;
-    if (point.y >= 286 && point.y < 358 && point.x >= 7 && point.x < 476) {
-        const int index = (point.x - 7) / 35;
+    const int handTop = dosEdition() ? 149 : 286;
+    const int handBottom = dosEdition() ? 187 : 358;
+    const int handLeft = dosEdition() ? 4 : 7;
+    const int handRight = dosEdition() ? 298 : 476;
+    const int handPitch = dosEdition() ? 22 : 35;
+    if (point.y >= handTop && point.y < handBottom &&
+        point.x >= handLeft && point.x < handRight) {
+        const int index = (point.x - handLeft) / handPitch;
         if (index >= 0 && index < static_cast<int>(human_.size())) {
             // $276C starts 5043 on mouse-down, then the source tracks the bone
             // until mouse-up and resolves the nearest chain endpoint.
@@ -1046,9 +1053,9 @@ void DominoesGame::mouseUp(Point point) {
                             std::abs(first.y - second.y));
         };
         const int endpointDistance = distance(leftCenter, rightCenter);
-        int acceptanceDistance = 150;
+        int acceptanceDistance = dosEdition() ? 94 : 150;
         if (chain_.size() > 6 && endpointDistance < acceptanceDistance) {
-            acceptanceDistance = std::max(60, endpointDistance / 2);
+            acceptanceDistance = std::max(dosEdition() ? 38 : 60, endpointDistance / 2);
         }
         const int leftDistance = distance(point, leftCenter);
         const int rightDistance = distance(point, rightCenter);
@@ -1061,7 +1068,7 @@ void DominoesGame::mouseUp(Point point) {
         preferLeft = leftDistance < rightDistance;
         // Once a long wrapped chain brings both end points within sixty pixels,
         // $29E6-$2A50 resolves the ambiguous end from the dragged bone's pips.
-        if (chain_.size() > 6 && endpointDistance < 60) {
+        if (chain_.size() > 6 && endpointDistance < (dosEdition() ? 38 : 60)) {
             const Tile& tile = human_[static_cast<std::size_t>(index)];
             const int leftEnd = chain_.front().left;
             const int rightEnd = chain_.back().right;
@@ -1070,7 +1077,8 @@ void DominoesGame::mouseUp(Point point) {
             if (fitsLeft) preferLeft = true;
             else if (fitsRight) preferLeft = false;
         }
-    } else if (point.y < 65 || point.y > 285) {
+    } else if (point.y < (dosEdition() ? 34 : 65) ||
+               point.y > (dosEdition() ? 148 : 285)) {
         selected_ = -1;
         status_ = L"Drag the first domino onto the table.";
         return;
@@ -1113,43 +1121,76 @@ bool DominoesGame::sourceDragRegressionTest() {
         selected_ = draggedIndex_ = -1;
     };
 
+    const Point handPoint = dosEdition() ? Point{20, 166} : Point{20, 315};
+    const auto endpoints = [this]() {
+        const int visible = std::min(30, static_cast<int>(chain_.size()));
+        const Rect left = chainTileRect(0, visible);
+        const Rect right = chainTileRect(visible - 1, visible);
+        return std::pair{
+            Point{(left.left + left.right) / 2, (left.top + left.bottom) / 2},
+            Point{(right.left + right.right) / 2, (right.top + right.bottom) / 2}};
+    };
+    const auto distance = [](Point first, Point second) {
+        return std::max(std::abs(first.x - second.x),
+                        std::abs(first.y - second.y));
+    };
+    const auto acceptanceDistance = [this, &endpoints, &distance]() {
+        const auto [left, right] = endpoints();
+        int result = dosEdition() ? 94 : 150;
+        if (chain_.size() > 6 && distance(left, right) < result) {
+            result = std::max(dosEdition() ? 38 : 60, distance(left, right) / 2);
+        }
+        return result;
+    };
+
     prepare({{2, 3}, {3, 4}}, {{2, 5}, {0, 1}});
-    mouseDown({20, 315});
-    mouseUp({284, 142});
+    auto [leftEndpoint, rightEndpoint] = endpoints();
+    mouseDown(handPoint);
+    mouseUp(rightEndpoint);
     const bool wrongEndRejected = human_.size() == 2 && chain_.size() == 2;
-    mouseDown({20, 315});
-    mouseMove({228, 142});
-    mouseUp({228, 142});
+    mouseDown(handPoint);
+    mouseMove(leftEndpoint);
+    mouseUp(leftEndpoint);
     const bool correctEndAccepted = human_.size() == 1 && chain_.size() == 3 &&
         chain_.front().left == 5 && chain_.front().right == 2;
 
-    // Short chains use the source's full 150-pixel Chebyshev threshold.
+    // Short chains use the source's full 150-pixel Chebyshev threshold,
+    // or its 320x200 coordinate equivalent in the DOS edition.
     prepare({{2, 3}, {3, 4}}, {{4, 5}});
-    mouseDown({20, 315});
-    mouseUp({433, 142});  // 149 pixels from the right endpoint.
+    rightEndpoint = endpoints().second;
+    const int shortRadius = acceptanceDistance();
+    mouseDown(handPoint);
+    mouseUp({rightEndpoint.x + shortRadius - 1, rightEndpoint.y});
     const bool shortChainRadiusAccepted = human_.empty() && chain_.back().right == 5;
     prepare({{2, 3}, {3, 4}}, {{4, 5}});
-    mouseDown({20, 315});
-    mouseUp({434, 142});  // The comparison is strict: 150 is rejected.
+    rightEndpoint = endpoints().second;
+    mouseDown(handPoint);
+    mouseUp({rightEndpoint.x + shortRadius, rightEndpoint.y});
     const bool shortChainBoundaryRejected = human_.size() == 1 && chain_.size() == 2;
 
     // An exact positional tie takes the right endpoint at $29B8-$29E0.
     prepare({{2, 3}, {3, 4}}, {{2, 4}});
-    mouseDown({20, 315});
-    mouseUp({256, 142});
+    std::tie(leftEndpoint, rightEndpoint) = endpoints();
+    const Point tiePoint{(leftEndpoint.x + rightEndpoint.x) / 2,
+                         leftEndpoint.y + distance(leftEndpoint, rightEndpoint)};
+    mouseDown(handPoint);
+    mouseUp(tiePoint);
     const bool tieChoosesRight = human_.empty() && chain_.size() == 3 &&
         chain_.back().left == 4 && chain_.back().right == 2;
 
     // For a wrapped chain, half the end-to-end separation is used and then
-    // clamped to sixty pixels. A nineteen-bone chain has ends 118 pixels apart.
+    // clamped to sixty source pixels (38 in the DOS coordinate space).
     std::vector<Tile> wrapped(19, Tile{2, 2});
     prepare(wrapped, {{2, 5}});
-    mouseDown({20, 315});
-    mouseUp({119, 142});  // 59 pixels from the left endpoint.
+    leftEndpoint = endpoints().first;
+    const int wrappedRadius = acceptanceDistance();
+    mouseDown(handPoint);
+    mouseUp({leftEndpoint.x + wrappedRadius - 1, leftEndpoint.y});
     const bool wrappedRadiusAccepted = human_.empty() && chain_.front().left == 5;
     prepare(std::move(wrapped), {{2, 5}});
-    mouseDown({20, 315});
-    mouseUp({120, 142});  // The clamped sixty-pixel boundary is rejected.
+    leftEndpoint = endpoints().first;
+    mouseDown(handPoint);
+    mouseUp({leftEndpoint.x + wrappedRadius, leftEndpoint.y});
     const bool wrappedBoundaryRejected = human_.size() == 1 && chain_.size() == 19;
 
     // At twenty-one bones the rendered ends overlap. The source ignores the
@@ -1157,12 +1198,13 @@ bool DominoesGame::sourceDragRegressionTest() {
     std::vector<Tile> overlapping(21, Tile{2, 2});
     overlapping.back() = {2, 4};
     prepare(std::move(overlapping), {{4, 5}});
-    mouseDown({20, 315});
-    mouseUp({60, 142});
+    leftEndpoint = endpoints().first;
+    mouseDown(handPoint);
+    mouseUp(leftEndpoint);
     const bool overlapUsesPips = human_.empty() && chain_.back().right == 5;
 
     prepare({{2, 3}, {3, 4}}, {{2, 5}});
-    mouseDown({20, 315});
+    mouseDown(handPoint);
     mouseCancel();
     const bool captureLossRestoresBone = draggedIndex_ < 0 && selected_ < 0 &&
         human_.size() == 1 && chain_.size() == 2;
@@ -1261,45 +1303,57 @@ void DominoesGame::drawTile(Canvas& canvas, const Tile& tile, Rect rect, bool se
     const bool vertical = rect.height() > rect.width();
     const Sprite& first = context_.graphics.sprite(3100, tile.left);
     const Sprite& second = context_.graphics.sprite(3100, tile.right);
+    const int half = dosEdition() ? 17 : 28;
     if (vertical) {
         canvas.sprite(first, rect.left, rect.top, false);
-        canvas.sprite(second, rect.left, rect.top + 28, false);
+        canvas.sprite(second, rect.left, rect.top + half, false);
     } else {
         canvas.sprite(first, rect.left, rect.top, false);
-        canvas.sprite(second, rect.left + 28, rect.top, false);
+        canvas.sprite(second, rect.left + half, rect.top, false);
     }
     if (selected) {
         canvas.outlineRect({rect.left, rect.top,
-                            rect.left + (vertical ? 28 : 56),
-                            rect.top + (vertical ? 56 : 28)}, rgb(255, 230, 0), 2);
+                            rect.left + (vertical ? half : half * 2),
+                            rect.top + (vertical ? half * 2 : half)},
+                           rgb(255, 230, 0), dosEdition() ? 1 : 2);
     }
 }
 
 Rect DominoesGame::chainTileRect(int index, int visible) const {
+    Rect result{};
     if (index < 8) {
         const int rowCount = std::min(visible, 8);
         const int startX = 256 - rowCount * 28;
-        return {startX + index * 56, 128, startX + (index + 1) * 56, 156};
+        result = {startX + index * 56, 128, startX + (index + 1) * 56, 156};
+    } else if (index < 11) {
+        result = {452, 156 + (index - 8) * 56, 480, 212 + (index - 8) * 56};
+    } else if (index < 19) {
+        result = {424 - (index - 11) * 56, 246,
+                  480 - (index - 11) * 56, 274};
+    } else if (index < 22) {
+        result = {32, 190 - (index - 19) * 56,
+                  60, 246 - (index - 19) * 56};
+    } else {
+        result = {60 + (index - 22) * 56, 72,
+                  116 + (index - 22) * 56, 100};
     }
-    if (index < 11) return {452, 156 + (index - 8) * 56, 480, 212 + (index - 8) * 56};
-    if (index < 19) return {424 - (index - 11) * 56, 246,
-                            480 - (index - 11) * 56, 274};
-    if (index < 22) return {32, 190 - (index - 19) * 56,
-                            60, 246 - (index - 19) * 56};
-    return {60 + (index - 22) * 56, 72, 116 + (index - 22) * 56, 100};
+    if (!dosEdition()) return result;
+    return {dosX(result.left), dosY(result.top), dosX(result.right), dosY(result.bottom)};
 }
 
 void DominoesGame::render(Canvas& canvas) {
     canvas.clear(rgb(0, 0, 0));
     drawBackground(canvas, 3001);
-    canvas.sprite(context_.graphics.sprite(3700), 3, 5, false);
+    canvas.sprite(context_.graphics.sprite(3700),
+                  dosEdition() ? 2 : 3, dosEdition() ? 3 : 5, false);
     if (characterChooser_ || !host_.render(canvas)) {
-        canvas.sprite(context_.graphics.sprite(10000), 19, 13, false);
+        canvas.sprite(context_.graphics.sprite(10000),
+                      dosEdition() ? 12 : 19, dosEdition() ? 7 : 13, false);
     }
     if (!characterChooser_ && computer_.size() <= 28) {
         canvas.sprite(context_.graphics.sprite(3701,
                                                 dealComplete_ ? static_cast<int>(computer_.size()) : 0),
-                      50, 77, false);
+                      dosEdition() ? 31 : 50, dosEdition() ? 40 : 77, false);
     }
     const int visible = characterChooser_ || !dealComplete_
                             ? 0 : std::min(30, static_cast<int>(chain_.size()));
@@ -1309,26 +1363,35 @@ void DominoesGame::render(Canvas& canvas) {
     }
     if (!characterChooser_ && dealComplete_) for (std::size_t index = 0; index < human_.size(); ++index) {
         if (static_cast<int>(index) == draggedIndex_) continue;
-        const int x = 7 + static_cast<int>(index) * 35;
-        drawTile(canvas, human_[index], {x, 289, x + 28, 345},
+        const int x = (dosEdition() ? 4 : 7) + static_cast<int>(index) *
+                      (dosEdition() ? 22 : 35);
+        drawTile(canvas, human_[index],
+                 {x, dosEdition() ? 151 : 289,
+                  x + (dosEdition() ? 17 : 28), dosEdition() ? 185 : 345},
                  selected_ == static_cast<int>(index));
     }
     if (!characterChooser_ && draggedIndex_ >= 0 &&
         draggedIndex_ < static_cast<int>(human_.size())) {
-        const int x = std::clamp(dragPoint_.x, 14, 498);
-        const int y = std::clamp(dragPoint_.y, 28, 330);
+        const int x = std::clamp(dragPoint_.x, dosEdition() ? 9 : 14,
+                                 dosEdition() ? 311 : 498);
+        const int y = std::clamp(dragPoint_.y, dosEdition() ? 15 : 28,
+                                 dosEdition() ? 172 : 330);
         drawTile(canvas, human_[static_cast<std::size_t>(draggedIndex_)],
-                 {x - 14, y - 28, x + 14, y + 28}, true);
+                 {x - (dosEdition() ? 9 : 14), y - (dosEdition() ? 17 : 28),
+                  x + (dosEdition() ? 8 : 14), y + (dosEdition() ? 17 : 28)}, true);
     }
-    if (!characterChooser_) canvas.sprite(context_.graphics.sprite(3100, 9), 478, 286, false);
+    if (!characterChooser_)
+        canvas.sprite(context_.graphics.sprite(3100, 9),
+                      dosEdition() ? 299 : 478, dosEdition() ? 149 : 286, false);
     if (!characterChooser_ && boneyard_.size() <= 28) {
         const Sprite& count = context_.graphics.sprite(
             3701, dealComplete_ ? static_cast<int>(boneyard_.size()) : 28);
-        canvas.sprite(count, 494 - count.width / 2, 332, false);
+        canvas.sprite(count, (dosEdition() ? 309 : 494) - count.width / 2,
+                      dosEdition() ? 173 : 332, false);
     }
     canvas.pakText(context_.graphics,
                    characterChooser_ ? L"Do you want to play as a Yoshi, or as a Koopa?" : status_,
-                   224, {5, 359, 507, 383});
+                   224, dosEdition() ? Rect{3, 188, 317, 200} : Rect{5, 359, 507, 383});
 }
 
 }  // namespace mf

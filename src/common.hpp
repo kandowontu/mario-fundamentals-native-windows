@@ -18,6 +18,13 @@ namespace mf {
 
 constexpr int kLogicalWidth = 512;
 constexpr int kLogicalHeight = 384;
+constexpr int kDosLogicalWidth = 320;
+constexpr int kDosLogicalHeight = 200;
+
+enum class AssetDialect {
+    Macintosh,
+    Dos,
+};
 
 struct Point {
     int x{};
@@ -52,6 +59,23 @@ inline std::uint32_t readBe32(std::span<const std::uint8_t> data, std::size_t of
            (static_cast<std::uint32_t>(data[offset + 1]) << 16U) |
            (static_cast<std::uint32_t>(data[offset + 2]) << 8U) |
            static_cast<std::uint32_t>(data[offset + 3]);
+}
+
+inline std::uint16_t readLe16(std::span<const std::uint8_t> data, std::size_t offset) {
+    if (offset + 2 > data.size()) throw std::runtime_error("truncated little-endian word");
+    return static_cast<std::uint16_t>(data[offset] | data[offset + 1] << 8U);
+}
+
+inline std::int16_t readLeS16(std::span<const std::uint8_t> data, std::size_t offset) {
+    return static_cast<std::int16_t>(readLe16(data, offset));
+}
+
+inline std::uint32_t readLe32(std::span<const std::uint8_t> data, std::size_t offset) {
+    if (offset + 4 > data.size()) throw std::runtime_error("truncated little-endian long");
+    return static_cast<std::uint32_t>(data[offset]) |
+           static_cast<std::uint32_t>(data[offset + 1]) << 8U |
+           static_cast<std::uint32_t>(data[offset + 2]) << 16U |
+           static_cast<std::uint32_t>(data[offset + 3]) << 24U;
 }
 
 inline constexpr std::uint32_t rgb(std::uint8_t red, std::uint8_t green, std::uint8_t blue) {

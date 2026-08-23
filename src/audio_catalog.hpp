@@ -11,6 +11,12 @@ inline constexpr int kMenuMusic = 900;
 inline constexpr std::array<int, 5> kPrimaryGameMusic{910, 904, 912, 906, 908};
 inline constexpr std::array<int, 5> kPlayerWinMusic{911, 905, 913, 907, 909};
 
+// The DOS PRS stores the SONG/XMI IDs directly rather than separate 900-series
+// Midi resource IDs.
+inline constexpr int kDosMenuMusic = 130;
+inline constexpr std::array<int, 5> kDosPrimaryGameMusic{140, 134, 142, 136, 138};
+inline constexpr std::array<int, 5> kDosPlayerWinMusic{141, 135, 143, 137, 139};
+
 // CODE 12 $1B74 starts these directly rather than through a movie timeline.
 inline constexpr int kBrainstormSound = 8038;
 inline constexpr int kSteppingStoneSound = 8042;

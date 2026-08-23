@@ -7,18 +7,28 @@ namespace mf {
 Movie::Movie(const AssetStore& assets, int resourceId) : id_(resourceId) {
     const auto header = assets.get("MuV ", id_);
     if (header.size() < 44) throw std::runtime_error("MuV header is truncated");
+    const bool dos = assets.dialect() == AssetDialect::Dos;
+    const auto word = [dos](std::span<const std::uint8_t> data, std::size_t offset) {
+        return dos ? readLe16(data, offset) : readBe16(data, offset);
+    };
+    const auto signedWord = [dos](std::span<const std::uint8_t> data, std::size_t offset) {
+        return dos ? readLeS16(data, offset) : readBeS16(data, offset);
+    };
+    const auto longWord = [dos](std::span<const std::uint8_t> data, std::size_t offset) {
+        return dos ? readLe32(data, offset) : readBe32(data, offset);
+    };
     // QuickDraw stores point/extent pairs in vertical, horizontal order.
     // Treating these fields as x, y displaced every registered movie and also
     // turned the Yacht hull's authored horizontal frame offsets into vertical
     // jumps.
-    originY_ = readBeS16(header, 2);
-    originX_ = readBeS16(header, 4);
-    height_ = readBe16(header, 10);
-    width_ = readBe16(header, 12);
-    duration_ = readBe32(header, 14);
-    timeScale_ = readBe16(header, 18);
-    tickDuration_ = readBe16(header, 20);
-    const std::size_t commandCount = readBe16(header, 22);
+    originY_ = signedWord(header, 2);
+    originX_ = signedWord(header, 4);
+    height_ = word(header, 10);
+    width_ = word(header, 12);
+    duration_ = longWord(header, 14);
+    timeScale_ = word(header, 18);
+    tickDuration_ = word(header, 20);
+    const std::size_t commandCount = word(header, 22);
     imageSheetId_ = id_ < 10000 ? id_ : id_ / 1000 * 1000;
 
     const auto imageData = assets.get("Img ", imageSheetId_);
@@ -26,10 +36,10 @@ Movie::Movie(const AssetStore& assets, int resourceId) : id_(resourceId) {
     images_.reserve(imageData.size() / 12);
     for (std::size_t offset = 0; offset < imageData.size(); offset += 12) {
         ImageRecord image;
-        image.yOffset = readBeS16(imageData, offset);
-        image.xOffset = readBeS16(imageData, offset + 2);
-        image.source = {readBeS16(imageData, offset + 6), readBeS16(imageData, offset + 4),
-                        readBeS16(imageData, offset + 10), readBeS16(imageData, offset + 8)};
+        image.yOffset = signedWord(imageData, offset);
+        image.xOffset = signedWord(imageData, offset + 2);
+        image.source = {signedWord(imageData, offset + 6), signedWord(imageData, offset + 4),
+                        signedWord(imageData, offset + 10), signedWord(imageData, offset + 8)};
         if (image.source.right < image.source.left || image.source.bottom < image.source.top) {
             throw std::runtime_error("Img source rectangle is inverted");
         }
@@ -44,12 +54,12 @@ Movie::Movie(const AssetStore& assets, int resourceId) : id_(resourceId) {
         Command command;
         command.opcode = timeline[offset];
         command.flags = timeline[offset + 1];
-        command.parameter = readBe16(timeline, offset + 2);
-        command.start = readBe32(timeline, offset + 4);
-        command.duration = readBe32(timeline, offset + 8);
+        command.parameter = word(timeline, offset + 2);
+        command.start = longWord(timeline, offset + 4);
+        command.duration = longWord(timeline, offset + 8);
         if (command.opcode == 5 || command.opcode == 6) {
-            command.offsetX = readBeS16(timeline, offset + 12);
-            command.offsetY = readBeS16(timeline, offset + 14);
+            command.offsetX = signedWord(timeline, offset + 12);
+            command.offsetY = signedWord(timeline, offset + 14);
         }
         if (command.opcode != 2 && command.opcode != 3 && command.opcode != 4 &&
             command.opcode != 5 && command.opcode != 6 && command.opcode != 7 &&

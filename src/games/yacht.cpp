@@ -920,7 +920,8 @@ bool YachtGame::tickOutcome() {
     case OutcomePhase::Announcement:
         if (host_.active()) return false;
         if (winner_ > 0 && winner_ != 2) {
-            context_.audio.playMusic(audio_catalog::kPlayerWinMusic[4]);
+            context_.audio.playMusic(dosEdition() ? audio_catalog::kDosPlayerWinMusic[4]
+                                                  : audio_catalog::kPlayerWinMusic[4]);
             showComputerDice_ = true;
             held_.fill(false);
             outcomeVisibleDiceCount_ = 0;
@@ -1198,15 +1199,28 @@ void YachtGame::click(Point point) {
         computerRerollStage_ != 0) return;
     if (rolls_ > 0 && rolls_ < 3) {
         for (int index = 0; index < 5; ++index) {
-            if (yachtDieRect(index, held_[static_cast<std::size_t>(index)]).contains(point)) {
+            Rect die = yachtDieRect(index, held_[static_cast<std::size_t>(index)]);
+            if (dosEdition()) {
+                die = {dosX(die.left), dosY(die.top), dosX(die.right), dosY(die.bottom)};
+            }
+            if (die.contains(point)) {
                 held_[index] = !held_[index];
                 context_.audio.playEffect(5028);
                 return;
             }
         }
     }
-    if (rollButton_.contains(point)) { roll(); return; }
-    if (const int category = yachtScoreCategoryAt(point); category >= 0)
+    const Rect rollButton = dosEdition()
+        ? Rect{dosX(rollButton_.left), dosY(rollButton_.top),
+               dosX(rollButton_.right), dosY(rollButton_.bottom)}
+        : rollButton_;
+    if (rollButton.contains(point)) { roll(); return; }
+    Point scorePoint = point;
+    if (dosEdition()) {
+        scorePoint = {point.x * kLogicalWidth / kDosLogicalWidth,
+                      point.y * kLogicalHeight / kDosLogicalHeight};
+    }
+    if (const int category = yachtScoreCategoryAt(scorePoint); category >= 0)
         scoreHuman(category);
 }
 
@@ -1214,19 +1228,22 @@ void YachtGame::render(Canvas& canvas) {
     canvas.clear(rgb(0, 0, 0));
     drawBackground(canvas, 6001);
     if (!gestureAnimation_.active()) {
-        canvas.sprite(context_.graphics.sprite(6021), 191, 18, false);
+        canvas.sprite(context_.graphics.sprite(6021),
+                      dosEdition() ? 119 : 191, dosEdition() ? 9 : 18, false);
         (void)host_.render(canvas);
     } else {
         (void)gestureAnimation_.render(canvas);
     }
-    canvas.sprite(context_.graphics.sprite(6012), 0, 0, false);
+    canvas.sprite(context_.graphics.sprite(6012),
+                  dosEdition() ? 128 : 0, dosEdition() ? 32 : 0, false);
     (void)rollAnimation_.render(canvas);
     if (openingDelayMilliseconds_ == 0 && !showComputerDice_ && rolls_ == 0 &&
         computerAttempt_ == 0 && computerRerollStage_ == 0 && !host_.active())
-        canvas.sprite(context_.graphics.sprite(6010, 12), 217, 166, false);
+        canvas.sprite(context_.graphics.sprite(6010, 12),
+                      dosEdition() ? 136 : 217, dosEdition() ? 86 : 166, false);
     canvas.pakText(context_.graphics,
                    context_.playerName.empty() ? L"PLAYER" : context_.playerName,
-                   226, {378, 20, 499, 47},
+                   226, dosEdition() ? Rect{236, 9, 313, 27} : Rect{378, 20, 499, 47},
                    DT_CENTER | DT_VCENTER | DT_SINGLELINE, 11);
     const bool computerSelectionVisible = computerAttempt_ > 0 && pendingRollPlayer_ == 0 &&
                                           !rollAnimation_.active();
@@ -1241,7 +1258,10 @@ void YachtGame::render(Canvas& canvas) {
         if (pendingRollPlayer_ != 0 && rerolled &&
             (rollAnimation_.active() || index >= settlingDieIndex_)) continue;
         const int frame = std::clamp(dice_[dieIndex] - 1 + (held_[dieIndex] ? 6 : 0), 0, 11);
-        const Rect rect = yachtDieRect(index, held_[dieIndex]);
+        Rect rect = yachtDieRect(index, held_[dieIndex]);
+        if (dosEdition()) {
+            rect = {dosX(rect.left), dosY(rect.top), dosX(rect.right), dosY(rect.bottom)};
+        }
         canvas.sprite(context_.graphics.sprite(6010, frame), rect.left, rect.top, false);
     }
     if (introPhase_ == IntroPhase::Complete && !winner_) {
@@ -1251,11 +1271,15 @@ void YachtGame::render(Canvas& canvas) {
             const int remaining = yachtRemainingRollMarkers(
                 computerAttempt_, pendingRollPlayer_ < 0);
             for (int index = 0; index < remaining; ++index)
-                canvas.sprite(context_.graphics.sprite(6010, 13), 147 + 27 * index, 182, false);
+                canvas.sprite(context_.graphics.sprite(6010, 13),
+                              (dosEdition() ? 92 : 147) + (dosEdition() ? 17 : 27) * index,
+                              dosEdition() ? 95 : 182, false);
         } else if (!computerTurn) {
             const int remaining = yachtRemainingRollMarkers(rolls_, pendingRollPlayer_ > 0);
             for (int index = 0; index < remaining; ++index)
-                canvas.sprite(context_.graphics.sprite(6010, 14), 409 + 33 * index, 328, false);
+                canvas.sprite(context_.graphics.sprite(6010, 14),
+                              (dosEdition() ? 256 : 409) + (dosEdition() ? 20 : 33) * index,
+                              dosEdition() ? 171 : 328, false);
         }
     }
     (void)outcomeAnimation_.render(canvas);
@@ -1263,18 +1287,23 @@ void YachtGame::render(Canvas& canvas) {
         const int row = 11 - category;
         // $30EE stores the score baseline at 60 + 20*row.  A 20-pixel
         // native row preserves that source pitch without accumulating drift.
-        const int top = 52 + row * kPlayerScoreLineHeight;
+        const int top = dosEdition() ? 27 + row * 12 : 52 + row * kPlayerScoreLineHeight;
         const auto show = [](int value) { return value < 0 ? std::wstring() : std::to_wstring(value); };
         canvas.pakText(context_.graphics, show(computerScores_[category]), 226,
-                       {109, top, 135, top + 18});
+                       dosEdition() ? Rect{68, top, 98, top + 10}
+                                    : Rect{109, top, 135, top + 18});
         canvas.pakText(context_.graphics, show(humanScores_[category]), 226,
-                       {475, top, 502, top + 18});
+                       dosEdition() ? Rect{290, top, 317, top + 10}
+                                    : Rect{475, top, 502, top + 18});
     }
     canvas.pakText(context_.graphics, std::to_wstring(total(computerScores_)), 226,
-                   {91, 289, 135, 313}, DT_RIGHT | DT_VCENTER | DT_SINGLELINE);
+                   dosEdition() ? Rect{57, 151, 98, 163} : Rect{91, 289, 135, 313},
+                   DT_RIGHT | DT_VCENTER | DT_SINGLELINE);
     canvas.pakText(context_.graphics, std::to_wstring(total(humanScores_)), 226,
-                   {458, 289, 502, 313}, DT_RIGHT | DT_VCENTER | DT_SINGLELINE);
-    canvas.pakText(context_.graphics, status_, 224, {5, 359, 507, 383});
+                   dosEdition() ? Rect{286, 151, 317, 163} : Rect{458, 289, 502, 313},
+                   DT_RIGHT | DT_VCENTER | DT_SINGLELINE);
+    canvas.pakText(context_.graphics, status_, 224,
+                   dosEdition() ? Rect{3, 188, 317, 200} : Rect{5, 359, 507, 383});
 }
 
 }  // namespace mf

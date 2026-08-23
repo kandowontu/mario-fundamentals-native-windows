@@ -54,7 +54,7 @@ private:
     static void addHumanRankToSlots(HumanHandSlots& slots, int rank, int count = 1);
     static void clearHumanRankFromSlots(HumanHandSlots& slots, int rank);
     static void consolidateOpeningSlots(HumanHandSlots& slots);
-    [[nodiscard]] static int humanRankAtPoint(const HumanHandSlots& slots, Point point);
+    [[nodiscard]] int humanRankAtPoint(const HumanHandSlots& slots, Point point) const;
     void ask(bool human, int rank);
     void computerTurn();
     [[nodiscard]] int chooseComputerRank();

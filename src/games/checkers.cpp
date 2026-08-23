@@ -361,7 +361,8 @@ bool CheckersGame::tickOutcome() {
             return true;
         }
         selected_ = continuation_ = -1;
-        context_.audio.playMusic(audio_catalog::kPlayerWinMusic[2]);
+        context_.audio.playMusic(dosEdition() ? audio_catalog::kDosPlayerWinMusic[2]
+                                              : audio_catalog::kPlayerWinMusic[2]);
         outcomeDelayTicks_ = 6;
         outcomePhase_ = OutcomePhase::PreReplayDelay;
         return true;
@@ -612,6 +613,16 @@ bool CheckersGame::tick() {
 Point CheckersGame::squareCenter(int square) const {
     const int row = square / 8;
     const int column = square % 8;
+    if (dosEdition()) {
+        const double yTop = 96.0 + row * 11.5;
+        const double yMiddle = yTop + 5.75;
+        const double progress = (yMiddle - 96.0) / 92.0;
+        const double left = 34.0 - 33.0 * progress;
+        const double right = 286.0 + 33.0 * progress;
+        const double width = (right - left) / 8.0;
+        return {static_cast<int>(left + (column + 0.5) * width),
+                static_cast<int>(yMiddle)};
+    }
     const double yTop = 186.0 + row * 21.5;
     const double yMiddle = yTop + 10.75;
     const double progress = (yMiddle - 186.0) / 172.0;
@@ -623,6 +634,17 @@ Point CheckersGame::squareCenter(int square) const {
 }
 
 int CheckersGame::hitSquare(Point point) const {
+    if (dosEdition()) {
+        if (point.y < 96 || point.y >= 188) return -1;
+        const int row = std::clamp((point.y - 96) * 8 / 92, 0, 7);
+        const double progress = (point.y - 96.0) / 92.0;
+        const double left = 34.0 - 33.0 * progress;
+        const double right = 286.0 + 33.0 * progress;
+        if (point.x < left || point.x >= right) return -1;
+        const int column = std::clamp(
+            static_cast<int>((point.x - left) * 8.0 / (right - left)), 0, 7);
+        return row * 8 + column;
+    }
     if (point.y < 186 || point.y >= 358) return -1;
     const int row = std::clamp((point.y - 186) * 8 / 172, 0, 7);
     const double progress = (point.y - 186.0) / 172.0;
@@ -832,11 +854,12 @@ void CheckersGame::setQaOutcomePresentation(int outcomeVariant) {
 void CheckersGame::render(Canvas& canvas) {
     canvas.clear(rgb(0, 0, 0));
     drawBackground(canvas, 2999);
-    canvas.sprite(context_.graphics.sprite(9000), 165, 18, false);
+    canvas.sprite(context_.graphics.sprite(9000),
+                  dosEdition() ? 103 : 165, dosEdition() ? 9 : 18, false);
     if (!characterChooser_) (void)host_.render(canvas);
     canvas.pakText(context_.graphics,
                    context_.playerName.empty() ? L"PLAYER" : context_.playerName,
-                   226, {351, 23, 495, 48},
+                   226, dosEdition() ? Rect{219, 10, 313, 27} : Rect{351, 23, 495, 48},
                    DT_CENTER | DT_VCENTER | DT_SINGLELINE, 11);
     if (!characterChooser_) {
         for (int index = 0; index < 64; ++index) {
@@ -845,10 +868,15 @@ void CheckersGame::render(Canvas& canvas) {
             const Point center = squareCenter(index);
             const int frame = pieceFrame(piece);
             const Sprite& sprite = context_.graphics.sprite(2501, frame);
-            canvas.sprite(sprite, center.x - sprite.width / 2, center.y - sprite.height + 13, false);
+            canvas.sprite(sprite, center.x - sprite.width / 2,
+                          center.y - sprite.height + (dosEdition() ? 7 : 13), false);
             if (index == selected_) {
-                canvas.outlineRect({center.x - 20, center.y - 24, center.x + 20, center.y + 15},
-                                   rgb(255, 255, 0), 2);
+                const int halfWidth = dosEdition() ? 10 : 20;
+                const int top = dosEdition() ? 12 : 24;
+                const int bottom = dosEdition() ? 8 : 15;
+                canvas.outlineRect({center.x - halfWidth, center.y - top,
+                                    center.x + halfWidth, center.y + bottom},
+                                   rgb(255, 255, 0), dosEdition() ? 1 : 2);
             }
         }
         if (pieceAnimation_.active) {
@@ -858,16 +886,19 @@ void CheckersGame::render(Canvas& canvas) {
             const int x = from.x + (to.x - from.x) * static_cast<int>(elapsed) / 330;
             const int y = from.y + (to.y - from.y) * static_cast<int>(elapsed) / 330;
             const Sprite& sprite = context_.graphics.sprite(2501, pieceFrame(pieceAnimation_.piece));
-            canvas.sprite(sprite, x - sprite.width / 2, y - sprite.height + 13, false);
+            canvas.sprite(sprite, x - sprite.width / 2,
+                          y - sprite.height + (dosEdition() ? 7 : 13), false);
         }
         const int marioPortrait = context_.playerIsYoshi ? 13 : 12;
         const int playerPortrait = context_.playerIsYoshi ? 12 : 13;
-        canvas.sprite(context_.graphics.sprite(2501, marioPortrait), 16, 51, false);
-        canvas.sprite(context_.graphics.sprite(2501, playerPortrait), 449, 51, false);
+        canvas.sprite(context_.graphics.sprite(2501, marioPortrait),
+                      dosEdition() ? 8 : 16, dosEdition() ? 25 : 51, false);
+        canvas.sprite(context_.graphics.sprite(2501, playerPortrait),
+                      dosEdition() ? 281 : 449, dosEdition() ? 25 : 51, false);
     }
     canvas.pakText(context_.graphics,
                    characterChooser_ ? L"Do you want to play as a Yoshi, or as a Koopa?" : status_,
-                   224, {5, 359, 507, 383});
+                   224, dosEdition() ? Rect{3, 188, 317, 200} : Rect{5, 359, 507, 383});
 }
 
 int CheckersGame::pieceFrame(int piece) const {

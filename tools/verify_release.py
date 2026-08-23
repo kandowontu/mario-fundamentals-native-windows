@@ -30,6 +30,9 @@ FORBIDDEN_RUNTIME_DLLS = {
 FORBIDDEN_ARTIFACT_TEXT = (
     "MarioFundamentals.img",
     "MarioFundamentals.pack",
+    "MarioGameGallery.pack",
+    "MARIO.PRD",
+    "MARIO.PRS",
     "C:\\Users\\kando",
     "/Users/kando",
 )
@@ -57,6 +60,7 @@ def c_string(data: bytes, offset: int) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("executable", type=Path)
+    parser.add_argument("--asset-pack", action="append", default=[], type=Path)
     parser.add_argument("--report", type=Path)
     args = parser.parse_args()
 
@@ -140,6 +144,22 @@ def main() -> None:
     if found_strings:
         fail("release contains build/source artifact paths: " + ", ".join(found_strings))
 
+    embedded_asset_packs = []
+    for path in args.asset_pack:
+        pack = path.read_bytes()
+        offset = data.find(pack)
+        if offset < 0 or data.find(pack, offset + 1) >= 0:
+            fail(f"release does not contain exactly one byte-identical copy of {path.name}")
+        embedded_asset_packs.append(
+            {
+                "name": path.name,
+                "bytes": len(pack),
+                "sha256": hashlib.sha256(pack).hexdigest().upper(),
+                "executable_offset": offset,
+                "exact_occurrences_in_executable": 1,
+            }
+        )
+
     report = {
         "status": "PASS",
         "executable": str(args.executable),
@@ -156,12 +176,14 @@ def main() -> None:
         "dependency_classification": "Windows system DLLs/API-set contracts only",
         "redistributable_compiler_runtime_dlls": [],
         "source_artifact_strings": [],
+        "embedded_asset_packs": embedded_asset_packs,
     }
     if args.report:
         args.report.parent.mkdir(parents=True, exist_ok=True)
         args.report.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(
         f"PASS amd64-gui imports={len(imports)} compiler_runtime_dlls=0 "
+        f"asset_packs={len(embedded_asset_packs)} "
         f"sha256={report['sha256']}"
     )
 

@@ -67,7 +67,34 @@ void Audio::closeMusicOutput() {
     midiOutput_ = nullptr;
 }
 
-std::vector<std::uint8_t> Audio::makeWave(std::span<const std::uint8_t> sound) {
+std::vector<std::uint8_t> Audio::makeWave(std::span<const std::uint8_t> sound,
+                                          AssetDialect dialect) {
+    if (dialect == AssetDialect::Dos) {
+        if (sound.size() < 6) throw std::runtime_error("DOS sound resource is truncated");
+        const std::uint16_t encoding = readLe16(sound, 0);
+        const std::uint32_t sampleCount = readLe16(sound, 2);
+        const std::uint32_t sampleRate = readLe16(sound, 4);
+        if (encoding != 3 || !sampleRate || sampleCount + 6U != sound.size()) {
+            throw std::runtime_error("unsupported DOS sound resource");
+        }
+        std::vector<std::uint8_t> wave;
+        wave.reserve(44 + sampleCount + 1);
+        wave.insert(wave.end(), {'R', 'I', 'F', 'F'});
+        appendLe32(wave, 36 + sampleCount + (sampleCount & 1U));
+        wave.insert(wave.end(), {'W', 'A', 'V', 'E', 'f', 'm', 't', ' '});
+        appendLe32(wave, 16);
+        appendLe16(wave, 1);
+        appendLe16(wave, 1);
+        appendLe32(wave, sampleRate);
+        appendLe32(wave, sampleRate);
+        appendLe16(wave, 1);
+        appendLe16(wave, 8);
+        wave.insert(wave.end(), {'d', 'a', 't', 'a'});
+        appendLe32(wave, sampleCount);
+        wave.insert(wave.end(), sound.begin() + 6, sound.end());
+        if (sampleCount & 1U) wave.push_back(0);
+        return wave;
+    }
     if (sound.size() < 36) throw std::runtime_error("sound resource is truncated");
     const auto format = readBe16(sound, 0);
     std::size_t commandCountOffset{};
@@ -118,10 +145,13 @@ bool Audio::playEffect(int resourceId) {
 }
 
 bool Audio::startVoice(int resourceId, bool tracked) {
-    if (!soundEnabled_ || !assets_.contains("snd ", resourceId)) return false;
+    const std::string_view type =
+        assets_.dialect() == AssetDialect::Dos ? std::string_view("SND ")
+                                               : std::string_view("snd ");
+    if (!soundEnabled_ || !assets_.contains(type, resourceId)) return false;
     try {
         auto voice = std::make_unique<Voice>();
-        voice->wave = makeWave(assets_.get("snd ", resourceId));
+        voice->wave = makeWave(assets_.get(type, resourceId), assets_.dialect());
         const std::uint32_t sampleRate = static_cast<std::uint32_t>(voice->wave[24]) |
                                          static_cast<std::uint32_t>(voice->wave[25]) << 8U |
                                          static_cast<std::uint32_t>(voice->wave[26]) << 16U |
@@ -261,14 +291,116 @@ Audio::MidiSequence Audio::parseMidi(std::span<const std::uint8_t> midi) {
     return result;
 }
 
+Audio::MidiSequence Audio::parseXmi(std::span<const std::uint8_t> xmi) {
+    if (xmi.size() < 32 || readBe32(xmi, 0) != 0x464F524DU ||
+        readBe32(xmi, 8) != 0x58444952U) {
+        throw std::runtime_error("unsupported XMI container");
+    }
+    std::size_t eventChunk = std::string_view(
+        reinterpret_cast<const char*>(xmi.data()), xmi.size()).find("EVNT");
+    if (eventChunk == std::string_view::npos || eventChunk + 8 > xmi.size()) {
+        throw std::runtime_error("XMI event chunk is absent");
+    }
+    const std::size_t eventEnd = eventChunk + 8ULL + readBe32(xmi, eventChunk + 4);
+    if (eventEnd > xmi.size()) throw std::runtime_error("truncated XMI event chunk");
+
+    struct TickEvent {
+        std::uint64_t tick{};
+        std::uint32_t message{};
+        std::size_t order{};
+    };
+    std::vector<TickEvent> tickEvents;
+    std::size_t position = eventChunk + 8;
+    std::uint64_t tick = 0;
+    std::size_t order = 0;
+    while (position < eventEnd) {
+        while (position < eventEnd && xmi[position] < 0x80U) tick += xmi[position++];
+        if (position >= eventEnd) break;
+        const std::uint8_t status = xmi[position++];
+        if (status == 0xFFU) {
+            if (position >= eventEnd) throw std::runtime_error("truncated XMI meta event");
+            const std::uint8_t type = xmi[position++];
+            const std::size_t length = readVariable(xmi, position, eventEnd);
+            if (position + length > eventEnd) throw std::runtime_error("truncated XMI meta payload");
+            position += length;
+            if (type == 0x2FU) break;
+            continue;
+        }
+        if (status == 0xF0U || status == 0xF7U) {
+            const std::size_t length = readVariable(xmi, position, eventEnd);
+            if (position + length > eventEnd) throw std::runtime_error("truncated XMI system event");
+            position += length;
+            continue;
+        }
+        if (status < 0x80U || status >= 0xF0U) {
+            throw std::runtime_error("unsupported XMI status byte");
+        }
+        const int dataCount = (status & 0xE0U) == 0xC0U ? 1 : 2;
+        if (position + static_cast<std::size_t>(dataCount) > eventEnd) {
+            throw std::runtime_error("truncated XMI channel event");
+        }
+        const std::uint8_t data1 = xmi[position++];
+        const std::uint8_t data2 = dataCount == 2 ? xmi[position++] : 0;
+        if (data1 & 0x80U || data2 & 0x80U) throw std::runtime_error("invalid XMI data byte");
+        tickEvents.push_back(
+            {tick, static_cast<std::uint32_t>(status) |
+                       static_cast<std::uint32_t>(data1) << 8U |
+                       static_cast<std::uint32_t>(data2) << 16U,
+             order++});
+        if ((status & 0xF0U) == 0x90U) {
+            const std::uint32_t duration = readVariable(xmi, position, eventEnd);
+            if (data2 != 0) {
+                tickEvents.push_back(
+                    {tick + duration,
+                     static_cast<std::uint32_t>(0x80U | (status & 0x0FU)) |
+                         static_cast<std::uint32_t>(data1) << 8U,
+                     order++});
+            }
+        }
+    }
+    if (tickEvents.empty()) throw std::runtime_error("XMI sequence has no channel events");
+    std::stable_sort(tickEvents.begin(), tickEvents.end(), [](const TickEvent& left,
+                                                               const TickEvent& right) {
+        if (left.tick != right.tick) return left.tick < right.tick;
+        return left.order < right.order;
+    });
+    // Miles XMIDI delta units are fixed at 120 Hz.  The reference parser
+    // represents this as 60 PPQN at a forced 500,000 us/qn and deliberately
+    // ignores authored tempo meta-events.  Treating those values as ordinary
+    // SMF tempo changes makes several shipped songs run 20-40 percent slow.
+    constexpr std::uint32_t division = 60;
+    constexpr std::uint32_t microsecondsPerQuarter = 500000;
+    auto tickToMicroseconds = [](std::uint64_t target) {
+        return target * microsecondsPerQuarter / division;
+    };
+
+    MidiSequence result;
+    result.events.reserve(tickEvents.size());
+    for (const TickEvent& event : tickEvents) {
+        result.events.push_back({tickToMicroseconds(event.tick) / 1000U, event.message});
+    }
+    result.durationMilliseconds = tickToMicroseconds(tickEvents.back().tick) / 1000U + 1U;
+    return result;
+}
+
+Audio::MidiSequence Audio::parseMusic(int resourceId) const {
+    if (assets_.dialect() == AssetDialect::Dos) {
+        return parseXmi(assets_.get("XMI ", resourceId));
+    }
+    return parseMidi(assets_.get("Midi", resourceId));
+}
+
 bool Audio::playMusic(int resourceId, bool loop) {
-    if (!assets_.contains("Midi", resourceId)) return false;
+    const std::string_view type =
+        assets_.dialect() == AssetDialect::Dos ? std::string_view("XMI ")
+                                               : std::string_view("Midi");
+    if (!assets_.contains(type, resourceId)) return false;
     requestedMusicResourceId_ = resourceId;
     requestedMusicLoop_ = loop;
     if (!musicEnabled_) return false;
     if (midiOutput_ && activeMusicResourceId_ == resourceId && midiLoop_ == loop) return true;
     try {
-        MidiSequence sequence = parseMidi(assets_.get("Midi", resourceId));
+        MidiSequence sequence = parseMusic(resourceId);
         stopMusicOutput();
         midiEvents_ = std::move(sequence.events);
         midiDuration_ = sequence.durationMilliseconds;
@@ -336,11 +468,18 @@ void Audio::stopMusicOutput() {
 }
 
 std::size_t Audio::midiEventCount(int resourceId) const {
-    return parseMidi(assets_.get("Midi", resourceId)).events.size();
+    return parseMusic(resourceId).events.size();
+}
+
+std::uint64_t Audio::midiDurationMilliseconds(int resourceId) const {
+    return parseMusic(resourceId).durationMilliseconds;
 }
 
 std::size_t Audio::soundWaveSize(int resourceId) const {
-    return makeWave(assets_.get("snd ", resourceId)).size();
+    const std::string_view type =
+        assets_.dialect() == AssetDialect::Dos ? std::string_view("SND ")
+                                               : std::string_view("snd ");
+    return makeWave(assets_.get(type, resourceId), assets_.dialect()).size();
 }
 
 void Audio::setEnabled(bool enabled) {

@@ -298,12 +298,20 @@ void GoFishGame::clearHumanRankDisplay(int value) {
     clearHumanRankFromSlots(humanHandSlots_, value);
 }
 
-int GoFishGame::humanRankAtPoint(const HumanHandSlots& slots, Point point) {
+int GoFishGame::humanRankAtPoint(const HumanHandSlots& slots, Point point) const {
     for (std::size_t index = 0; index < slots.size(); ++index) {
         if (slots[index].count == 0) continue;
-        const Point position = humanSlotPositions[index];
-        if (Rect{position.x, position.y, position.x + humanCardWidth,
-                 position.y + humanCardHeight}.contains(point)) {
+        Point position = humanSlotPositions[index];
+        int width = humanCardWidth;
+        int height = humanCardHeight;
+        if (dosEdition()) {
+            position = {dosX(position.x), dosY(position.y)};
+            const Sprite& card = context_.graphics.sprite(5005, 0);
+            width = card.width;
+            height = card.height;
+        }
+        if (Rect{position.x, position.y, position.x + width,
+                 position.y + height}.contains(point)) {
             return slots[index].rank;
         }
     }
@@ -518,11 +526,26 @@ bool GoFishGame::sourceHandSlotRegressionTest() const {
         humanSlotPositions[6].x != 45 || humanSlotPositions[6].y != 281 ||
         humanSlotPositions[7].x != 133 || humanSlotPositions[7].y != 200 ||
         humanSlotPositions[12].x != 74 || humanSlotPositions[12].y != 200) return false;
-    if (humanRankAtPoint(slots, {133, 200}) != 7 ||
-        humanRankAtPoint(slots, {186, 275}) != 7 ||
-        humanRankAtPoint(slots, {187, 275}) != -1) return false;
+    const auto cardRect = [this](std::size_t index) {
+        Point position = humanSlotPositions[index];
+        int width = humanCardWidth;
+        int height = humanCardHeight;
+        if (dosEdition()) {
+            position = {dosX(position.x), dosY(position.y)};
+            const Sprite& card = context_.graphics.sprite(5005, 0);
+            width = card.width;
+            height = card.height;
+        }
+        return Rect{position.x, position.y, position.x + width,
+                    position.y + height};
+    };
+    const Rect overflowCard = cardRect(7);
+    if (humanRankAtPoint(slots, {overflowCard.left, overflowCard.top}) != 7 ||
+        humanRankAtPoint(slots, {overflowCard.right - 1, overflowCard.bottom - 1}) != 7 ||
+        humanRankAtPoint(slots, {overflowCard.right, overflowCard.bottom - 1}) != -1) return false;
     clearHumanRankFromSlots(slots, 2);
-    return humanRankAtPoint(slots, {222, 281}) == -1;
+    const Rect clearedCard = cardRect(2);
+    return humanRankAtPoint(slots, {clearedCard.left, clearedCard.top}) == -1;
 }
 
 void GoFishGame::ask(bool human, int requestedRank) {
@@ -770,7 +793,8 @@ bool GoFishGame::tickOutcome() {
         if (outcomeDelayTicks_-- > 0) return true;
         if (!victoryMusicStarted_) {
             // $2150 switches to SONG 137 before the fourteen-tick first-card transit.
-            context_.audio.playMusic(audio_catalog::kPlayerWinMusic[3]);
+            context_.audio.playMusic(dosEdition() ? audio_catalog::kDosPlayerWinMusic[3]
+                                                  : audio_catalog::kPlayerWinMusic[3]);
             victoryMusicStarted_ = true;
             outcomeDelayTicks_ = 14;
             return true;
@@ -926,21 +950,29 @@ void GoFishGame::render(Canvas& canvas) {
     // Pak 5300 is the fixed torso/hand layer.  The source composites the live
     // 11000/5090 head actor over it; drawing the torso afterward covered the
     // lower face with its red collar and looked like a duplicated head.
-    canvas.sprite(context_.graphics.sprite(5300), 191, 100, false);
-    if (!host_.render(canvas)) canvas.sprite(context_.graphics.sprite(5090), 202, 18, false);
-    canvas.sprite(context_.graphics.sprite(5100), 347, 170, false);
+    canvas.sprite(context_.graphics.sprite(5300),
+                  dosEdition() ? 119 : 191, dosEdition() ? 52 : 100, false);
+    if (!host_.render(canvas))
+        canvas.sprite(context_.graphics.sprite(5090),
+                      dosEdition() ? 126 : 202, dosEdition() ? 9 : 18, false);
+    canvas.sprite(context_.graphics.sprite(5100),
+                  dosEdition() ? 217 : 347, dosEdition() ? 89 : 170, false);
     canvas.pakText(context_.graphics,
                    context_.playerName.empty() ? L"MY FRIEND" : context_.playerName,
-                   223, {360, 22, 499, 47},
+                   223, dosEdition() ? Rect{225, 10, 313, 27} : Rect{360, 22, 499, 47},
                    DT_CENTER | DT_VCENTER | DT_SINGLELINE, 11);
     canvas.pakText(context_.graphics, std::to_wstring(computerBooks_), 223,
-                   {104, 54, 151, 77}, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+                   dosEdition() ? Rect{65, 28, 94, 41} : Rect{104, 54, 151, 77},
+                   DT_LEFT | DT_VCENTER | DT_SINGLELINE);
     canvas.pakText(context_.graphics, std::to_wstring(computer_.size()), 223,
-                   {104, 78, 151, 101}, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+                   dosEdition() ? Rect{65, 41, 94, 54} : Rect{104, 78, 151, 101},
+                   DT_LEFT | DT_VCENTER | DT_SINGLELINE);
     canvas.pakText(context_.graphics, std::to_wstring(humanBooks_), 223,
-                   {451, 54, 498, 77}, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+                   dosEdition() ? Rect{282, 28, 312, 41} : Rect{451, 54, 498, 77},
+                   DT_LEFT | DT_VCENTER | DT_SINGLELINE);
     canvas.pakText(context_.graphics, std::to_wstring(human_.size()), 223,
-                   {451, 78, 498, 101}, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+                   dosEdition() ? Rect{282, 41, 312, 54} : Rect{451, 78, 498, 101},
+                   DT_LEFT | DT_VCENTER | DT_SINGLELINE);
     const bool victoryPresentation = winner_ == 1 &&
         outcomePhase_ != OutcomePhase::Announcement &&
         outcomePhase_ != OutcomePhase::None;
@@ -951,7 +983,8 @@ void GoFishGame::render(Canvas& canvas) {
         for (int index = 0; index < visibleDeals; ++index) {
             const int value = openingHumanRanks_[static_cast<std::size_t>(index)];
             if (value < 0) continue;
-            const Point position = humanSlotPositions[static_cast<std::size_t>(index)];
+            Point position = humanSlotPositions[static_cast<std::size_t>(index)];
+            if (dosEdition()) position = {dosX(position.x), dosY(position.y)};
             canvas.sprite(context_.graphics.sprite(5005, value), position.x, position.y, false);
             // CODE 17 $3416/$349A/$3588/$36EC selects Pak 5006 frames
             // zero through three for counts one through four. These are the
@@ -963,7 +996,8 @@ void GoFishGame::render(Canvas& canvas) {
         for (std::size_t index = 0; index < humanHandSlots_.size(); ++index) {
             const HumanHandSlot& slot = humanHandSlots_[index];
             if (slot.count == 0) continue;
-            const Point position = humanSlotPositions[index];
+            Point position = humanSlotPositions[index];
+            if (dosEdition()) position = {dosX(position.x), dosY(position.y)};
             canvas.sprite(context_.graphics.sprite(5005, slot.rank), position.x, position.y, false);
             canvas.sprite(context_.graphics.sprite(5006, std::clamp(slot.count, 1, 4) - 1),
                           position.x, position.y, false);
@@ -971,15 +1005,17 @@ void GoFishGame::render(Canvas& canvas) {
     }
     if (!victoryPresentation && pendingComputerRank_ >= 0) {
         // Pak 5007 is the original small question card Mario holds beside his head.
-        canvas.sprite(context_.graphics.sprite(5007, pendingComputerRank_), 181, 34, false);
+        canvas.sprite(context_.graphics.sprite(5007, pendingComputerRank_),
+                      dosEdition() ? 113 : 181, dosEdition() ? 18 : 34, false);
     }
     for (int index = 0; index < victoryLetterCount_; ++index) {
-        canvas.sprite(context_.graphics.sprite(5211, index),
-                      victoryLetterPositions[static_cast<std::size_t>(index)].x,
-                      victoryLetterPositions[static_cast<std::size_t>(index)].y, false);
+        Point position = victoryLetterPositions[static_cast<std::size_t>(index)];
+        if (dosEdition()) position = {dosX(position.x), dosY(position.y)};
+        canvas.sprite(context_.graphics.sprite(5211, index), position.x, position.y, false);
     }
     for (const auto& flip : victoryCardFlips_) (void)flip->render(canvas);
-    canvas.pakText(context_.graphics, status_, 224, {5, 359, 507, 383});
+    canvas.pakText(context_.graphics, status_, 224,
+                   dosEdition() ? Rect{3, 188, 317, 200} : Rect{5, 359, 507, 383});
 }
 
 }  // namespace mf

@@ -675,7 +675,8 @@ void BackgammonGame::updateWinner() {
     if (state_.humanOff == 15) {
         winner_ = 1;
         status_ = L"Congratulations! Looks like you won!";
-        context_.audio.playMusic(audio_catalog::kPlayerWinMusic[0]);
+        context_.audio.playMusic(dosEdition() ? audio_catalog::kDosPlayerWinMusic[0]
+                                              : audio_catalog::kPlayerWinMusic[0]);
         // CODE 11 $3BB6 chooses indices 42/46 with equal probability.
         const int movie = context_.random.below(200) / 100 == 0 ? 11642 : 11646;
         if (host_.active()) host_.queue(movie); else host_.play(movie, -11, -1);
@@ -1003,13 +1004,21 @@ Rect BackgammonGame::pointRect(int point) const {
     const bool top = point >= 12;
     const int column = top ? point - 12 : 11 - point;
     const int left = column < 6 ? 38 + column * 34 : 268 + (column - 6) * 34;
-    return {left, top ? 182 : 270, left + 38, top ? 270 : 358};
+    const Rect result{left, top ? 182 : 270, left + 38, top ? 270 : 358};
+    if (!dosEdition()) return result;
+    return {dosX(result.left), dosY(result.top), dosX(result.right), dosY(result.bottom)};
 }
 
 int BackgammonGame::hitPoint(Point point) const {
     for (int index = 0; index < 24; ++index) if (pointRect(index).contains(point)) return index;
-    if (barRect_.contains(point)) return 24;
-    if (offRect_.contains(point)) return -2;
+    const Rect bar = dosEdition()
+        ? Rect{dosX(barRect_.left), dosY(barRect_.top), dosX(barRect_.right), dosY(barRect_.bottom)}
+        : barRect_;
+    const Rect off = dosEdition()
+        ? Rect{dosX(offRect_.left), dosY(offRect_.top), dosX(offRect_.right), dosY(offRect_.bottom)}
+        : offRect_;
+    if (bar.contains(point)) return 24;
+    if (off.contains(point)) return -2;
     return -99;
 }
 
@@ -1018,7 +1027,11 @@ void BackgammonGame::click(Point point) {
     if (startupPhase_ != StartupPhase::Complete || winner_ || host_.active() ||
         diceRoll_.active() || secondDiceRoll_.active() ||
         computerRollPending_ || computerMovesPending_ || pieceAnimation_.active) return;
-    if (rollButton_.contains(point)) {
+    const Rect roll = dosEdition()
+        ? Rect{dosX(rollButton_.left), dosY(rollButton_.top),
+               dosX(rollButton_.right), dosY(rollButton_.bottom)}
+        : rollButton_;
+    if (roll.contains(point)) {
         if (!rolled_) {
             // The source's roll-control actor starts its short 5024 press cue
             // at $2FC8 before the dice controller takes over.
@@ -1238,20 +1251,24 @@ void BackgammonGame::setQaSetupRevealPresentation(int revealedCheckers) {
 void BackgammonGame::render(Canvas& canvas) {
     canvas.clear(rgb(0, 0, 0));
     drawBackground(canvas, 4001);
-    canvas.sprite(context_.graphics.sprite(4021), 165, 18, false);
+    canvas.sprite(context_.graphics.sprite(4021),
+                  dosEdition() ? 103 : 165, dosEdition() ? 9 : 18, false);
     if (!characterChooser_) (void)host_.render(canvas);
     canvas.pakText(context_.graphics,
                    context_.playerName.empty() ? L"PLAYER" : context_.playerName,
-                   226, {330, 21, 497, 48},
+                   226, dosEdition() ? Rect{206, 9, 312, 27} : Rect{330, 21, 497, 48},
                    DT_CENTER | DT_VCENTER | DT_SINGLELINE, 11);
     const int humanFrame = context_.playerIsYoshi ? 0 : 1;
     const int computerFrame = context_.playerIsYoshi ? 1 : 0;
     if (!characterChooser_) {
         // The source UI identifies each side with its piece and uses the cup as
         // the roll control. These are Pak 4011's original panel-sized frames.
-        canvas.sprite(context_.graphics.sprite(4011, computerFrame == 0 ? 18 : 19), 15, 113, false);
-        canvas.sprite(context_.graphics.sprite(4011, humanFrame == 0 ? 18 : 19), 455, 113, false);
-        canvas.sprite(context_.graphics.sprite(4011, 2), 455, 58, false);
+        canvas.sprite(context_.graphics.sprite(4011, computerFrame == 0 ? 18 : 19),
+                      dosEdition() ? 9 : 15, dosEdition() ? 59 : 113, false);
+        canvas.sprite(context_.graphics.sprite(4011, humanFrame == 0 ? 18 : 19),
+                      dosEdition() ? 284 : 455, dosEdition() ? 59 : 113, false);
+        canvas.sprite(context_.graphics.sprite(4011, 2),
+                      dosEdition() ? 284 : 455, dosEdition() ? 30 : 58, false);
     }
     const bool renderingSetup = qaSetupRevealPresentation_ ||
                                 setupStackSoundIndex_ < kBackgammonSetupStacks.size();
@@ -1268,18 +1285,22 @@ void BackgammonGame::render(Canvas& canvas) {
         for (int index = 0; index < std::min(visibleCount, 15); ++index) {
             const int frame = renderedPoints[point] > 0 ? humanFrame : computerFrame;
             const Sprite& sprite = context_.graphics.sprite(4011, frame);
-            const Point position = sourceCheckerPosition(point, frame, index);
+            Point position = sourceCheckerPosition(point, frame, index);
+            if (dosEdition()) position = {dosX(position.x), dosY(position.y)};
             canvas.sprite(sprite, position.x, position.y, false);
         }
-        if (selected_ == point) canvas.outlineRect(area, rgb(255, 255, 0), 2);
+        if (selected_ == point)
+            canvas.outlineRect(area, rgb(255, 255, 0), dosEdition() ? 1 : 2);
     }
     if (!characterChooser_) for (int index = 0; index < state_.humanBar; ++index) {
         const Sprite& sprite = context_.graphics.sprite(4011, humanFrame);
-        canvas.sprite(sprite, 255 - sprite.width / 2, 270 + index * 14, false);
+        canvas.sprite(sprite, (dosEdition() ? 160 : 255) - sprite.width / 2,
+                      (dosEdition() ? 141 : 270) + index * (dosEdition() ? 7 : 14), false);
     }
     if (!characterChooser_) for (int index = 0; index < state_.computerBar; ++index) {
         const Sprite& sprite = context_.graphics.sprite(4011, computerFrame);
-        canvas.sprite(sprite, 255 - sprite.width / 2, 184 + index * 14, false);
+        canvas.sprite(sprite, (dosEdition() ? 160 : 255) - sprite.width / 2,
+                      (dosEdition() ? 96 : 184) + index * (dosEdition() ? 7 : 14), false);
     }
     if (!characterChooser_ && pieceAnimation_.active) {
         const unsigned elapsed = std::min(pieceAnimation_.elapsedMilliseconds, 360U);
@@ -1298,7 +1319,9 @@ void BackgammonGame::render(Canvas& canvas) {
         int base = diceOwner_ > 0 ? 10 : 4;
         if (diceOwner_ == 0) base = index == 0 ? 10 : 4;
         canvas.sprite(context_.graphics.sprite(4011, base + std::clamp(dice_[index] - 1, 0, 5)),
-                      84 + static_cast<int>(index) * 83, 83, false);
+                      (dosEdition() ? 53 : 84) + static_cast<int>(index) *
+                          (dosEdition() ? 52 : 83),
+                      dosEdition() ? 43 : 83, false);
     }
     if (!characterChooser_) {
         (void)victoryLeft_.render(canvas);
@@ -1306,20 +1329,25 @@ void BackgammonGame::render(Canvas& canvas) {
     }
     canvas.pakText(context_.graphics,
                    characterChooser_ ? L"Do you want to play as a Yoshi, or as a Koopa?" : status_,
-                   224, {5, 359, 507, 383});
+                   224, dosEdition() ? Rect{3, 188, 317, 200} : Rect{5, 359, 507, 383});
 }
 
 Point BackgammonGame::checkerPosition(int point, int player, int stackIndex,
                                        const Sprite& sprite) const {
     if (point >= 0 && point < 24) {
         const int frame = sprite.height >= 30 ? 0 : 1;
-        return sourceCheckerPosition(point, frame, stackIndex);
+        Point position = sourceCheckerPosition(point, frame, stackIndex);
+        if (dosEdition()) position = {dosX(position.x), dosY(position.y)};
+        return position;
     }
     if ((player > 0 && point == 24) || (player < 0 && point == -1)) {
-        return {255 - sprite.width / 2,
-                (player > 0 ? 270 : 184) + std::max(0, stackIndex) * 14};
+        return {(dosEdition() ? 160 : 255) - sprite.width / 2,
+                (player > 0 ? (dosEdition() ? 141 : 270) : (dosEdition() ? 96 : 184)) +
+                    std::max(0, stackIndex) * (dosEdition() ? 7 : 14)};
     }
-    return {8, player > 0 ? 330 - sprite.height : 190};
+    return {dosEdition() ? 5 : 8,
+            player > 0 ? (dosEdition() ? 172 : 330) - sprite.height
+                       : (dosEdition() ? 99 : 190)};
 }
 
 void BackgammonGame::beginPieceAnimation(int player, const Move& move) {

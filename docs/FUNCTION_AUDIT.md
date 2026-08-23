@@ -2,7 +2,10 @@
 
 ## Meaning of “ported”
 
-The port does not translate and execute each 68k instruction. It audits the original routines structurally, recovers the data formats and user-visible behavior, then implements native equivalents with C++ objects and Win32 services. This avoids carrying an emulator or original executable into the release.
+The port does not translate and execute original 68k or 8086 instructions. It audits both original
+executables structurally, recovers their data formats and user-visible behavior, then implements
+native equivalents with C++ objects and Win32 services. This avoids carrying an emulator or either
+original executable into the release.
 
 The inventory is intentionally conservative:
 
@@ -15,7 +18,7 @@ The inventory is intentionally conservative:
 
 Direct-call discovery cannot prove that every computed jump-table target is a separate source-level function. `work/disassembly/function_inventory.csv` therefore labels entries as structural candidates, not recovered original symbol names. The complete disposition ledger is `work/audit/function-traceability.csv`: 77 rows have explicit control-flow landmarks, 211 other exported rows have segment-family mappings, 1,011 other structural rows have segment-family mappings, and zero rows are unaccounted for. A semantic/platform replacement may absorb several compiler-generated 68k entries; this is traceability, not a claim of instruction-for-instruction translation.
 
-## Segment inventory
+## Macintosh 1.1 segment inventory
 
 | CODE | Code bytes | Export metadata | LINK funcs | Identified entries | System mapping | Confidence |
 |---:|---:|---:|---:|---:|---|---|
@@ -40,10 +43,58 @@ Direct-call discovery cannot prove that every computed jump-table target is a se
 | 21 | 516 | 7 | 9 | 12 | C/Pascal string conversion and integer radix formatting | High |
 | 22 | 1,180 | 6 | 10 | 11 | Multi-monitor selection, window placement, and QuickDraw geometry | High |
 
+## DOS 1.0 MZ/FBOV inventory
+
+`MARIO.EXE` is a 402,576-byte Borland C++ 1991 large-memory-model MZ executable linked by TLINK
+5.0. `tools/analyze_dos_exe.py` validates its 262,544-byte resident MZ image, 13,312-byte header,
+2,839 relocation records, 133-entry segment table, and 140,016-byte FBOV/VROOMM payload. All 31
+real overlay code records and their fixup blocks are bounds-checked and individually hashed.
+
+The exact DOS overlay ledger is `work/audit/dos-overlay-function-traceability.csv`:
+
+- 31 overlays and all 132,146 overlay code bytes are accounted for.
+- 505 entry targets come directly from the executable's original five-byte `INT 3F` export stubs.
+- 567 Borland `push bp` / `mov bp,sp` prologues and 435 in-range near-call targets provide
+  independent structural evidence.
+- Their union contains 591 unique entry candidates: 505 exact export targets, 62 additional
+  high-confidence compiler prologues, and 24 additional heuristic near-call targets.
+- Every row maps to a native subsystem. The mapping contains 81 Backgammon, 42 Checkers,
+  47 Dominoes, 65 Go Fish, 81 Yacht, 81 shell, and 194 media/runtime candidates.
+
+The confidence labels matter. Export-stub targets are exact original entry points; compiler
+prologues are high-confidence structural entries; near-call-only targets remain heuristic. The
+candidate spans end at the next discovered entry and are not claimed to be recovered source-level
+function sizes or symbols. A separate radare2 discovery ledger records 1,923 resident/overlay
+candidates but remains supporting evidence because segmented far control flow makes its boundaries
+less reliable.
+
+Confirmed overlay families include:
+
+| Overlay | Bytes | Evidence-backed role |
+|---:|---:|---|
+| 0 / 1 | 21,725 / 704 | Backgammon core and Backgammon introduction (`XMI` 140, Pak 4000) |
+| 3 / 4 / 5 / 7 | 6,092 / 7,142 / 2,731 / 860 | Checkers engine, search/UI, and introduction (`XMI` 142, Pak 2998) |
+| 12 / 13 | 21,531 / 958 | Dominoes engine and introduction (`XMI` 134, Pak 3000) |
+| 17 / 18 | 691 / 15,685 | Go Fish introduction (`XMI` 136, Pak 5000) and engine |
+| 20 | 1,004 | Interplay/Presage startup (`Pak` 500/501, `SND` 8039/8042) |
+| 21 | 6,081 | Live title/menu, C/G/D/B/Y selection, movies 1111–1115 |
+| 25 | 2,291 | Eight-state title timing/audio controller and board flip 1125 |
+| 28 / 30 | 12,101 / 834 | Yacht engine and introduction (`XMI` 138, Pak 6000) |
+
+Overlays not assigned by confirmed resource/control-flow landmarks are explicitly marked
+`dominant_immediate_resource_family` or `shared_or_supporting_overlay` in the ledger rather than
+being presented as fully named routines.
+
 ## Native replacement matrix
 
 | Original subsystem/function family | Evidence | Native replacement |
 |---|---|---|
+| DOS MZ/FBOV loading | MZ header/relocations, 133-entry segment table, 31 overlay records and fixups | Normal PE loading and typed native state; neither `MARIO.EXE` nor an overlay loader is embedded or executed |
+| DOS PRD/PRS resource services | 1,806 directory records, paired PRS headers, complete payload chain | Dialect-aware `AssetStore` over the second embedded `MARIOFPK` RCDATA; exact type/ID/flags/payload preservation |
+| DOS Pak/DIB/movie runtime | 187 Pak, 4 DIB, 574 each MuV/Ply, 177 Img resources | Dialect-aware Pak sheet/parser, DIB palette, little-endian movie parser, shared native compositor, 320×200 `Canvas` |
+| DOS SND/XMI runtime | 278 SND, 12 XMI; overlay 20/25 resource calls | In-memory WAVE playback and fixed-120 Hz XMIDI sequencing; no original DOS driver, setup program, or sound-card configuration files |
+| DOS startup/title/menu | Overlays 20/21/25 and immediate resource/timing constants | Native Interplay, Presage, credits, dim/live title, 5012/5000/5001/12091/5011 sequence, board flip, source menu geometry, movies, shortcuts, and game dispatch |
+| Edition choice | New native collection shell | A small Win32 boot selector starts either independent embedded edition; `--edition=mac` and `--edition=dos` remain deterministic direct-launch switches |
 | Segment Manager, A5 world, CODE/DATA loading | CODE 0/1 and decoded DATA | Normal PE loading, typed C++ state, no A5 emulation |
 | Resource Manager calls | Resource traps and type globals | `AssetStore` over embedded `MARIOFPK` RCDATA |
 | Ptr/Handle allocation and block moves | OS traps in shared segments | `std::vector`, `std::array`, RAII objects |
@@ -92,6 +143,12 @@ The player-win outcome regression also requires `$1B16`'s five-pass 1–5 die re
   executable coverage for the audited dialogue, idle, replay, and result controllers. They do not
   execute translated 68k instructions. Macintosh cooperative scheduling is represented by the
   native 33 ms controller timer, so host-dependent presentation may differ by one timer quantum.
+- The DOS edition reuses those audited semantic game controllers where the editions share rules,
+  but loads the DOS-native backgrounds, sprites, movies, voices, effects, XMI, coordinates, hit
+  targets, publisher/title/menu controller, game introductions, name/character panels, and
+  reset/replay dialogs. The same strategy, drag/boundary, dialogue, outcome, replay, and lifecycle
+  regressions are rerun against the DOS asset dialect. This is a native behavioral port, not an
+  instruction-for-instruction 8086 recompilation.
 - Both publisher screens, startup/title speech, animated C/G/D/B/Y main-menu selection, first-use session prompts, five
   title sequences, synchronized in-game talking heads, low-frequency idle prompts/jokes, and the
   original New Game/Play Again dialogs are restored. Source selectors retain their lazy-shuffle and
