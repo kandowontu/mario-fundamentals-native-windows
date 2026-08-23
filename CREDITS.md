@@ -19,40 +19,39 @@ It also identifies BrainStorm as a division of Interplay Productions and Steppin
 trademark of Presage Software Development Company. Mario and related properties are trademarks of
 Nintendo. All original-game rights remain with their respective owners.
 
-The following production credits are preserved from the Macintosh release records and the
-original About panel.
+The following production credits are transcribed directly from the version 1.1 Macintosh game's
+embedded Credits panel (PICT 129), preserved in this repository as
+[`assets/credits.bmp`](assets/credits.bmp).
 
 ### Interplay / BrainStorm
 
-- Executive producer: Brian Fargo
-- Producer: Thomas R. Decker
+- Executive producer: Alan Pavlish
+- Producer: Larry Lesser
 - Assistant producer: Fred Royal
 - Original concept: Lord Generic Productions
-- Director of quality assurance: Kirk Tome
-- Lead tester: Christopher M. Benson
-- Testers: Robert Rooke and Reginald J. Arnedo
+- Director of quality assurance: Jeremy S. Barnes
+- Lead tester: Colin Totman
+- Testers: Daniel Huffman, Sammy Matsushima, and Matt Murakami
 - Voice of Mario: Charles Martinet
-- Help text: Kristina Grace
 
 ### Presage / Stepping Stone
 
 - Designers: Steve Snyder, Dane Bigham, Jason Sereno, Roger Sherron, and Jon Benton
 - Macintosh programmer: Jon Benton
-- Computer artists: Jason Sereno, Steve Snyder, Michael P. Kennedy, and Sarah Gahagan
+- Computer artists: Jason Sereno, Steve Snyder, Mike Kennedy, and Sarah Gahagan
 - Cel animators: Tony Claar and Sam Kirson
-- Music and sound: Michael Pukish, Brian Salter, and Matthew Berardo
-- Special thanks: Bill Holt, Brad Quick, and Brian Fargo
+- Music and sound: Michael Pukish, Brian Salter, and Matt Berardo
+- Special thanks: Bill Holt and Ed Murphy
 
-The shipped About panel summarizes several of these credits using first names only: “Jon made the
-stuff work,” “Jason drew pictures,” “Steve and Mike helped Jason,” “Mike, Brian, and Matt made
-noises,” and “Tom and Fred told us if they liked it or not.” Full names above were cross-checked
-against catalogued Macintosh credits.
+The separate shipped About panel also preserves its original informal, first-name-only production
+copy: “Jon made the stuff work,” “Jason drew pictures,” “Steve and Mike helped Jason,” “Mike,
+Brian, and Matt made noises,” and “Tom and Fred told us if they liked it or not.” The formal roster
+above follows the Credits panel verbatim where those two embedded records differ.
 
 ## Sources
 
 - The version 1.1 Read Me and About/Credits resources shipped in the source Macintosh disk image
 - [Internet Archive item used for source-image identity](https://archive.org/details/mario-fundamentals)
-- [MobyGames Macintosh production credits](https://www.mobygames.com/game/9416/marios-game-gallery/)
 
 Please open a documentation issue with verifiable evidence if any credit is incomplete or
 incorrect.
