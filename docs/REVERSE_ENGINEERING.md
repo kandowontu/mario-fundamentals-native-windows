@@ -218,10 +218,11 @@ stage, and sound 5011 plus the 1.5-second movie 1125 wipe run together after tha
 This ordering avoids folding voice duration into the authored pause or holding movie 1125's first
 title-picture frame over the live menu.
 
-The same controller's mouse-down branch at `$1DDC` clears the live-stage flag and posts callback
-`$2E0`; its natural completion at `$217A` posts that identical callback. The native shell therefore
-accepts a click anywhere on the live Macintosh title/board stage as an immediate transition to the
-fully revealed menu, while leaving the preceding publisher-card controllers untouched.
+The same controller's mouse-down branch at `$1DDC` and Escape branch at `$1E14` clear the live-stage
+flag and post callback `$2E0`; its natural completion at `$217A` posts that identical callback. The
+native shell therefore routes either input through one completion path that stops the active voice,
+installs movie 1111's terminal hand/easel cel, and enters the fully revealed menu. The preceding
+publisher-card controller remains independent.
 
 The preceding publisher controller at `$1B0A`/`$1B74` explicitly loads `$1C` (28) controller
 counts for the Stepping Stone card.  At the same 100 ms cadence demonstrated by the title
@@ -431,6 +432,10 @@ implementations remain evidence-backed rather than inferred from modern versions
   Mario, and alternating until both hold seven. `$DCA` and `$2E9A` make the deal and highest-double
   opening speech choices. The native engine reproduces that call order, partition, direction, and
   correction branch, with seed-one and correction-seed deck vectors in the executable self-test.
+- The deal controller's `$DCA` first-round index 2/3 pair resolves to movies 10002/10003; later
+  rounds select index 4/54, movies 10004/10065. After `$2E9A` compares the highest doublets,
+  Mario-first selects index 68/5 (movies 10084/10005) at 75/25, while player-first selects index
+  6/8 (movies 10006/10008) at 50/50. All eight routes and both asset dialects are release-tested.
 - Dominoes' ordinary-turn dialogue is not a fixed "my turn/your turn" pair. `$169E` consumes a
   value below 100 and uses voiced index 10 only for values 70–99. `$1CAC` consumes below 11 before
   each Mario move or draw; its first eligible 0–5 result plays index 22 and consumes a second

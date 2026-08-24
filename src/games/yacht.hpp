@@ -36,6 +36,7 @@ public:
     void setQaVictoryPresentation();
     void setQaScorecardPresentation();
     void setQaDiceSelectionPresentation();
+    void setQaRollPresentation();
 
 private:
     enum class IntroPhase {

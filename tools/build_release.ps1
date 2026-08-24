@@ -13,6 +13,8 @@ cmake --build $buildRoot --parallel
 if ($LASTEXITCODE -ne 0) { throw "Native build failed." }
 
 $executable = Join-Path $buildRoot "MarioFundamentals.exe"
+$auditRoot = Join-Path $projectRoot "work/audit"
+New-Item -ItemType Directory -Force -Path $auditRoot | Out-Null
 $standardOutput = Join-Path $buildRoot "self-test.out"
 $standardError = Join-Path $buildRoot "self-test.err"
 $test = Start-Process -FilePath $executable -ArgumentList "--self-test" -WindowStyle Hidden `
@@ -20,11 +22,47 @@ $test = Start-Process -FilePath $executable -ArgumentList "--self-test" -WindowS
 Get-Content $standardOutput, $standardError
 if ($test.ExitCode -ne 0) { throw "Executable self-test failed with exit code $($test.ExitCode)." }
 
+function Invoke-PresentationQa {
+    param(
+        [string] $Argument,
+        [string] $OutputDirectory,
+        [string] $Label,
+        [int] $ExpectedFrames,
+        [long] $ExpectedBytes
+    )
+
+    $started = [DateTime]::UtcNow.AddSeconds(-1)
+    $qaOutput = Join-Path $auditRoot "$Label-presentation-qa.out"
+    $qaError = Join-Path $auditRoot "$Label-presentation-qa.err"
+    $qa = Start-Process -FilePath $executable -ArgumentList $Argument -WindowStyle Hidden `
+        -WorkingDirectory $projectRoot -RedirectStandardOutput $qaOutput `
+        -RedirectStandardError $qaError -Wait -PassThru
+    Get-Content $qaOutput, $qaError
+    if ($qa.ExitCode -ne 0) {
+        throw "$Label presentation QA failed with exit code $($qa.ExitCode)."
+    }
+    $freshFrames = @(Get-ChildItem -LiteralPath $OutputDirectory -Filter "*.bmp" -File |
+        Where-Object { $_.LastWriteTimeUtc -ge $started })
+    if ($freshFrames.Count -ne $ExpectedFrames) {
+        throw "$Label presentation QA wrote $($freshFrames.Count) fresh frames; expected $ExpectedFrames."
+    }
+    $wrongSize = @($freshFrames | Where-Object { $_.Length -ne $ExpectedBytes })
+    if ($wrongSize.Count -ne 0) {
+        throw "$Label presentation QA wrote $($wrongSize.Count) frames at a non-native size."
+    }
+    Write-Output "PASS ${Label}_presentation_frames=$ExpectedFrames native_bmp_bytes=$ExpectedBytes"
+}
+
+Invoke-PresentationQa -Argument "--render-mac-qa" `
+    -OutputDirectory (Join-Path $projectRoot "work/qa/mac") -Label "macintosh" `
+    -ExpectedFrames 171 -ExpectedBytes 786486
+Invoke-PresentationQa -Argument "--render-dos-qa" `
+    -OutputDirectory (Join-Path $projectRoot "work/qa/dos") -Label "dos" `
+    -ExpectedFrames 166 -ExpectedBytes 256054
+
 & (Join-Path $PSScriptRoot "test_fullscreen.ps1") -Executable $executable
 if ($LASTEXITCODE -ne 0) { throw "Hidden Alt+Enter integration test failed." }
 
-$auditRoot = Join-Path $projectRoot "work/audit"
-New-Item -ItemType Directory -Force -Path $auditRoot | Out-Null
 python (Join-Path $PSScriptRoot "verify_release.py") $executable `
     --asset-pack (Join-Path $projectRoot "assets/MarioFundamentals.pack") `
     --asset-pack (Join-Path $projectRoot "assets/MarioGameGallery.pack") `

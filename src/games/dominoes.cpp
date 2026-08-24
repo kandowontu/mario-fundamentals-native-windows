@@ -203,6 +203,20 @@ DominoIdleChoice chooseDominoIdle(SourceRandom& random, int& jokeIndex) {
     return {DominoIdleChoiceKind::Joke, jokeIndex};
 }
 
+constexpr int dominoDealMovie(bool laterRound, int sourceDraw) {
+    // CODE 14 $DCA uses source indices 2/3 on the first round and 4/54 on
+    // later rounds. The host table resolves those to these four MuV ids.
+    if (laterRound) return sourceDraw < 51 ? 10004 : 10065;
+    return sourceDraw < 51 ? 10002 : 10003;
+}
+
+constexpr int dominoOpeningMovie(bool marioStarts, int sourceDraw) {
+    // CODE 14 $2E9A: Mario's higher doublet uses source index 68 (75%) or
+    // index 5; the player's higher-or-equal doublet uses index 6/8 evenly.
+    if (marioStarts) return sourceDraw < 75 ? 10084 : 10005;
+    return sourceDraw < 50 ? 10006 : 10008;
+}
+
 }  // namespace
 
 DominoesGame::DominoesGame(GameContext context)
@@ -267,8 +281,8 @@ void DominoesGame::reset(bool preserveSession) {
         boneyard_.push_back({left, right});
     sourceShuffleDeck(boneyard_, context_.random);
 
-    // CODE 14 $DCA chooses the line spoken while the two hands are dealt.
-    const int dealMovie = context_.random.below(100) < 51 ? 10015 : 10065;
+    // CODE 14 $DCA chooses from distinct first/later-round deal pools.
+    const int dealMovie = dominoDealMovie(nextRoundNumber > 1, context_.random.below(100));
     for (int index = 0; index < 7; ++index) {
         human_.push_back(boneyard_.back()); boneyard_.pop_back();
         computer_.push_back(boneyard_.back()); boneyard_.pop_back();
@@ -289,10 +303,10 @@ void DominoesGame::reset(bool preserveSession) {
     const int openingChoice = context_.random.below(100);
     if (computerBest.first > humanBest.first) {
         pendingComputerOpening_ = computerBest.second;
-        openingMovie_ = openingChoice < 75 ? 10055 : 10016;
+        openingMovie_ = dominoOpeningMovie(true, openingChoice);
     } else {
         requiredHumanOpening_ = humanBest.second;
-        openingMovie_ = openingChoice < 50 ? 10017 : 10019;
+        openingMovie_ = dominoOpeningMovie(false, openingChoice);
     }
     selected_ = draggedIndex_ = -1;
     dragPoint_ = {};
@@ -530,6 +544,25 @@ bool DominoesGame::sourceStrategyRegressionTest() const {
            sourcePreferredTile(reversedMatch, 3, 5) == 0 &&
            sourcePreferredTile(firstTieWins, 2, 6) == 0 &&
            sourcePreferredTile(noMove, 2, 6) == noMove.size();
+}
+
+bool DominoesGame::sourceOpeningRegressionTest() const {
+    constexpr std::array expectedMovies{10002, 10003, 10004, 10065,
+                                        10084, 10005, 10006, 10008};
+    const bool routesMatch =
+        dominoDealMovie(false, 50) == 10002 &&
+        dominoDealMovie(false, 51) == 10003 &&
+        dominoDealMovie(true, 50) == 10004 &&
+        dominoDealMovie(true, 51) == 10065 &&
+        dominoOpeningMovie(true, 74) == 10084 &&
+        dominoOpeningMovie(true, 75) == 10005 &&
+        dominoOpeningMovie(false, 49) == 10006 &&
+        dominoOpeningMovie(false, 50) == 10008;
+    return routesMatch && std::ranges::all_of(expectedMovies, [&](int movieId) {
+        return context_.assets.contains("MuV ", movieId) &&
+               context_.assets.contains("Ply ", movieId) &&
+               Movie(context_.assets, movieId).resolved();
+    });
 }
 
 bool DominoesGame::play(std::vector<Tile>& hand, std::size_t index, bool preferLeft,

@@ -13,6 +13,7 @@
 #include <commctrl.h>
 #include <cstring>
 #include <cwchar>
+#include <filesystem>
 #include <windowsx.h>
 
 namespace mf {
@@ -46,10 +47,10 @@ constexpr wchar_t kPreferencesKey[] = L"Software\\MarioFundamentalsNative";
 // CODE 6 initializes its Pak-backed editor's character cap at $0f.
 constexpr std::size_t kMaximumPlayerNameLength = 15;
 
-constexpr bool macTitleIntroClickSkips(int phase) {
-    // CODE 12 $1DDC handles mouse-down while the title-stage controller is
-    // active and posts the same $2E0 completion callback as its natural end at
-    // $217A. The publisher cards precede this controller and are not skipped.
+constexpr bool macTitleIntroInputSkips(int phase) {
+    // CODE 12 $1DDC handles mouse-down and $1E14 handles Escape while the
+    // title-stage controller is active. Both post the same $2E0 completion
+    // callback as its natural end at $217A.
     return phase >= 7;
 }
 
@@ -79,9 +80,10 @@ App::App(HINSTANCE instance)
         IDB_HELP_GOFISH_1, IDB_HELP_GOFISH_2, IDB_HELP_YACHT_1, IDB_HELP_YACHT_2};
     for (std::size_t index = 0; index < helpBitmaps_.size(); ++index)
         helpBitmaps_[index] = LoadBitmapW(instance_, MAKEINTRESOURCEW(helpIds[index]));
-    preferencesEnabled_ = std::wcsstr(GetCommandLineW(), L"--qa-") == nullptr;
+    preferencesEnabled_ = std::wcsstr(GetCommandLineW(), L"--qa-") == nullptr &&
+                          std::wcsstr(GetCommandLineW(), L"--render-mac-qa") == nullptr;
     if (preferencesEnabled_) loadPreferences();
-    if (audio_.musicEnabled()) audio_.prewarmMusicOutput();
+    if (preferencesEnabled_ && audio_.musicEnabled()) audio_.prewarmMusicOutput();
 }
 
 App::~App() {
@@ -100,12 +102,113 @@ App::~App() {
 }
 
 bool App::sourceIntroSkipRegressionTest() {
-    return !macTitleIntroClickSkips(static_cast<int>(IntroPhase::StartupBlack)) &&
-           !macTitleIntroClickSkips(static_cast<int>(IntroPhase::TitleGap)) &&
-           macTitleIntroClickSkips(static_cast<int>(IntroPhase::Silhouette)) &&
-           macTitleIntroClickSkips(static_cast<int>(IntroPhase::Greeting)) &&
-           macTitleIntroClickSkips(static_cast<int>(IntroPhase::TalkingHead)) &&
-           macTitleIntroClickSkips(static_cast<int>(IntroPhase::MenuReveal));
+    return !macTitleIntroInputSkips(static_cast<int>(IntroPhase::StartupBlack)) &&
+           !macTitleIntroInputSkips(static_cast<int>(IntroPhase::TitleGap)) &&
+           macTitleIntroInputSkips(static_cast<int>(IntroPhase::Silhouette)) &&
+           macTitleIntroInputSkips(static_cast<int>(IntroPhase::Greeting)) &&
+           macTitleIntroInputSkips(static_cast<int>(IntroPhase::TalkingHead)) &&
+           macTitleIntroInputSkips(static_cast<int>(IntroPhase::MenuReveal));
+}
+
+void App::renderQaFrames(std::wstring_view outputDirectory) {
+    audio_.setEnabled(false);
+    const std::filesystem::path root(outputDirectory);
+    std::filesystem::create_directories(root);
+    const auto save = [this, &root](std::wstring_view name) {
+        render();
+        canvas_.saveBmp((root / name).wstring());
+    };
+
+    constexpr std::array<std::pair<IntroPhase, std::wstring_view>, 8> startupFrames{{
+        {IntroPhase::Brainstorm, L"00-brainstorm.bmp"},
+        {IntroPhase::BrainstormFade, L"01-brainstorm-fade.bmp"},
+        {IntroPhase::SteppingStone, L"02-stepping-stone.bmp"},
+        {IntroPhase::SteppingStoneFade, L"03-stepping-stone-fade.bmp"},
+        {IntroPhase::Silhouette, L"04-title-silhouette.bmp"},
+        {IntroPhase::Greeting, L"05-title-greeting.bmp"},
+        {IntroPhase::TalkingHead, L"06-title-talking.bmp"},
+        {IntroPhase::MenuReveal, L"07-menu-reveal-start.bmp"},
+    }};
+    screen_ = Screen::Intro;
+    introHandMilliseconds_ = 0;
+    for (const auto& [phase, name] : startupFrames) {
+        introPhase_ = phase;
+        introPhaseMilliseconds_ = phase == IntroPhase::TalkingHead ? 600U : 0U;
+        if (phase >= IntroPhase::Greeting) introHandMilliseconds_ = 600U;
+        save(name);
+    }
+
+    constexpr std::array<std::pair<std::uint32_t, std::wstring_view>, 4> revealFrames{{
+        {0, L"07a-menu-reveal-00.bmp"},
+        {300, L"07b-menu-reveal-20.bmp"},
+        {750, L"07c-menu-reveal-50.bmp"},
+        {1499, L"07d-menu-reveal-final.bmp"},
+    }};
+    introPhase_ = IntroPhase::MenuReveal;
+    introHandMilliseconds_ = introHandMovie_.duration() * 1000U /
+                             introHandMovie_.timeScale();
+    for (const auto& [milliseconds, name] : revealFrames) {
+        introPhaseMilliseconds_ = milliseconds;
+        save(name);
+    }
+
+    // Exercise the same source completion route through a live title pose. It
+    // must install movie 1111's terminal hand/easel cel before the menu frame.
+    screen_ = Screen::Intro;
+    introPhase_ = IntroPhase::TalkingHead;
+    introPhaseMilliseconds_ = 600U;
+    introHandMilliseconds_ = 600U;
+    save(L"08-skip-before.bmp");
+    skipTitleIntro();
+    save(L"09-skip-menu.bmp");
+
+    for (int sourceSelection = 1; sourceSelection <= 5; ++sourceSelection) {
+        menuSourceSelection_ = sourceSelection;
+        showSelectedMenuPose();
+        save(L"10-menu-selection-" + std::to_wstring(sourceSelection) + L".bmp");
+    }
+
+    for (int gameIndex = 0; gameIndex < 5; ++gameIndex) {
+        beginGameIntro(gameIndex);
+        for (int sample = 0; sample <= 20; ++sample) {
+            gameIntroMilliseconds_ = gameIntroDurationMilliseconds_ *
+                                     static_cast<std::uint32_t>(sample) / 20U;
+            save(L"11-intro-" + std::to_wstring(gameIndex) + L"-" +
+                 (sample < 10 ? L"0" : L"") + std::to_wstring(sample) + L".bmp");
+        }
+    }
+    gameIntroMovies_.clear();
+
+    constexpr std::array<int, 8> openingTicks{0, 1, 8, 16, 32, 64, 96, 128};
+    for (int gameIndex = 0; gameIndex < 5; ++gameIndex) {
+        startGame(gameIndex);
+        int elapsedTicks = 0;
+        for (const int targetTicks : openingTicks) {
+            while (elapsedTicks < targetTicks) {
+                (void)game_->tick();
+                ++elapsedTicks;
+            }
+            game_->render(canvas_);
+            canvas_.saveBmp((root / (L"2" + std::to_wstring(gameIndex) +
+                L"-opening-" + std::to_wstring(targetTicks) + L".bmp")).wstring());
+        }
+    }
+
+    startGame(4);
+    if (auto* yacht = dynamic_cast<YachtGame*>(game_.get())) {
+        yacht->setQaRollPresentation();
+        constexpr std::array<int, 7> rollTicks{0, 4, 8, 16, 32, 48, 56};
+        int elapsedTicks = 0;
+        for (const int targetTicks : rollTicks) {
+            while (elapsedTicks < targetTicks) {
+                (void)yacht->tick();
+                ++elapsedTicks;
+            }
+            yacht->render(canvas_);
+            canvas_.saveBmp((root / (L"30-yacht-roll-" +
+                std::to_wstring(targetTicks) + L".bmp")).wstring());
+        }
+    }
 }
 
 void App::createWindow(int showCommand) {
@@ -448,6 +551,10 @@ LRESULT App::handleMessage(HWND window, UINT message, WPARAM wParam, LPARAM lPar
         }
         if (wParam == VK_ESCAPE) {
             if (dialog_ != Dialog::None) dialog_ = Dialog::None;
+            else if (screen_ == Screen::Intro &&
+                     macTitleIntroInputSkips(static_cast<int>(introPhase_))) {
+                skipTitleIntro();
+            }
             else if (screen_ == Screen::Help) screen_ = helpReturnScreen_;
             else if (screen_ == Screen::About || screen_ == Screen::Credits) {
                 audio_.stop();
@@ -1101,7 +1208,7 @@ Point App::toLogical(Point client) const {
 
 void App::click(Point logical) {
     if (screen_ == Screen::Intro &&
-        macTitleIntroClickSkips(static_cast<int>(introPhase_))) {
+        macTitleIntroInputSkips(static_cast<int>(introPhase_))) {
         skipTitleIntro();
         return;
     }

@@ -16,6 +16,10 @@ All notable native-port changes are documented here.
   shipped track duration.
 - Headless DOS presentation captures and dual-edition gameplay, asset, audio, dependency,
   preservation, and empty-directory release verification.
+- Silent, no-window Macintosh presentation output covering startup, title skip, four board-flip
+  positions, every menu pose, 21 points across each game intro, eight opening states per game, and
+  seven Yacht roll/settle states. The release gate regenerates and validates all 171 frames plus
+  the DOS sweep at each edition's exact logical dimensions.
 
 ### Changed
 
@@ -26,6 +30,11 @@ All notable native-port changes are documented here.
 
 ### Fixed
 
+- Routed Escape during the live Macintosh title through CODE 12's same completion path as a board
+  click, preserving movie 1111's terminal hand/easel pose instead of entering the menu mid-cel.
+- Corrected all CODE 14 Dominoes opening routes: first-round deal speech now uses movies
+  10002/10003, later rounds use 10004/10065, Mario-first uses 10084/10005, and player-first uses
+  10006/10008. This removes a Macintosh abort caused by the former DOS-only movie request.
 - Restored the Macintosh title controller's source mouse-down behavior: clicking the live
   title/board sequence now stops its current voice and enters the completed menu immediately.
 - Applied the Yacht stationary-cup suppression to the shared Macintosh/DOS controller and added

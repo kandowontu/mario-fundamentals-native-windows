@@ -189,7 +189,8 @@ The release script configures a static C++ runtime build, compiles the resources
 executable's full hidden/silent self-test, verifies the PE architecture and dependency set, proves
 both deterministic asset packs occur exactly once, proves all 1,707 Macintosh and 1,806 DOS ripped
 resources against their extraction manifests when those local audit records are present, reruns the
-self-test from an empty working directory, and copies the result to `dist`.
+self-test from an empty working directory, regenerates 171 Macintosh and 166 DOS no-window
+presentation frames at the exact 512×384 and 320×200 logical sizes, and copies the result to `dist`.
 
 The dual-edition artifact produced here is an unreleased QA candidate. Its build-specific checksum
 is written to `dist/SHA256SUMS.txt`; no candidate should be redistributed as a 2.0 release until the
@@ -201,6 +202,14 @@ To run only the executable-level audit:
 
 ```powershell
 Start-Process .\build\MarioFundamentals.exe -ArgumentList '--self-test' -WindowStyle Hidden -Wait
+```
+
+To regenerate the silent logical-resolution presentation sweeps without creating a window or
+opening an audio device:
+
+```powershell
+Start-Process .\build\MarioFundamentals.exe -ArgumentList '--render-mac-qa' -WindowStyle Hidden -Wait
+Start-Process .\build\MarioFundamentals.exe -ArgumentList '--render-dos-qa' -WindowStyle Hidden -Wait
 ```
 
 The expected report begins:

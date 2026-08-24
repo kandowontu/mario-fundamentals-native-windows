@@ -20,6 +20,7 @@ public:
     [[nodiscard]] bool finished() const override;
     [[nodiscard]] unsigned postFinishDelayMilliseconds() const noexcept override { return 0; }
     [[nodiscard]] bool sourceStrategyRegressionTest() const;
+    [[nodiscard]] bool sourceOpeningRegressionTest() const;
     [[nodiscard]] static bool sourceIdleRegressionTest();
     [[nodiscard]] static bool sourceDialogueRegressionTest();
     [[nodiscard]] bool sourceOutcomeRegressionTest(int expectedWinner, bool blocked);

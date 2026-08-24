@@ -10,8 +10,16 @@ media, executable, emulator, installer, sound driver, or loose asset files.
 
 ## Corrective QA after withdrawal
 
+- Macintosh Escape now shares the title controller's board-click completion route and installs the
+  terminal hand/easel pose before the menu, matching CODE 12 `$1E14`/`$217A`.
 - Macintosh title-stage mouse-down now follows CODE 12's completion callback: clicking the live
   board skips the remaining voice/animation and lands on the fully revealed menu.
+- A new no-window Macintosh presentation sweep emits 171 exact 512×384 frames across startup,
+  title skip, menu, all five intros/openings, and Yacht roll/settle. The release script now requires
+  that sweep and the 166-frame 320×200 DOS sweep to regenerate successfully and silently.
+- Dominoes now follows CODE 14's exact first/later deal and highest-double dialogue tables. The
+  corrected eight-way route eliminates the Macintosh post-deal abort and replaces four unrelated
+  opening lines in both editions.
 - The Yacht idle cup is suppressed by the same controller guard in both editions throughout the
   roll movie and all sequential die-settle passes, with separate Macintosh and DOS regressions.
 - DOS `Ply` motion pairs retain the source vertical/horizontal layout even though DOS `MuV` and

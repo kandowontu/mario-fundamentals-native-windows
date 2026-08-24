@@ -15,6 +15,7 @@ public:
     explicit App(HINSTANCE instance);
     ~App();
     int run(int showCommand);
+    void renderQaFrames(std::wstring_view outputDirectory);
     [[nodiscard]] static bool sourceIntroSkipRegressionTest();
 
 private:

@@ -1241,6 +1241,29 @@ void YachtGame::setQaDiceSelectionPresentation() {
     status_ = L"Select the dice to roll again.";
 }
 
+void YachtGame::setQaRollPresentation() {
+    host_.stop();
+    rollAnimation_.stop();
+    gestureAnimation_.stop();
+    outcomeAnimation_.stop();
+    introPhase_ = IntroPhase::Complete;
+    openingDelayMilliseconds_ = 0;
+    introGapSourceTicks_ = 0;
+    showComputerDice_ = false;
+    pendingComputerAfterSpeech_ = false;
+    pendingComputerRerollSpeech_ = false;
+    rolls_ = 0;
+    round_ = 0;
+    winner_ = 0;
+    pendingRollPlayer_ = 0;
+    settlingDieIndex_ = 0;
+    computerAttempt_ = 0;
+    computerRerollStage_ = 0;
+    held_.fill(false);
+    dice_.fill(1);
+    roll();
+}
+
 void YachtGame::click(Point point) {
     cancelSourceIdle();
     if (winner_ || openingDelayMilliseconds_ > 0 || pendingRollPlayer_ ||

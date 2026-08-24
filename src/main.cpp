@@ -584,6 +584,7 @@ int selfTest(HINSTANCE instance) {
     }
     auto dominoes = std::make_unique<mf::DominoesGame>(context);
     if (!dominoes->sourceStrategyRegressionTest() ||
+        !dominoes->sourceOpeningRegressionTest() ||
         !mf::DominoesGame::sourceIdleRegressionTest() ||
         !mf::DominoesGame::sourceDialogueRegressionTest() ||
         !dominoes->sourceDragRegressionTest() ||
@@ -804,7 +805,8 @@ int selfTest(HINSTANCE instance) {
     auto dosDominoesBlockedHumanOutcome = std::make_unique<mf::DominoesGame>(dosContext);
     auto dosDominoesBlockedMarioOutcome = std::make_unique<mf::DominoesGame>(dosContext);
     auto dosDominoesBlockedTieOutcome = std::make_unique<mf::DominoesGame>(dosContext);
-    if (!dosDominoes->sourceStrategyRegressionTest())
+    if (!dosDominoes->sourceStrategyRegressionTest() ||
+        !dosDominoes->sourceOpeningRegressionTest())
         throw std::runtime_error("DOS Dominoes strategy regression");
     if (!dosDominoes->sourceDragRegressionTest() ||
         !dosDominoes->sourceBoneyardHitboxRegressionTest())
@@ -915,6 +917,17 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int showCommand) {
         try {
             mf::DosApp app(instance);
             app.renderQaFrames(L"work\\qa\\dos");
+            return 0;
+        } catch (const std::exception& error) {
+            std::fprintf(stderr, "FAIL %s\n", error.what());
+            std::fflush(stderr);
+            return 1;
+        }
+    }
+    if (std::wcsstr(commandLine, L"--render-mac-qa") != nullptr) {
+        try {
+            mf::App app(instance);
+            app.renderQaFrames(L"work\\qa\\mac");
             return 0;
         } catch (const std::exception& error) {
             std::fprintf(stderr, "FAIL %s\n", error.what());
