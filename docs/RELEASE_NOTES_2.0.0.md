@@ -32,6 +32,9 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   The supporting DOS discovery ledger no longer leaves 1,923 heuristic candidates generically
   pending: 77 overlay rows defer to the exact export/prologue ledger and 1,846 resident rows are
   explicitly dispositioned to the replaced platform/runtime/media family.
+- The local release gate now compares eleven representative native frames against independently
+  captured original Macintosh/DOS output. The checks cover the DOS main menu and every game's
+  stable board, table, scorecard, or chrome geometry without conflating random game states.
 - The Yacht idle cup is suppressed by the same controller guard in both editions throughout the
   roll movie and all sequential die-settle passes, with separate Macintosh and DOS regressions.
 - DOS `Ply` motion pairs retain the source vertical/horizontal layout even though DOS `MuV` and

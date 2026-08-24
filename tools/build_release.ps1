@@ -106,6 +106,29 @@ Invoke-PresentationQa -Argument "--render-dos-qa" `
     -OutputDirectory (Join-Path $projectRoot "work/qa/dos") -Label "dos" `
     -ExpectedFrames 210 -ExpectedBytes 256054
 
+# When the locally retained independent reference sets are available, compare
+# original output with representative native gameplay frames. The captures
+# remain unshipped source evidence, just like the disassembly inputs.
+$visualReferenceRoot = Join-Path $projectRoot "work/references/original_startup"
+if (Test-Path -LiteralPath $visualReferenceRoot) {
+    $dosVisualReferenceRoot = Join-Path $projectRoot "work/references/mariowiki"
+    $visualReferenceArguments = @(
+        (Join-Path $PSScriptRoot "verify_visual_references.py"),
+        $visualReferenceRoot,
+        (Join-Path $projectRoot "work/qa/mac"),
+        "--json-output",
+        (Join-Path $auditRoot "visual-reference-verification.json")
+    )
+    if (Test-Path -LiteralPath $dosVisualReferenceRoot) {
+        $visualReferenceArguments += @(
+            "--dos-reference-directory", $dosVisualReferenceRoot,
+            "--dos-qa-directory", (Join-Path $projectRoot "work/qa/dos")
+        )
+    }
+    python @visualReferenceArguments
+    if ($LASTEXITCODE -ne 0) { throw "Independent visual-reference verification failed." }
+}
+
 & (Join-Path $PSScriptRoot "test_fullscreen.ps1") -Executable $executable
 if ($LASTEXITCODE -ne 0) { throw "Hidden Alt+Enter integration test failed." }
 

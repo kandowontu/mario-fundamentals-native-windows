@@ -13,6 +13,7 @@ The `v2.0.0` release remains withdrawn until the replacement artifact is visuall
 | Temporary softlock after “Proudly Present” | MIDI output is prewarmed asynchronously and sequence requests queue until the mapper is ready; the isolated hidden startup/self-test completes. See `docs/AUDIO_AUDIT.md`. | Automated pass |
 | No background Mario/audio process after exit | Both window destroy paths stop voices and music and terminate their message loops; every gate run ends with no `MarioFundamentals` process. | Automated pass |
 | Frame-to-frame menu/gameplay shifting | `Canvas::present` performs one explicit nearest-neighbour logical-to-client map before a 1:1 upload, eliminating DPI-dependent `StretchBlt` phase changes. Every QA frame is pinned to 512×384 or 320×200. | Automated pass |
+| Port scenes retain original whole-frame geometry | Eleven independent reference comparisons cover the main DOS menu plus Backgammon, Dominoes, Checkers, Go Fish, and Yacht chrome/board/table geometry in both editions. `docs/VISUAL_REFERENCE_AUDIT.md` records the method and measured margins. | Automated pass |
 | Black repaint flicker | Both shells suppress erase-background; DOS composes the complete logical frame before touching the window DC and clears only the letterbox. | Automated pass |
 | Board flip centered and menu concealed before reveal | Macintosh/DOS dialect-specific MuV/Img ordering is independently validated; movie 1125's persistent base frame covers the latent menu. Four timeline frames per edition exercise start through terminal reveal. | Automated pass |
 | Clicking the DOS board cannot rewind the reveal | `DosApp::introSkipTarget` advances DimTitle/TalkingTitle to MenuReveal and MenuReveal to the completed menu; `03g/03h` captures exercise the live skip route. | Automated pass |
@@ -34,8 +35,9 @@ The `v2.0.0` release remains withdrawn until the replacement artifact is visuall
 
 ## Current gate
 
-`tools/build_release.ps1` must pass all semantic, asset, audiovisual, presentation, fullscreen,
-function-traceability, preservation, PE/dependency, and isolated-runtime checks. It now requires exactly 200 fresh
+`tools/build_release.ps1` must pass all semantic, asset, audiovisual, presentation, independent
+visual-reference, fullscreen, function-traceability, preservation, PE/dependency, and
+isolated-runtime checks. It now requires exactly 200 fresh
 Macintosh frames and 210 fresh DOS frames at their native logical dimensions. Any missing, stale,
 wrong-sized, or corrupt frame fails the build.
 

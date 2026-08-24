@@ -1,0 +1,296 @@
+#!/usr/bin/env python3
+"""Compare native Macintosh QA frames with independent vanilla captures.
+
+The Macintosh reference set was captured from the original image in the
+Internet Archive vMac emulator; the DOS set contains independent native-size
+screenshots.  The browser scales the Macintosh 512x384 game surface, so the
+verifier removes the stable emulator/window chrome and resamples that surface.
+Both editions compare only scene regions whose geometry is not controlled by
+random cards, pieces, speech mouths, or the mouse cursor.
+
+This is deliberately a tolerant structural check, not a claim that a browser
+screenshot can be byte-identical to the native renderer.  It independently
+catches shifted scorecards, boards, status bars, tiled backgrounds, and other
+whole-scene composition regressions that self-generated screenshots cannot.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import math
+from dataclasses import dataclass
+from pathlib import Path
+
+from PIL import Image, ImageChops, ImageFilter, ImageStat
+
+
+MAC_LOGICAL_SIZE = (512, 384)
+MAC_CAPTURE_SIZE = (2048, 1280)
+# Stable interior of the emulated 512x384 game surface in the local captures.
+MAC_CAPTURE_CROP = (341, 128, 1707, 1152)
+MAC_SOURCE_URL = "https://archive.org/details/mario-fundamentals"
+DOS_LOGICAL_SIZE = (320, 200)
+DOS_CAPTURE_CROP = (0, 0, 320, 200)
+DOS_SOURCE_URL = "https://www.mariowiki.com/Mario%27s_Game_Gallery"
+
+
+@dataclass(frozen=True)
+class Sample:
+    name: str
+    reference: str
+    qa_frame: str
+    regions: tuple[tuple[int, int, int, int], ...]
+    maximum_rmse: float
+
+
+MAC_SAMPLES = (
+    Sample(
+        "backgammon-board",
+        "original-backgammon-board.png",
+        "31-backgammon-setup-30.bmp",
+        ((0, 0, 165, 165), (347, 0, 512, 165), (0, 165, 512, 384)),
+        16.0,
+    ),
+    Sample(
+        "dominoes-table",
+        "original-dominoes-trace-4.png",
+        "21-opening-0.bmp",
+        ((100, 0, 512, 330),),
+        4.0,
+    ),
+    Sample(
+        "checkers-chrome",
+        "original-checkers-game-started.png",
+        "22-opening-8.bmp",
+        ((0, 0, 180, 165), (332, 0, 512, 165)),
+        14.0,
+    ),
+    Sample(
+        "go-fish-table",
+        "original-gofish-trace-3.png",
+        "35-gofish-victory-0.bmp",
+        ((0, 0, 180, 135), (332, 0, 512, 135), (0, 180, 512, 340)),
+        16.0,
+    ),
+    Sample(
+        "yacht-scorecards",
+        "original-yacht-trace-5.png",
+        "24-opening-32.bmp",
+        ((0, 0, 145, 325), (367, 0, 512, 325)),
+        10.0,
+    ),
+)
+
+
+DOS_SAMPLES = (
+    Sample(
+        "menu",
+        "menu.png",
+        "04-menu.bmp",
+        ((0, 0, 320, 200),),
+        11.0,
+    ),
+    Sample(
+        "backgammon-chrome",
+        "backgammon.png",
+        "31-backgammon-setup-30.bmp",
+        ((0, 0, 110, 92), (210, 0, 320, 92)),
+        34.0,
+    ),
+    Sample(
+        "dominoes-table",
+        "dominoes.png",
+        "11-opening-8.bmp",
+        ((100, 95, 315, 145),),
+        3.0,
+    ),
+    Sample(
+        "checkers-chrome",
+        "checkers.png",
+        "12-opening-16.bmp",
+        ((0, 0, 115, 68), (205, 0, 320, 68)),
+        27.0,
+    ),
+    Sample(
+        "go-fish-table",
+        "go-fish.png",
+        "35-gofish-hand.bmp",
+        ((0, 0, 110, 80), (210, 0, 320, 80), (0, 80, 320, 145)),
+        28.0,
+    ),
+    Sample(
+        "yacht-scorecards",
+        "yacht-gameplay.png",
+        "14-opening-128.bmp",
+        ((0, 0, 105, 180), (215, 0, 320, 180)),
+        12.0,
+    ),
+)
+
+
+def load_reference(
+    path: Path,
+    capture_size: tuple[int, int],
+    capture_crop: tuple[int, int, int, int],
+    logical_size: tuple[int, int],
+) -> Image.Image:
+    with Image.open(path) as image:
+        if image.size != capture_size:
+            raise ValueError(
+                f"{path}: expected {capture_size[0]}x{capture_size[1]} capture, "
+                f"found {image.width}x{image.height}"
+            )
+        return image.convert("RGB").crop(capture_crop).resize(
+            logical_size, Image.Resampling.BILINEAR
+        )
+
+
+def load_qa_frame(path: Path, logical_size: tuple[int, int]) -> Image.Image:
+    with Image.open(path) as image:
+        if image.size != logical_size:
+            raise ValueError(
+                f"{path}: expected {logical_size[0]}x{logical_size[1]} frame, "
+                f"found {image.width}x{image.height}"
+            )
+        return image.convert("RGB")
+
+
+def structural_rmse(
+    reference: Image.Image,
+    candidate: Image.Image,
+    regions: tuple[tuple[int, int, int, int], ...],
+    blur_radius: float,
+) -> float:
+    squared_rms = 0.0
+    channel_count = 0
+    for region in regions:
+        expected = reference.crop(region).filter(ImageFilter.GaussianBlur(blur_radius)).resize(
+            (64, 64), Image.Resampling.BILINEAR
+        )
+        actual = candidate.crop(region).filter(ImageFilter.GaussianBlur(blur_radius)).resize(
+            (64, 64), Image.Resampling.BILINEAR
+        )
+        rms = ImageStat.Stat(ImageChops.difference(expected, actual)).rms
+        squared_rms += sum(value * value for value in rms)
+        channel_count += len(rms)
+    return math.sqrt(squared_rms / channel_count)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("mac_reference_directory", type=Path)
+    parser.add_argument("mac_qa_directory", type=Path)
+    parser.add_argument("--dos-reference-directory", type=Path)
+    parser.add_argument("--dos-qa-directory", type=Path)
+    parser.add_argument("--json-output", type=Path, required=True)
+    args = parser.parse_args()
+
+    if bool(args.dos_reference_directory) != bool(args.dos_qa_directory):
+        raise SystemExit("DOS reference and QA directories must be supplied together")
+
+    groups = [
+        (
+            "macintosh",
+            MAC_SAMPLES,
+            args.mac_reference_directory,
+            args.mac_qa_directory,
+            MAC_CAPTURE_SIZE,
+            MAC_CAPTURE_CROP,
+            MAC_LOGICAL_SIZE,
+            1.0,
+        )
+    ]
+    if args.dos_reference_directory:
+        groups.append(
+            (
+                "dos",
+                DOS_SAMPLES,
+                args.dos_reference_directory,
+                args.dos_qa_directory,
+                DOS_LOGICAL_SIZE,
+                DOS_CAPTURE_CROP,
+                DOS_LOGICAL_SIZE,
+                0.5,
+            )
+        )
+
+    cases: list[dict[str, object]] = []
+    failed = False
+    edition_counts: dict[str, int] = {}
+    for (
+        edition,
+        samples,
+        reference_directory,
+        qa_directory,
+        capture_size,
+        capture_crop,
+        logical_size,
+        blur_radius,
+    ) in groups:
+        edition_counts[edition] = len(samples)
+        for sample in samples:
+            reference_path = reference_directory / sample.reference
+            qa_path = qa_directory / sample.qa_frame
+            if not reference_path.is_file():
+                raise SystemExit(f"missing {edition} reference capture: {reference_path}")
+            if not qa_path.is_file():
+                raise SystemExit(f"missing {edition} native QA frame: {qa_path}")
+            score = structural_rmse(
+                load_reference(reference_path, capture_size, capture_crop, logical_size),
+                load_qa_frame(qa_path, logical_size),
+                sample.regions,
+                blur_radius,
+            )
+            passed = score <= sample.maximum_rmse
+            failed |= not passed
+            cases.append(
+                {
+                    "edition": edition,
+                    "name": sample.name,
+                    "reference": sample.reference,
+                    "qa_frame": sample.qa_frame,
+                    "regions": [list(region) for region in sample.regions],
+                    "structural_rmse": round(score, 6),
+                    "maximum_rmse": sample.maximum_rmse,
+                    "status": "PASS" if passed else "FAIL",
+                }
+            )
+
+    report = {
+        "status": "FAIL" if failed else "PASS",
+        "reference_sources": {
+            "macintosh_vanilla_emulator": MAC_SOURCE_URL,
+            "dos_independent_screenshots": DOS_SOURCE_URL,
+        },
+        "editions": edition_counts,
+        "macintosh_reference_capture_size": list(MAC_CAPTURE_SIZE),
+        "macintosh_reference_game_surface_crop": list(MAC_CAPTURE_CROP),
+        "native_logical_sizes": {
+            "macintosh": list(MAC_LOGICAL_SIZE),
+            "dos": list(DOS_LOGICAL_SIZE),
+        },
+        "method": (
+            "Gaussian-smoothed 64x64 regional RGB RMSE; the Macintosh browser capture is "
+            "reduced to its stable game surface and dynamic actor/card/piece/cursor regions "
+            "are excluded from both editions"
+        ),
+        "cases": cases,
+    }
+    args.json_output.parent.mkdir(parents=True, exist_ok=True)
+    args.json_output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+
+    summary = " ".join(
+        f"{case['edition']}:{case['name']}="
+        f"{case['structural_rmse']:.3f}/{case['maximum_rmse']:.1f}"
+        for case in cases
+    )
+    if failed:
+        print(f"FAIL visual_reference_cases={len(cases)} {summary}")
+        return 1
+    print(f"PASS visual_reference_cases={len(cases)} {summary}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
