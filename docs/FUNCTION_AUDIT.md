@@ -154,7 +154,8 @@ The player-win outcome regression also requires `$1B16`'s five-pass 1–5 die re
   original New Game/Play Again dialogs are restored. Source selectors retain their lazy-shuffle and
   cross-round state where the original module globals did.
 - The silent presentation gate regenerates 178 Macintosh and 181 DOS logical-resolution frames,
-  covering both Macintosh title mouse-down routes, mouse-skipping all five selected-game intros,
+  covering both Macintosh title mouse-down routes, all five source-specific selected-game intro
+  mouse routes (two finishes, one single-tick advance, and two ignored inputs),
   every menu selection, 21 samples for every game intro, eight opening states for every game, the
   Macintosh Yacht roll/settle sequence, and DOS menu/help context screens.
 - CODE 12 `$1032`'s two sound-bearing random menu idles and `$12F8`'s independent blink are restored.

@@ -224,6 +224,16 @@ native shell therefore routes either input through one completion path that stop
 installs movie 1111's terminal hand/easel cel, and enters the fully revealed menu. The preceding
 publisher-card controller remains independent.
 
+The selected-game title actors do not share one universal input rule. Backgammon CODE 11
+`$24/$2A` routes both key-down and mouse-down directly to the `$1C4` completion post, and Yacht
+CODE 18 `$20/$26` routes both to the equivalent post at `$228`. Dominoes CODE 14 `$32` instead
+sends mouse-down through one `$9BE` controller advance while its `$370` key-down branch only
+consumes the event. Checkers CODE 16 `$456/$7F4` and Go Fish CODE 17 `$3B4/$276` perform
+game-local housekeeping/input tests without posting the title completion. The native port therefore
+immediately skips only Backgammon and Yacht, advances Dominoes by one controller tick on a click,
+and leaves Checkers and Go Fish title playback unchanged. Escape is not repurposed as a return-to-menu
+shortcut while any selected-game title is active.
+
 The preceding publisher controller at `$1B0A`/`$1B74` explicitly loads `$1C` (28) controller
 counts for the Stepping Stone card.  At the same 100 ms cadence demonstrated by the title
 controller's 15/2/5-count pauses, this is a 2.8-second hold; the original high-cadence startup

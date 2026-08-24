@@ -169,6 +169,7 @@ private:
     bool animatedPieces_{true};
     bool forcedJumps_{true};
     bool preferencesEnabled_{true};
+    bool suppressNextCharacter_{};
     bool restoreBackgroundHidden_{};
     Rect viewport_{};
     HBITMAP titleBitmap_{};

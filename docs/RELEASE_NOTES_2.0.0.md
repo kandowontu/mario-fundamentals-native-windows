@@ -18,7 +18,8 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   the completed title hand is no longer composited beneath it as a second glove/object.
 - The no-window presentation sweeps now emit 178 exact 512×384 Macintosh frames and 181 exact
   320×200 DOS frames. They cover both Macintosh title/board mouse-down completion paths, all five
-  selected-game intro skips, DOS menu/help contexts, all intros/openings, and Yacht roll/settle.
+  source-specific selected-game intro input routes, DOS menu/help contexts, all intros/openings,
+  and Yacht roll/settle.
 - The DOS source's eight-pixel `File / Options / Help` bar is restored exactly over main-menu and
   gameplay frames, with context-specific commands and the Pak 8000/8001 two-page instruction UI.
 - Dominoes now follows CODE 14's exact first/later deal and highest-double dialogue tables. The
