@@ -77,8 +77,19 @@ Movie::Movie(const AssetStore& assets, int resourceId) : id_(resourceId) {
         command.start = longWord(timeline, offset + 4);
         command.duration = longWord(timeline, offset + 8);
         if (command.opcode == 5 || command.opcode == 6) {
-            command.offsetX = signedWord(timeline, offset + 12);
-            command.offsetY = signedWord(timeline, offset + 14);
+            // DOS converted the MuV and Img geometry records to x/y order,
+            // but the two-word motion payload in Ply commands retained its
+            // original vertical/horizontal order.  Treating Ply like MuV/Img
+            // made every translated cel move on the wrong axis: the Yacht
+            // sailed down off the screen, Checkers actors drifted sideways,
+            // and the dice cup shook horizontally instead of vertically.
+            if (dos) {
+                command.offsetY = signedWord(timeline, offset + 12);
+                command.offsetX = signedWord(timeline, offset + 14);
+            } else {
+                command.offsetX = signedWord(timeline, offset + 12);
+                command.offsetY = signedWord(timeline, offset + 14);
+            }
         }
         if (command.opcode != 2 && command.opcode != 3 && command.opcode != 4 &&
             command.opcode != 5 && command.opcode != 6 && command.opcode != 7 &&
@@ -124,6 +135,38 @@ std::size_t Movie::activeImageCount(std::uint32_t time) const noexcept {
             return command.opcode >= 3 && command.opcode <= 6 && command.duration != 0 &&
                    time >= command.start && time < command.start + command.duration;
         }));
+}
+
+Rect Movie::activeVisualBounds(std::uint32_t time, int x, int y) const noexcept {
+    Rect bounds{};
+    bool initialized = false;
+    if (!resolved_) return bounds;
+    if (duration_) time %= duration_;
+    for (const Command& command : commands_) {
+        if (command.opcode < 3 || command.opcode > 6 || command.duration == 0 ||
+            time < command.start || time >= command.start + command.duration ||
+            command.parameter >= images_.size()) {
+            continue;
+        }
+        const ImageRecord& image = images_[command.parameter];
+        const int commandX = command.opcode >= 5 ? command.offsetX : 0;
+        const int commandY = command.opcode >= 5 ? command.offsetY : 0;
+        const Rect frame{
+            x + originX_ + image.xOffset + commandX,
+            y + originY_ + image.yOffset + commandY,
+            x + originX_ + image.xOffset + commandX + image.source.width(),
+            y + originY_ + image.yOffset + commandY + image.source.height()};
+        if (!initialized) {
+            bounds = frame;
+            initialized = true;
+        } else {
+            bounds.left = std::min(bounds.left, frame.left);
+            bounds.top = std::min(bounds.top, frame.top);
+            bounds.right = std::max(bounds.right, frame.right);
+            bounds.bottom = std::max(bounds.bottom, frame.bottom);
+        }
+    }
+    return bounds;
 }
 
 std::vector<int> Movie::soundsBetween(std::uint32_t previous, std::uint32_t current) const {

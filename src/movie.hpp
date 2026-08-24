@@ -18,6 +18,8 @@ public:
     [[nodiscard]] std::vector<int> soundsBetween(std::uint32_t previous,
                                                   std::uint32_t current) const;
     [[nodiscard]] std::size_t activeImageCount(std::uint32_t time) const noexcept;
+    [[nodiscard]] Rect activeVisualBounds(std::uint32_t time,
+                                          int x = 0, int y = 0) const noexcept;
     [[nodiscard]] Rect visualBounds(int x = 0, int y = 0) const noexcept;
     [[nodiscard]] Rect imageBounds(std::size_t index, int x = 0, int y = 0) const noexcept;
     [[nodiscard]] std::size_t imageCount() const noexcept { return images_.size(); }

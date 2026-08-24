@@ -727,6 +727,20 @@ int selfTest(HINSTANCE instance) {
         dosMenuFinal.right != 139 || dosMenuFinal.bottom != 153) {
         throw std::runtime_error("DOS movie coordinate dialect regression");
     }
+    // Ply motion words remain vertical/horizontal even though DOS MuV/Img
+    // geometry was converted to x/y. The Yacht must travel horizontally and
+    // its cup shake must travel vertically.
+    const mf::Movie dosYachtIntro(dosAssets, 6100);
+    const mf::Rect yachtStart = dosYachtIntro.activeVisualBounds(0, -90, 0);
+    const mf::Rect yachtLater = dosYachtIntro.activeVisualBounds(1200, -90, 0);
+    const mf::Movie dosYachtCup(dosAssets, 6020);
+    const mf::Rect cupStart = dosYachtCup.activeVisualBounds(60, -26, 53);
+    const mf::Rect cupShake = dosYachtCup.activeVisualBounds(120, -26, 53);
+    if (yachtLater.left - yachtStart.left != 100 ||
+        yachtLater.top != yachtStart.top ||
+        cupShake.left != cupStart.left || cupShake.top - cupStart.top != 8) {
+        throw std::runtime_error("DOS Ply motion-axis regression");
+    }
     if (!mf::DosApp::sourceIntroSkipRegressionTest() ||
         !mf::DosApp::sourceGameIntroCompletionRegressionTest())
         throw std::runtime_error("DOS title/menu skip progression regression");

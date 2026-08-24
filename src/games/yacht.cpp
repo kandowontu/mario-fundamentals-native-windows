@@ -1236,24 +1236,27 @@ void YachtGame::render(Canvas& canvas) {
     canvas.clear(rgb(0, 0, 0));
     drawBackground(canvas, 6001);
     if (!gestureAnimation_.active()) {
-        // Pak 6021 frame zero supplies the neutral base and the speech movies
-        // replace only its head.  Pak 6012 is the lower torso/hand component;
-        // it must remain below the face at the source registration rather
-        // than the prior displaced position that duplicated Mario's body.
-        canvas.sprite(context_.graphics.sprite(6021),
-                      dosEdition() ? 119 : 191, dosEdition() ? 9 : 18, false);
-        (void)host_.render(canvas);
-        // Restore the lower neutral-pose component at its edition-specific
-        // authored registration.  The DOS Pak is cropped to its opaque
-        // 65x47 bounds; the Macintosh Pak retains its full-canvas offsets.
-        canvas.sprite(context_.graphics.sprite(6012),
-                      dosEdition() ? 119 : 0, dosEdition() ? 51 : 0, false);
+        // Dialogue movies contain the head only. Pak 6012 is their fixed
+        // torso/hand underlay, while Pak 6021 frame zero is the complete idle
+        // Mario used only when no dialogue actor is present. Drawing all
+        // three layers at once duplicated Mario; drawing 6012 after the live
+        // head covered his jaw and made him appear to talk into his shirt.
+        if (host_.active()) {
+            canvas.sprite(context_.graphics.sprite(6012),
+                          dosEdition() ? 119 : 0, dosEdition() ? 51 : 0, false);
+            (void)host_.render(canvas);
+        } else {
+            canvas.sprite(context_.graphics.sprite(6021),
+                          dosEdition() ? 119 : 191, dosEdition() ? 9 : 18, false);
+        }
     } else {
         (void)gestureAnimation_.render(canvas);
     }
     (void)rollAnimation_.render(canvas);
     if (openingDelayMilliseconds_ == 0 && !showComputerDice_ && rolls_ == 0 &&
-        computerAttempt_ == 0 && computerRerollStage_ == 0 && !host_.active())
+        computerAttempt_ == 0 && computerRerollStage_ == 0 &&
+        pendingRollPlayer_ == 0 && !rollAnimation_.active() &&
+        !gestureAnimation_.active() && !host_.active())
         canvas.sprite(context_.graphics.sprite(6010, 12),
                       dosEdition() ? 136 : 217, dosEdition() ? 86 : 166, false);
     canvas.pakText(context_.graphics,

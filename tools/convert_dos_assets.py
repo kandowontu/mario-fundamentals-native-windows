@@ -295,7 +295,7 @@ def parse_movie(
     opcode_counts: Counter[int] = Counter()
     for index in range(command_count):
         offset = index * 16
-        opcode, flags, parameter, start, command_duration, x, y = struct.unpack_from(
+        opcode, flags, parameter, start, command_duration, first, second = struct.unpack_from(
             "<BBHIIhh", timeline, offset
         )
         if opcode not in MOVIE_OPCODES:
@@ -305,6 +305,10 @@ def parse_movie(
             if images is None or frame_count is None or parameter >= len(images) or parameter >= frame_count:
                 unresolved_images.add(parameter)
                 resolved = False
+        # DOS MuV/Img records use x/y order, but Ply motion commands retain
+        # the original vertical/horizontal pair. Normalize the audit manifest
+        # to semantic x/y so it describes what the runtime renders.
+        x, y = (second, first) if opcode in {5, 6} else (first, second)
         commands.append(
             {
                 "index": index,

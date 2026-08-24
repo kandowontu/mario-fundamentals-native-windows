@@ -26,6 +26,14 @@ All notable native-port changes are documented here.
 
 ### Fixed
 
+- Decoded DOS `Ply` motion payloads in their retained vertical/horizontal order instead of the
+  `x/y` order used by DOS `MuV` and `Img` records. This restores the intended motion axis across
+  every translated movie: Yacht now sails horizontally, game-intro actors cross their stages,
+  and the Yacht dice cup shakes vertically rather than sliding sideways.
+- Composited Yacht dialogue as a torso underlay followed by the live head, using the complete
+  neutral Mario only while speech is idle. The stationary cup is now suppressed throughout the
+  roll movie, eliminating the doubled cup and preventing Mario's jaw from being painted behind
+  his shirt.
 - Ended DOS game introductions when their source actors complete instead of holding blank or
   trailing cels for the Macintosh-only two-second tableau delay; corrected the Dominoes parade's
   eight-pixel stage registration.
@@ -45,8 +53,8 @@ All notable native-port changes are documented here.
 - Registered every DOS speech head and full-body host movie against its game's original actor
   position. Mario no longer appears over a scorecard, duplicates his head, or loses the neutral
   torso between speech cels.
-- Rebuilt Yacht's neutral and roll-gesture composition from its correctly registered base,
-  lower-body, talking-head, and full-body layers, removing the duplicate torso and hands.
+- Registered Yacht's neutral, talking-head, and full-body gesture assets at their source actor
+  positions rather than scaling their already-authored DOS stage coordinates a second time.
 - Restored each DOS game-introduction movie to its recovered stage registration and stopped
   applying the Dominoes controller baseline a second time, which had moved its entire parade below
   the framebuffer.

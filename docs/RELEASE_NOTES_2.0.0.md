@@ -10,6 +10,13 @@ media, executable, emulator, installer, sound driver, or loose asset files.
 
 ## Corrective QA after withdrawal
 
+- DOS `Ply` motion pairs retain the source vertical/horizontal layout even though DOS `MuV` and
+  `Img` geometry uses conventional x/y fields. The runtime now treats those dialects separately;
+  all five game introductions move on their authored axes, the Yacht crosses the water instead
+  of dropping offscreen, and the dice cup shakes vertically.
+- Yacht speech now draws the fixed torso beneath the live head and uses the complete neutral Mario
+  only between lines. Its stationary cup is hidden during the animated roll, removing both the
+  shirt-over-jaw layering error and the duplicate cup.
 - DOS MuV/Img geometry now uses its proven conventional x/y field order instead of Macintosh
   QuickDraw ordering. All 1,213 same-ID Img/Pak records are exact, eliminating clipped cels,
   displaced board-flip layers, and incomplete talking heads.
