@@ -219,7 +219,7 @@ PASS mac_assets=1707 mac_pak=180 mac_frames=3166 mac_movies=467 mac_commands=858
 - `M`: toggle music independently.
 - `H`: hide/show the backing presentation by switching to the original-size compact game window.
 - `F1`: show rules for the current game.
-- `F11` or `Alt+Enter`: toggle fullscreen.
+- `F11` or `Alt+Enter`: toggle fullscreen in either edition.
 - `Escape`: return to the main menu; from the menu, exit.
 - `Ctrl+Q`: source File-menu shortcut; exit the current game, or quit from the main shell.
 - Credits: click anywhere to return.

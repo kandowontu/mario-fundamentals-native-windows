@@ -1,6 +1,7 @@
 #pragma once
 
 #include "game.hpp"
+#include "fullscreen.hpp"
 #include "menu_catalog.hpp"
 #include "resource_ids.h"
 
@@ -14,6 +15,7 @@ public:
     ~DosApp();
     int run(int showCommand);
     void renderQaFrames(std::wstring_view outputDirectory);
+    [[nodiscard]] static bool sourceIntroSkipRegressionTest();
 
 private:
     enum class Screen { Intro, Menu, GameIntro, Character, Name, Game, Credits };
@@ -57,6 +59,7 @@ private:
     void key(unsigned virtualKey);
     void characterInput(wchar_t character);
     void tick();
+    void skipIntro();
     void advanceIntro(IntroPhase phase);
     void selectMenu(int sourceSelection, bool animate);
     void beginGameIntro(int gameIndex);
@@ -92,6 +95,7 @@ private:
     bool nameConfirmed_{};
     std::wstring playerName_{L"My Friend"};
     Rect viewport_{};
+    FullscreenController fullscreen_;
 };
 
 }  // namespace mf

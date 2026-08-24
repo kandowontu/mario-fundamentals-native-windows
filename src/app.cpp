@@ -60,7 +60,6 @@ App::App(HINSTANCE instance)
     // source TickCount is a 60 Hz boot-relative counter.
     const auto sourceTicks = static_cast<std::uint32_t>(GetTickCount64() * 60ULL / 1000ULL);
     random_.discard(sourceTicks & 0x3ffU);
-    windowPlacement_.length = sizeof(WINDOWPLACEMENT);
     titleBitmap_ = LoadBitmapW(instance_, MAKEINTRESOURCEW(IDB_TITLE));
     creditsBitmap_ = LoadBitmapW(instance_, MAKEINTRESOURCEW(IDB_CREDITS));
     brainstormBitmap_ = LoadBitmapW(instance_, MAKEINTRESOURCEW(IDB_BRAINSTORM));
@@ -303,6 +302,11 @@ LRESULT CALLBACK App::windowProcedure(HWND window, UINT message, WPARAM wParam, 
 }
 
 LRESULT App::handleMessage(HWND window, UINT message, WPARAM wParam, LPARAM lParam) {
+    if (isFullscreenShortcut(message, wParam, lParam)) {
+        toggleFullscreen();
+        InvalidateRect(window, nullptr, FALSE);
+        return 0;
+    }
     switch (message) {
     case WM_ERASEBKGND: return 1;
     case WM_SIZE: updateViewport(); InvalidateRect(window, nullptr, FALSE); return 0;
@@ -442,7 +446,6 @@ LRESULT App::handleMessage(HWND window, UINT message, WPARAM wParam, LPARAM lPar
             else returnToMenu();
         }
         else if (wParam == VK_F1) toggleHelp();
-        else if (wParam == VK_F11 || (wParam == VK_RETURN && GetKeyState(VK_MENU) < 0)) toggleFullscreen();
         else if ((screen_ == Screen::Name || screen_ == Screen::GameName) &&
                  GetKeyState(VK_CONTROL) < 0 && wParam == 'Z')
             playerName_ = nameBeforeEdit_;
@@ -501,9 +504,16 @@ LRESULT App::handleMessage(HWND window, UINT message, WPARAM wParam, LPARAM lPar
             if (repaint) InvalidateRect(window_, nullptr, FALSE);
         }
         return 0;
+    case WM_SYSCHAR:
+        if (wParam == VK_RETURN) return 0;
+        return DefWindowProcW(window, message, wParam, lParam);
     case WM_GETMINMAXINFO: {
         auto* info = reinterpret_cast<MINMAXINFO*>(lParam); info->ptMinTrackSize = {560, 460}; return 0;
     }
+    case WM_CLOSE:
+        fullscreen_.restore(window);
+        DestroyWindow(window);
+        return 0;
     case WM_DESTROY: PostQuitMessage(0); return 0;
     default: return DefWindowProcW(window, message, wParam, lParam);
     }
@@ -1486,7 +1496,7 @@ void App::toggleMusic() {
 }
 
 void App::toggleBackground() {
-    if (!window_ || fullscreen_) return;
+    if (!window_ || fullscreen_.active()) return;
     if (!backgroundHidden_) {
         backgroundWindowRectValid_ = GetWindowRect(window_, &backgroundWindowRect_) != FALSE;
         RECT compact{0, 0, kLogicalWidth, kLogicalHeight};
@@ -1682,26 +1692,7 @@ void App::toggleHelp(int gameIndex) {
 }
 
 void App::toggleFullscreen() {
-    const DWORD style = static_cast<DWORD>(GetWindowLongPtrW(window_, GWL_STYLE));
-    if (!fullscreen_) {
-        MONITORINFO monitor{};
-        monitor.cbSize = sizeof(MONITORINFO);
-        if (GetWindowPlacement(window_, &windowPlacement_) &&
-            GetMonitorInfoW(MonitorFromWindow(window_, MONITOR_DEFAULTTOPRIMARY), &monitor)) {
-            SetWindowLongPtrW(window_, GWL_STYLE, style & ~WS_OVERLAPPEDWINDOW);
-            SetWindowPos(window_, HWND_TOP, monitor.rcMonitor.left, monitor.rcMonitor.top,
-                         monitor.rcMonitor.right - monitor.rcMonitor.left,
-                         monitor.rcMonitor.bottom - monitor.rcMonitor.top,
-                         SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
-            fullscreen_ = true;
-        }
-    } else {
-        SetWindowLongPtrW(window_, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
-        SetWindowPlacement(window_, &windowPlacement_);
-        SetWindowPos(window_, nullptr, 0, 0, 0, 0,
-                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
-        fullscreen_ = false;
-    }
+    fullscreen_.toggle(window_);
 }
 
 }  // namespace mf

@@ -20,6 +20,9 @@ $test = Start-Process -FilePath $executable -ArgumentList "--self-test" -WindowS
 Get-Content $standardOutput, $standardError
 if ($test.ExitCode -ne 0) { throw "Executable self-test failed with exit code $($test.ExitCode)." }
 
+& (Join-Path $PSScriptRoot "test_fullscreen.ps1") -Executable $executable
+if ($LASTEXITCODE -ne 0) { throw "Hidden Alt+Enter integration test failed." }
+
 $auditRoot = Join-Path $projectRoot "work/audit"
 New-Item -ItemType Directory -Force -Path $auditRoot | Out-Null
 python (Join-Path $PSScriptRoot "verify_release.py") $executable `

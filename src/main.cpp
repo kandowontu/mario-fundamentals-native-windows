@@ -725,6 +725,8 @@ int selfTest(HINSTANCE instance) {
         dosMenuFinal.right != 139 || dosMenuFinal.bottom != 153) {
         throw std::runtime_error("DOS movie coordinate dialect regression");
     }
+    if (!mf::DosApp::sourceIntroSkipRegressionTest())
+        throw std::runtime_error("DOS title/menu skip progression regression");
     mf::Audio dosAudio(dosAssets);
     std::size_t dosMidiEvents = 0;
     for (int id : dosAssets.ids("XMI ")) dosMidiEvents += dosAudio.midiEventCount(id);

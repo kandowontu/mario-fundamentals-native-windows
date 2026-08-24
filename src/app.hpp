@@ -1,6 +1,7 @@
 #pragma once
 
 #include "game.hpp"
+#include "fullscreen.hpp"
 #include "movie.hpp"
 #include "resource_ids.h"
 #include "source_fonts.hpp"
@@ -180,11 +181,10 @@ private:
     std::array<HBITMAP, 9> helpBitmaps_{};
     int helpGameIndex_{};
     int helpPage_{};
-    bool fullscreen_{};
+    FullscreenController fullscreen_;
     int activeGameIndex_{-1};
     std::optional<std::uint32_t> previewRandomSeed_;
     std::uint32_t gameFinishedMilliseconds_{};
-    WINDOWPLACEMENT windowPlacement_{};
     RECT backgroundWindowRect_{};
     std::array<Rect, 5> gameButtons_{{
         {38, 219, 186, 246}, {38, 191, 186, 218}, {38, 135, 186, 162},

@@ -24,6 +24,17 @@ constexpr std::array<Rect, 5> kMenuButtons{{
     {58, 123, 136, 138}, {58, 138, 136, 153},
 }};
 
+enum class IntroSkipTarget { DimTitle, MenuReveal, Menu };
+
+constexpr IntroSkipTarget introSkipTarget(int phase) {
+    // Interplay, Presage, and Credits retain the original jump to the title.
+    // Once the title tableau is visible, skipping must move monotonically into
+    // the board reveal; skipping that reveal completes the menu.
+    if (phase <= 2) return IntroSkipTarget::DimTitle;
+    if (phase < 8) return IntroSkipTarget::MenuReveal;
+    return IntroSkipTarget::Menu;
+}
+
 }  // namespace
 
 DosApp::DosApp(HINSTANCE instance)
@@ -98,6 +109,21 @@ int DosApp::run(int showCommand) {
     return static_cast<int>(message.wParam);
 }
 
+bool DosApp::sourceIntroSkipRegressionTest() {
+    return introSkipTarget(static_cast<int>(IntroPhase::Interplay)) ==
+               IntroSkipTarget::DimTitle &&
+           introSkipTarget(static_cast<int>(IntroPhase::Presage)) ==
+               IntroSkipTarget::DimTitle &&
+           introSkipTarget(static_cast<int>(IntroPhase::Credits)) ==
+               IntroSkipTarget::DimTitle &&
+           introSkipTarget(static_cast<int>(IntroPhase::DimTitle)) ==
+               IntroSkipTarget::MenuReveal &&
+           introSkipTarget(static_cast<int>(IntroPhase::TalkingTitle)) ==
+               IntroSkipTarget::MenuReveal &&
+           introSkipTarget(static_cast<int>(IntroPhase::MenuReveal)) ==
+               IntroSkipTarget::Menu;
+}
+
 void DosApp::renderQaFrames(std::wstring_view outputDirectory) {
     audio_.setEnabled(false);
     const std::filesystem::path root(outputDirectory);
@@ -135,6 +161,16 @@ void DosApp::renderQaFrames(std::wstring_view outputDirectory) {
         save(name);
     }
     menuReveal_.stop();
+
+    // Exercise the live input path as well as direct timeline sampling. A
+    // title-stage click must begin the reveal, and another click must leave the
+    // completed board visible rather than returning to DimTitle.
+    screen_ = Screen::Intro;
+    introPhase_ = IntroPhase::DimTitle;
+    skipIntro();
+    save(L"03g-skip-reveal-start.bmp");
+    skipIntro();
+    save(L"03h-skip-menu-complete.bmp");
 
     screen_ = Screen::Menu;
     menuSourceSelection_ = 1;
@@ -200,6 +236,11 @@ LRESULT CALLBACK DosApp::windowProcedure(HWND window, UINT message,
 }
 
 LRESULT DosApp::handleMessage(HWND window, UINT message, WPARAM wParam, LPARAM lParam) {
+    if (isFullscreenShortcut(message, wParam, lParam)) {
+        fullscreen_.toggle(window);
+        InvalidateRect(window, nullptr, FALSE);
+        return 0;
+    }
     switch (message) {
     case WM_ERASEBKGND:
         return 1;
@@ -234,7 +275,11 @@ LRESULT DosApp::handleMessage(HWND window, UINT message, WPARAM wParam, LPARAM l
     case WM_KEYDOWN:
         key(static_cast<unsigned>(wParam));
         return 0;
+    case WM_SYSCHAR:
+        if (wParam == VK_RETURN) return 0;
+        return DefWindowProcW(window, message, wParam, lParam);
     case WM_CLOSE:
+        fullscreen_.restore(window);
         DestroyWindow(window);
         return 0;
     case WM_DESTROY:
@@ -559,8 +604,7 @@ void DosApp::clickDialog(Point point) {
 
 void DosApp::click(Point point) {
     if (screen_ == Screen::Intro) {
-        audio_.stop();
-        advanceIntro(IntroPhase::DimTitle);
+        skipIntro();
         return;
     }
     if (screen_ == Screen::Menu) {
@@ -601,12 +645,29 @@ void DosApp::click(Point point) {
     }
 }
 
+void DosApp::skipIntro() {
+    audio_.stop();
+    talkingTitle_.stop();
+    const IntroSkipTarget target = introSkipTarget(static_cast<int>(introPhase_));
+    if (target == IntroSkipTarget::DimTitle) {
+        menuReveal_.stop();
+        advanceIntro(IntroPhase::DimTitle);
+    } else if (target == IntroSkipTarget::MenuReveal) {
+        menuReveal_.stop();
+        advanceIntro(IntroPhase::MenuReveal);
+    } else {
+        menuReveal_.stop();
+        screen_ = Screen::Menu;
+        selectMenu(1, false);
+        if (window_) InvalidateRect(window_, nullptr, FALSE);
+    }
+}
+
 void DosApp::key(unsigned virtualKey) {
     if (virtualKey == VK_ESCAPE) {
         if (screen_ == Screen::Menu) DestroyWindow(window_);
         else if (screen_ == Screen::Intro) {
-            audio_.stop();
-            advanceIntro(IntroPhase::DimTitle);
+            skipIntro();
         }
         else returnToMenu();
         return;

@@ -26,6 +26,11 @@ All notable native-port changes are documented here.
 
 ### Fixed
 
+- Routed `Alt+Enter` through Windows system-key handling and a shared borderless-fullscreen
+  controller for both editions; `F11` now follows the same path in both shells.
+- Made DOS startup skipping monotonic: clicks or Escape on the live title advance into the board
+  reveal, and skipping an in-progress reveal completes the filled board instead of rewinding to
+  the dim title shadow.
 - Decoded the Interplay and Presage publisher cards through their dedicated DOS `Intrply_clut`
   and `Presage_clut` color tables instead of the general game palette.
 - Restored the title screen's terminal open-hand cel and placed all five red menu selections on
