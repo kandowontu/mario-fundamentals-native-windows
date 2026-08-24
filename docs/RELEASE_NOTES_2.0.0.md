@@ -28,6 +28,10 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   opening lines in both editions.
 - Runtime status copy now stays within the original Pak font's supported character set; Unicode
   en/em dashes can no longer appear as question-mark glyphs during Backgammon, Dominoes, or Go Fish.
+- The release gate now regenerates all Macintosh CODE and DOS resident/FBOV traceability ledgers.
+  The supporting DOS discovery ledger no longer leaves 1,923 heuristic candidates generically
+  pending: 77 overlay rows defer to the exact export/prologue ledger and 1,846 resident rows are
+  explicitly dispositioned to the replaced platform/runtime/media family.
 - The Yacht idle cup is suppressed by the same controller guard in both editions throughout the
   roll movie and all sequential die-settle passes, with separate Macintosh and DOS regressions.
 - DOS `Ply` motion pairs retain the source vertical/horizontal layout even though DOS `MuV` and

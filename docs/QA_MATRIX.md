@@ -27,6 +27,7 @@ The `v2.0.0` release remains withdrawn until the replacement artifact is visuall
 | Go Fish deals all cards progressively and remains playable | The seven-card deal/group timeline, stable hand-slot transfer, click rectangles, strategy, dialogue, and three outcomes are regression-tested; grouped hand, transfer, and 0/3/7-letter victory frames render in both dialects. | Automated pass |
 | Yacht scoring, selection, turn order, and endings | Score/category/input, adviser, roll order, dialogue, cup, and all outcome branches have executable regressions; scorecard, held-dice selection, victory, and roll/settle states render in both dialects. | Automated pass |
 | Music, speech, and effects are complete | `docs/AUDIO_AUDIT.md` maps startup, menu, intro, and per-game direct calls plus every movie cue; the decoder verifies 313 Mac sounds/6,968 MIDI events and 278 DOS sounds/12,253 XMI events. | Automated pass |
+| Every recoverable original code entry is dispositioned | The Macintosh ledger maps 1,299 structural CODE entries with zero unaccounted. The DOS primary overlay ledger maps 591 exact/high/heuristic entries, including all 505 original INT 3F exports; the supporting radare2 ledger maps 77 overlay candidates to that exact ledger and 1,846 conservative resident candidates to the replaced DOS runtime/media family, with zero pending or unaccounted rows. | Automated pass |
 | Alt+Enter fullscreen works in both editions | `tools/test_fullscreen.ps1` exercises fullscreen entry and exact windowed restoration for each edition without changing the Windows display mode. | Automated pass |
 | Repository credits/rights are accurate | `CREDITS.md`, source/tooling license boundaries, source-media provenance, and the withdrawn-draft notice are present. Original game data is explicitly excluded from the source license. | Present |
 | No premature public release | GitHub `v2.0.0` is a withdrawn draft and has no public tag or downloadable public release artifact. | Enforced |
@@ -34,7 +35,7 @@ The `v2.0.0` release remains withdrawn until the replacement artifact is visuall
 ## Current gate
 
 `tools/build_release.ps1` must pass all semantic, asset, audiovisual, presentation, fullscreen,
-preservation, PE/dependency, and isolated-runtime checks. It now requires exactly 200 fresh
+function-traceability, preservation, PE/dependency, and isolated-runtime checks. It now requires exactly 200 fresh
 Macintosh frames and 210 fresh DOS frames at their native logical dimensions. Any missing, stale,
 wrong-sized, or corrupt frame fails the build.
 

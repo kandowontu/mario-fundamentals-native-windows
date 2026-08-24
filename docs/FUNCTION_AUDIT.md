@@ -65,8 +65,10 @@ The confidence labels matter. Export-stub targets are exact original entry point
 prologues are high-confidence structural entries; near-call-only targets remain heuristic. The
 candidate spans end at the next discovered entry and are not claimed to be recovered source-level
 function sizes or symbols. A separate radare2 discovery ledger records 1,923 resident/overlay
+candidates. Its 77 overlay rows defer to the exact ledger above, while all 1,846 resident rows map
+to the native DOS platform/runtime/media replacement family. It has zero pending or unaccounted
 candidates but remains supporting evidence because segmented far control flow makes its boundaries
-less reliable.
+less reliable than the original INT 3F exports and Borland prologues.
 
 Confirmed overlay families include:
 

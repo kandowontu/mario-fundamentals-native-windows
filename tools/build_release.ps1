@@ -22,6 +22,49 @@ $test = Start-Process -FilePath $executable -ArgumentList "--self-test" -WindowS
 Get-Content $standardOutput, $standardError
 if ($test.ExitCode -ne 0) { throw "Executable self-test failed with exit code $($test.ExitCode)." }
 
+# Regenerate the static function traceability ledgers whenever the local
+# disassembly/source evidence is available. This prevents a green runtime
+# build from silently relying on stale code-audit CSV/JSON files.
+$macFunctionSummary = Join-Path $projectRoot "work/disassembly/summary.json"
+if (Test-Path -LiteralPath $macFunctionSummary) {
+    python (Join-Path $PSScriptRoot "build_function_traceability.py") `
+        $macFunctionSummary (Join-Path $auditRoot "function-traceability.csv") `
+        --json-output (Join-Path $auditRoot "function-traceability-summary.json")
+    if ($LASTEXITCODE -ne 0) { throw "Macintosh function traceability audit failed." }
+}
+
+$dosExecutableManifestPath = Join-Path $auditRoot "dos-executable-manifest.json"
+$dosRadareFunctions = Join-Path $projectRoot "work/disassembly/dos/radare-functions.json"
+$dosRadareSections = Join-Path $projectRoot "work/disassembly/dos/radare-sections.json"
+$dosOverlayRoot = Join-Path $projectRoot "work/disassembly/dos/overlays"
+$dosFunctionResourceManifest = Join-Path $auditRoot "dos-resource-manifest.json"
+if ((Test-Path -LiteralPath $dosExecutableManifestPath) -and
+    (Test-Path -LiteralPath $dosRadareFunctions) -and
+    (Test-Path -LiteralPath $dosRadareSections) -and
+    (Test-Path -LiteralPath $dosOverlayRoot) -and
+    (Test-Path -LiteralPath $dosFunctionResourceManifest)) {
+    $dosExecutableDocument = Get-Content -LiteralPath $dosExecutableManifestPath -Raw |
+        ConvertFrom-Json
+    $dosOriginalExecutable = [System.IO.Path]::GetFullPath(
+        (Join-Path $projectRoot $dosExecutableDocument.source.path))
+    if (-not (Test-Path -LiteralPath $dosOriginalExecutable)) {
+        throw "DOS function evidence is present but the original executable is missing."
+    }
+    $dosOverlayCsv = Join-Path $auditRoot "dos-overlay-function-traceability.csv"
+    $dosOverlaySummary = Join-Path $auditRoot "dos-overlay-function-traceability-summary.json"
+    python (Join-Path $PSScriptRoot "build_dos_overlay_function_traceability.py") `
+        $dosExecutableManifestPath $dosOriginalExecutable $dosOverlayRoot `
+        $dosFunctionResourceManifest $dosOverlayCsv --json-output $dosOverlaySummary
+    if ($LASTEXITCODE -ne 0) { throw "DOS exact overlay function traceability audit failed." }
+
+    python (Join-Path $PSScriptRoot "build_dos_function_traceability.py") `
+        $dosRadareFunctions $dosRadareSections $dosExecutableManifestPath `
+        (Join-Path $auditRoot "dos-function-traceability.csv") `
+        --overlay-summary $dosOverlaySummary `
+        --json-output (Join-Path $auditRoot "dos-function-traceability-summary.json")
+    if ($LASTEXITCODE -ne 0) { throw "DOS resident/discovery function traceability audit failed." }
+}
+
 function Invoke-PresentationQa {
     param(
         [string] $Argument,
