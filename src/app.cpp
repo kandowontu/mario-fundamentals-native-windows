@@ -152,20 +152,35 @@ void App::renderQaFrames(std::wstring_view outputDirectory) {
         save(name);
     }
 
-    // Exercise the same source completion route through a live title pose. It
-    // must install movie 1111's terminal hand/easel cel before the menu frame.
+    // Exercise the actual mouse-down route through both a live title pose and
+    // the board-flip phase. Both must install movie 1111's terminal
+    // hand/easel cel before the menu frame.
     screen_ = Screen::Intro;
     introPhase_ = IntroPhase::TalkingHead;
     introPhaseMilliseconds_ = 600U;
     introHandMilliseconds_ = 600U;
     save(L"08-skip-before.bmp");
-    skipTitleIntro();
+    click({256, 192});
     save(L"09-skip-menu.bmp");
+
+    screen_ = Screen::Intro;
+    introPhase_ = IntroPhase::MenuReveal;
+    introPhaseMilliseconds_ = 300U;
+    introHandMilliseconds_ = introHandMovie_.duration() * 1000U /
+                             introHandMovie_.timeScale();
+    save(L"09a-board-skip-before.bmp");
+    click({256, 192});
+    save(L"09b-board-skip-menu.bmp");
 
     for (int sourceSelection = 1; sourceSelection <= 5; ++sourceSelection) {
         menuSourceSelection_ = sourceSelection;
         showSelectedMenuPose();
         save(L"10-menu-selection-" + std::to_wstring(sourceSelection) + L".bmp");
+        if (sourceSelection == 1 &&
+            canvas_.pixelHash({0, 0, kLogicalWidth, kLogicalHeight}) !=
+                0xC8DC550B480F2920ULL) {
+            throw std::runtime_error("Macintosh single-hand menu composition regression");
+        }
     }
 
     for (int gameIndex = 0; gameIndex < 5; ++gameIndex) {
@@ -178,6 +193,19 @@ void App::renderQaFrames(std::wstring_view outputDirectory) {
         }
     }
     gameIntroMovies_.clear();
+
+    // A source mouse-down also terminates each selected game's title actor.
+    // Exercise that event route with the first-use prompts already satisfied
+    // so the captured result is the initialized board, not another modal.
+    characterConfirmed_ = true;
+    nameConfirmed_ = true;
+    for (int gameIndex = 0; gameIndex < 5; ++gameIndex) {
+        beginGameIntro(gameIndex);
+        gameIntroMilliseconds_ = gameIntroDurationMilliseconds_ / 2U;
+        click({256, 192});
+        save(L"11-skip-game-intro-" + std::to_wstring(gameIndex) + L".bmp");
+    }
+    game_.reset();
 
     constexpr std::array<int, 8> openingTicks{0, 1, 8, 16, 32, 64, 96, 128};
     for (int gameIndex = 0; gameIndex < 5; ++gameIndex) {
@@ -686,10 +714,16 @@ void App::drawMario(bool talking) {
         ? std::clamp(menuSourceSelection_ - 1, 0, 4) : 0;
     canvas_.sprite(graphics_.sprite(1020, pointerFrame), 150, 142, false);
 
-    const std::uint32_t handTime = std::min<std::uint32_t>(
-        introHandMovie_.duration() - 1,
-        introHandMilliseconds_ * introHandMovie_.timeScale() / 1000U);
-    introHandMovie_.render(canvas_, graphics_, handTime, 397, 127);
+    // The title controller and the menu-selection controller own the same
+    // right-hand layer. Once the menu is live, resources 1111..1115 replace
+    // the title hand; drawing both produces the doubled glove/object visible
+    // in the broken menu capture.
+    if (screen_ != Screen::Menu) {
+        const std::uint32_t handTime = std::min<std::uint32_t>(
+            introHandMovie_.duration() - 1,
+            introHandMilliseconds_ * introHandMovie_.timeScale() / 1000U);
+        introHandMovie_.render(canvas_, graphics_, handTime, 397, 127);
+    }
 }
 
 void App::renderIntro() {
@@ -1038,16 +1072,22 @@ void App::tickGameIntro(unsigned milliseconds) {
     }
     // The original title handlers leave the completed tableau visible for two seconds.
     if (gameIntroMilliseconds_ >= gameIntroDurationMilliseconds_ + 2000U) {
-        const int index = pendingGameIndex_;
-        pendingGameIndex_ = -1;
-        gameIntroMovies_.clear();
-        if (index >= 0 && index <= 2 && !characterConfirmed_) {
-            beginGameCharacter(index);
-        } else if (!nameConfirmed_) {
-            beginGameName(index);
-        } else {
-            startGame(index);
-        }
+        finishGameIntro();
+    }
+}
+
+void App::finishGameIntro(bool skippedByInput) {
+    if (screen_ != Screen::GameIntro || pendingGameIndex_ < 0) return;
+    if (skippedByInput) audio_.stop();
+    const int index = pendingGameIndex_;
+    pendingGameIndex_ = -1;
+    gameIntroMovies_.clear();
+    if (index <= 2 && !characterConfirmed_) {
+        beginGameCharacter(index);
+    } else if (!nameConfirmed_) {
+        beginGameName(index);
+    } else {
+        startGame(index);
     }
 }
 
@@ -1210,6 +1250,10 @@ void App::click(Point logical) {
     if (screen_ == Screen::Intro &&
         macTitleIntroInputSkips(static_cast<int>(introPhase_))) {
         skipTitleIntro();
+        return;
+    }
+    if (screen_ == Screen::GameIntro) {
+        finishGameIntro(true);
         return;
     }
     if (dialog_ != Dialog::None) {

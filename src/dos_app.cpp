@@ -1,6 +1,7 @@
 #include "dos_app.hpp"
 
 #include "audio_catalog.hpp"
+#include "dos_help_overlay.hpp"
 #include "games/backgammon.hpp"
 #include "games/checkers.hpp"
 #include "games/dominoes.hpp"
@@ -23,6 +24,51 @@ constexpr std::array<Rect, 5> kMenuButtons{{
     {58, 77, 136, 93}, {58, 93, 136, 108}, {58, 108, 136, 123},
     {58, 123, 136, 138}, {58, 138, 136, 153},
 }};
+
+constexpr int kDosMenuBarHeight = 8;
+constexpr std::uint32_t kDosMenuYellow = rgb(252, 244, 64);
+constexpr std::uint32_t kDosMenuHotKey = rgb(176, 0, 0);
+constexpr std::uint64_t kDosSourceMenuBarHash = 0x1CC61A67AEFDBAA5ULL;
+
+constexpr std::array<std::string_view, 8> kDosFileLabel{{
+    "rrrrrrr...##.....###..........", ".rr...r...........##..........",
+    ".rr.r....###......##.....####.", ".rrrr.....##......##....##..##",
+    ".rr.r.....##......##....######", ".rr.......##......##....##....",
+    "rrrr.....####....####....####.", "..............................",
+}};
+constexpr std::array<std::string_view, 8> kDosOptionsLabel{{
+    "..rrr..............#......##..........................",
+    ".rr.rr............##..................................",
+    "rr...rr.##.###...#####...###.....####...#####....#####",
+    "rr...rr..##..##...##......##....##..##..##..##..##....",
+    "rr...rr..##..##...##......##....##..##..##..##...####.",
+    ".rr.rr...#####....##.#....##....##..##..##..##......##",
+    "..rrr....##........##....####....####...##..##..#####.",
+    "........####..........................................",
+}};
+constexpr std::array<std::string_view, 8> kDosHelpLabel{{
+    "rr..rr...........###...........", "rr..rr............##...........",
+    "rr..rr...####.....##....##.###.", "rrrrrr..##..##....##.....##..##",
+    "rr..rr..######....##.....##..##", "rr..rr..##........##.....#####.",
+    "rr..rr...####....####....##....", "........................####...",
+}};
+
+void drawDosMenuLabel(Canvas& canvas, int left,
+                      const std::array<std::string_view, 8>& mask) {
+    for (int y = 0; y < static_cast<int>(mask.size()); ++y) {
+        for (int x = 0; x < static_cast<int>(mask[static_cast<std::size_t>(y)].size()); ++x) {
+            const char pixel = mask[static_cast<std::size_t>(y)][static_cast<std::size_t>(x)];
+            if (pixel == '#') canvas.fillRect({left + x, y, left + x + 1, y + 1}, rgb(0, 0, 0));
+            else if (pixel == 'r')
+                canvas.fillRect({left + x, y, left + x + 1, y + 1}, kDosMenuHotKey);
+        }
+    }
+}
+
+// The native game index follows the title-board order (Backgammon,
+// Dominoes, Checkers, Go Fish, Yacht), while the authored instruction
+// controller stores Checkers before Dominoes.
+constexpr std::array<int, 5> kDosHelpPageBase{0, 4, 2, 6, 8};
 
 enum class IntroSkipTarget { DimTitle, MenuReveal, Menu };
 
@@ -188,6 +234,20 @@ void DosApp::renderQaFrames(std::wstring_view outputDirectory) {
     screen_ = Screen::Menu;
     menuSourceSelection_ = 1;
     save(L"04-menu.bmp");
+    if (canvas_.pixelHash({0, 0, kDosLogicalWidth, kDosMenuBarHeight}) !=
+        kDosSourceMenuBarHash) {
+        throw std::runtime_error(
+            "DOS source menu bar raster regression: " +
+            std::to_string(canvas_.pixelHash({0, 0, kDosLogicalWidth,
+                                              kDosMenuBarHeight})));
+    }
+    menuPopup_ = MenuPopup::File;
+    save(L"04a-file-menu.bmp");
+    menuPopup_ = MenuPopup::Options;
+    save(L"04b-options-menu.bmp");
+    menuPopup_ = MenuPopup::Help;
+    save(L"04c-help-menu.bmp");
+    menuPopup_ = MenuPopup::None;
     for (int sourceSelection = 1; sourceSelection <= 5; ++sourceSelection) {
         menuSourceSelection_ = sourceSelection;
         const int movieId = menu_catalog::movie(sourceSelection);
@@ -204,6 +264,16 @@ void DosApp::renderQaFrames(std::wstring_view outputDirectory) {
     save(L"05-character.bmp");
     screen_ = Screen::Name;
     save(L"06-name.bmp");
+
+    for (int gameIndex = 0; gameIndex < 5; ++gameIndex) {
+        helpGameIndex_ = gameIndex;
+        for (int page = 0; page < 2; ++page) {
+            helpPage_ = page;
+            screen_ = Screen::Help;
+            save(L"06-help-" + std::to_wstring(gameIndex) + L"-" +
+                 std::to_wstring(page) + L".bmp");
+        }
+    }
 
     for (int gameIndex = 0; gameIndex < 5; ++gameIndex) {
         beginGameIntro(gameIndex);
@@ -225,10 +295,16 @@ void DosApp::renderQaFrames(std::wstring_view outputDirectory) {
                 (void)game_->tick();
                 ++elapsedTicks;
             }
-            game_->render(canvas_);
             const std::wstring name = L"1" + std::to_wstring(gameIndex) +
                                       L"-opening-" + std::to_wstring(targetTicks) + L".bmp";
-            canvas_.saveBmp((root / name).wstring());
+            save(name);
+        }
+        if (gameIndex == 2) {
+            menuPopup_ = MenuPopup::File;
+            save(L"12-checkers-file-menu.bmp");
+            menuPopup_ = MenuPopup::Options;
+            save(L"12-checkers-options-menu.bmp");
+            menuPopup_ = MenuPopup::None;
         }
     }
     dialog_ = Dialog::PlayAgain;
@@ -273,7 +349,9 @@ LRESULT DosApp::handleMessage(HWND window, UINT message, WPARAM wParam, LPARAM l
         return 0;
     case WM_LBUTTONDOWN: {
         const Point logical = toLogical({GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
-        if (screen_ == Screen::Game && game_ && dialog_ == Dialog::None) {
+        if (clickMenuBar(logical)) {
+            // The source menu consumes mouse-down before the active board.
+        } else if (screen_ == Screen::Game && game_ && dialog_ == Dialog::None) {
             SetCapture(window);
             game_->mouseDown(logical);
         } else {
@@ -283,11 +361,13 @@ LRESULT DosApp::handleMessage(HWND window, UINT message, WPARAM wParam, LPARAM l
         return 0;
     }
     case WM_MOUSEMOVE:
-        if (screen_ == Screen::Game && game_ && dialog_ == Dialog::None)
+        if (screen_ == Screen::Game && game_ && dialog_ == Dialog::None &&
+            menuPopup_ == MenuPopup::None)
             game_->mouseMove(toLogical({GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)}));
         return 0;
     case WM_LBUTTONUP:
-        if (screen_ == Screen::Game && game_ && dialog_ == Dialog::None)
+        if (screen_ == Screen::Game && game_ && dialog_ == Dialog::None &&
+            menuPopup_ == MenuPopup::None)
             game_->mouseUp(toLogical({GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)}));
         if (GetCapture() == window) ReleaseCapture();
         InvalidateRect(window, nullptr, FALSE);
@@ -451,10 +531,91 @@ void DosApp::renderCharacter() {
 }
 
 void DosApp::renderName() {
-    if (pendingGameIndex_ >= 0) drawTiledPage(kGameBackgrounds[static_cast<std::size_t>(pendingGameIndex_)]);
+    if (changingName_ && nameReturnScreen_ == Screen::Game && game_)
+        game_->render(canvas_);
+    else if (pendingGameIndex_ >= 0)
+        drawTiledPage(kGameBackgrounds[static_cast<std::size_t>(pendingGameIndex_)]);
+    else
+        drawLiveTitle(false, false);
     canvas_.sprite(graphics_.sprite(100), 59, 58, false);
     canvas_.pakText(graphics_, playerName_, 225, {75, 93, 245, 107},
                     DT_CENTER | DT_VCENTER | DT_SINGLELINE, 15);
+}
+
+void DosApp::renderHelp() {
+    canvas_.sprite(graphics_.sprite(8000), 0, 0, false);
+    const int game = std::clamp(helpGameIndex_, 0, 4);
+    const int page = std::clamp(helpPage_, 0, 1);
+    const int sourcePage = kDosHelpPageBase[static_cast<std::size_t>(game)] + page;
+    canvas_.sprite(dosHelpOverlay(sourcePage), 0, 0, false);
+    canvas_.sprite(graphics_.sprite(8001, page == 0 ? 6 : 0), 80, 170, false);
+    canvas_.sprite(graphics_.sprite(8001, 1), 130, 170, false);
+    canvas_.sprite(graphics_.sprite(8001, page == 1 ? 8 : 2), 180, 170, false);
+}
+
+bool DosApp::menuBarVisible() const noexcept {
+    return screen_ == Screen::Menu || screen_ == Screen::Game;
+}
+
+void DosApp::renderMenuBar() {
+    if (!menuBarVisible()) return;
+    canvas_.fillRect({0, 0, kDosLogicalWidth, kDosMenuBarHeight}, kDosMenuYellow);
+    drawDosMenuLabel(canvas_, 24, kDosFileLabel);
+    drawDosMenuLabel(canvas_, 72, kDosOptionsLabel);
+    drawDosMenuLabel(canvas_, 144, kDosHelpLabel);
+    renderMenuPopup();
+}
+
+void DosApp::renderMenuPopup() {
+    if (menuPopup_ == MenuPopup::None) return;
+    Rect panel{};
+    if (menuPopup_ == MenuPopup::File)
+        panel = screen_ == Screen::Game ? Rect{20, 8, 139, 45} : Rect{20, 8, 94, 34};
+    else if (menuPopup_ == MenuPopup::Options)
+        panel = screen_ == Screen::Game ? Rect{72, 8, 190, activeGameIndex_ == 2 ? 70 : 60}
+                                        : Rect{72, 8, 170, 51};
+    else
+        panel = {137, 8, 259, 62};
+    canvas_.fillRect(panel, kDosMenuYellow);
+    canvas_.outlineRect(panel, rgb(0, 0, 0));
+
+    const auto item = [this](int x, int y, std::wstring_view value, bool checked = false) {
+        if (checked)
+            canvas_.pakText(graphics_, L"*", 224, {x, y, x + 8, y + 7},
+                            DT_LEFT | DT_TOP | DT_SINGLELINE);
+        canvas_.pakText(graphics_, value, 224,
+                        {x + 9, y, kDosLogicalWidth - 2, y + 7},
+                        DT_LEFT | DT_TOP | DT_SINGLELINE);
+    };
+    if (menuPopup_ == MenuPopup::File) {
+        if (screen_ == Screen::Game) {
+            item(23, 10, L"New Game");
+            item(23, 20, L"Exit to Main Menu");
+            canvas_.line({21, 31}, {137, 31}, rgb(0, 0, 0));
+            item(23, 34, L"Exit");
+        } else {
+            item(23, 10, L"Credits");
+            canvas_.line({21, 21}, {92, 21}, rgb(0, 0, 0));
+            item(23, 24, L"Exit");
+        }
+    } else if (menuPopup_ == MenuPopup::Options) {
+        item(75, 10, L"Change Name");
+        canvas_.line({73, 21}, {panel.right - 2, 21}, rgb(0, 0, 0));
+        item(75, 24, L"Music", audio_.musicEnabled());
+        item(75, 34, L"Sound", audio_.soundEnabled());
+        if (screen_ == Screen::Game) {
+            canvas_.line({73, 45}, {panel.right - 2, 45}, rgb(0, 0, 0));
+            item(75, 48, L"Animated Pieces", animatedPieces_);
+            if (activeGameIndex_ == 2)
+                item(75, 58, L"Forced Jumps", forcedJumps_);
+        }
+    } else {
+        item(140, 10, L"Backgammon Help");
+        item(140, 20, L"Checkers Help");
+        item(140, 30, L"Dominoes Help");
+        item(140, 40, L"Go Fish Help");
+        item(140, 50, L"Yacht Help");
+    }
 }
 
 void DosApp::renderDialog() {
@@ -486,7 +647,11 @@ void DosApp::render() {
     case Screen::Credits:
         drawTiledPage(600);
         break;
+    case Screen::Help:
+        renderHelp();
+        break;
     }
+    renderMenuBar();
 }
 
 void DosApp::advanceIntro(IntroPhase phase) {
@@ -533,6 +698,7 @@ void DosApp::beginGameIntro(int gameIndex) {
     gameIntroMovies_.clear();
     gameIntroMilliseconds_ = 0;
     gameIntroDurationMilliseconds_ = 0;
+    menuPopup_ = MenuPopup::None;
     const auto add = [this](int id, int x, int y) {
         gameIntroMovies_.push_back({Movie(assets_, id), x, y});
         const Movie& movie = gameIntroMovies_.back().movie;
@@ -580,6 +746,8 @@ void DosApp::startGame(int gameIndex) {
     case 4: game_ = std::make_unique<YachtGame>(context); break;
     }
     activeGameIndex_ = gameIndex;
+    game_->setAnimatedPieces(animatedPieces_);
+    game_->setForcedJumps(forcedJumps_);
     dialog_ = Dialog::None;
     gameFinishedMilliseconds_ = 0;
     pendingGameIndex_ = -1;
@@ -594,10 +762,88 @@ void DosApp::returnToMenu() {
     pendingGameIndex_ = -1;
     dialog_ = Dialog::None;
     gameFinishedMilliseconds_ = 0;
+    menuPopup_ = MenuPopup::None;
     audio_.playMusic(audio_catalog::kDosMenuMusic);
     screen_ = Screen::Menu;
     selectMenu(menuSourceSelection_, false);
     if (window_) InvalidateRect(window_, nullptr, FALSE);
+}
+
+void DosApp::openHelp(int gameIndex) {
+    if (gameIndex < 0 || gameIndex >= 5) return;
+    helpReturnScreen_ = screen_;
+    helpGameIndex_ = gameIndex;
+    helpPage_ = 0;
+    menuPopup_ = MenuPopup::None;
+    screen_ = Screen::Help;
+    if (window_) InvalidateRect(window_, nullptr, FALSE);
+}
+
+void DosApp::beginChangeName() {
+    nameBeforeEdit_ = playerName_;
+    nameReturnScreen_ = screen_;
+    pendingGameIndex_ = -1;
+    changingName_ = true;
+    menuPopup_ = MenuPopup::None;
+    screen_ = Screen::Name;
+    if (window_) InvalidateRect(window_, nullptr, FALSE);
+}
+
+bool DosApp::clickMenuBar(Point point) {
+    if (!menuBarVisible() && menuPopup_ == MenuPopup::None) return false;
+    if (point.y < kDosMenuBarHeight && menuBarVisible()) {
+        MenuPopup requested = MenuPopup::None;
+        if (point.x >= 20 && point.x < 66) requested = MenuPopup::File;
+        else if (point.x >= 70 && point.x < 132) requested = MenuPopup::Options;
+        else if (point.x >= 136 && point.x < 181) requested = MenuPopup::Help;
+        menuPopup_ = requested == menuPopup_ ? MenuPopup::None : requested;
+        return true;
+    }
+    if (menuPopup_ == MenuPopup::None) return false;
+
+    const MenuPopup popup = menuPopup_;
+    menuPopup_ = MenuPopup::None;
+    if (popup == MenuPopup::File) {
+        if (screen_ == Screen::Game) {
+            if (point.x >= 20 && point.x < 139 && point.y >= 8 && point.y < 19) {
+                dialog_ = Dialog::ConfirmReset;
+            } else if (point.x >= 20 && point.x < 139 && point.y >= 19 && point.y < 31) {
+                returnToMenu();
+            } else if (point.x >= 20 && point.x < 139 && point.y >= 32 && point.y < 45) {
+                if (window_) DestroyWindow(window_);
+            }
+        } else if (point.x >= 20 && point.x < 94 && point.y >= 8 && point.y < 21) {
+            pictureReturnScreen_ = screen_;
+            screen_ = Screen::Credits;
+            audio_.playSound(audio_catalog::kCreditsSound);
+        } else if (point.x >= 20 && point.x < 94 && point.y >= 22 && point.y < 34) {
+            if (window_) DestroyWindow(window_);
+        }
+    } else if (popup == MenuPopup::Options && point.x >= 72 && point.x < 190) {
+        if (point.y >= 8 && point.y < 21) {
+            beginChangeName();
+        } else if (point.y >= 22 && point.y < 33) {
+            audio_.setMusicEnabled(!audio_.musicEnabled());
+        } else if (point.y >= 33 && point.y < 44) {
+            audio_.setSoundEnabled(!audio_.soundEnabled());
+        } else if (screen_ == Screen::Game && point.y >= 46 && point.y < 57) {
+            animatedPieces_ = !animatedPieces_;
+            if (game_) game_->setAnimatedPieces(animatedPieces_);
+        } else if (screen_ == Screen::Game && activeGameIndex_ == 2 &&
+                   point.y >= 57 && point.y < 69) {
+            forcedJumps_ = !forcedJumps_;
+            if (game_) game_->setForcedJumps(forcedJumps_);
+        }
+    } else if (popup == MenuPopup::Help && point.x >= 137 && point.x < 259 &&
+               point.y >= 8 && point.y < 62) {
+        const int sourceRow = std::clamp((point.y - 9) / 10, 0, 4);
+        // Source menu order is Backgammon, Checkers, Dominoes, Go Fish, Yacht;
+        // native controller order is Backgammon, Dominoes, Checkers, Go Fish, Yacht.
+        constexpr std::array<int, 5> helpGameOrder{0, 2, 1, 3, 4};
+        openHelp(helpGameOrder[static_cast<std::size_t>(sourceRow)]);
+    }
+    if (window_) InvalidateRect(window_, nullptr, FALSE);
+    return true;
 }
 
 void DosApp::clickDialog(Point point) {
@@ -657,17 +903,41 @@ void DosApp::click(Point point) {
         }
     } else if (screen_ == Screen::Name) {
         if (Rect{79, 113, 128, 127}.contains(point)) {
+            if (playerName_.empty()) return;
             nameConfirmed_ = true;
             audio_.playEffect(9204);
-            startGame(pendingGameIndex_);
+            if (changingName_) {
+                changingName_ = false;
+                if (game_) game_->setPlayerName(playerName_);
+                screen_ = nameReturnScreen_;
+            } else {
+                startGame(pendingGameIndex_);
+            }
         } else if (Rect{191, 113, 240, 127}.contains(point)) {
-            returnToMenu();
+            if (changingName_) {
+                changingName_ = false;
+                playerName_ = nameBeforeEdit_;
+                screen_ = nameReturnScreen_;
+            } else {
+                returnToMenu();
+            }
         }
     } else if (screen_ == Screen::Game && game_) {
         if (dialog_ != Dialog::None) clickDialog(point);
         else game_->mouseDown(point);
     } else if (screen_ == Screen::Credits) {
-        returnToMenu();
+        audio_.stop();
+        screen_ = pictureReturnScreen_;
+    } else if (screen_ == Screen::Help) {
+        if (Rect{80, 170, 127, 188}.contains(point) && helpPage_ > 0) {
+            --helpPage_;
+            audio_.playEffect(5003);
+        } else if (Rect{130, 170, 177, 188}.contains(point)) {
+            screen_ = helpReturnScreen_;
+        } else if (Rect{180, 170, 227, 188}.contains(point) && helpPage_ < 1) {
+            ++helpPage_;
+            audio_.playEffect(5003);
+        }
     }
 }
 
@@ -690,12 +960,28 @@ void DosApp::skipIntro() {
 }
 
 void DosApp::key(unsigned virtualKey) {
+    if (menuPopup_ != MenuPopup::None && virtualKey == VK_ESCAPE) {
+        menuPopup_ = MenuPopup::None;
+        if (window_) InvalidateRect(window_, nullptr, FALSE);
+        return;
+    }
     if (virtualKey == VK_ESCAPE) {
         if (screen_ == Screen::Menu) DestroyWindow(window_);
         else if (screen_ == Screen::Intro) {
             skipIntro();
         }
+        else if (screen_ == Screen::Help) screen_ = helpReturnScreen_;
+        else if (screen_ == Screen::Credits) {
+            audio_.stop();
+            screen_ = pictureReturnScreen_;
+        }
+        else if (screen_ == Screen::Name && changingName_) {
+            changingName_ = false;
+            playerName_ = nameBeforeEdit_;
+            screen_ = nameReturnScreen_;
+        }
         else returnToMenu();
+        if (window_ && IsWindow(window_)) InvalidateRect(window_, nullptr, FALSE);
         return;
     }
     if (screen_ == Screen::Game && virtualKey == 'N' && dialog_ == Dialog::None) {
@@ -705,10 +991,18 @@ void DosApp::key(unsigned virtualKey) {
     }
     if (screen_ != Screen::Name && virtualKey == 'S') {
         audio_.setSoundEnabled(!audio_.soundEnabled());
+        if (window_) InvalidateRect(window_, nullptr, FALSE);
         return;
     }
     if (screen_ != Screen::Name && virtualKey == 'M') {
         audio_.setMusicEnabled(!audio_.musicEnabled());
+        if (window_) InvalidateRect(window_, nullptr, FALSE);
+        return;
+    }
+    if (virtualKey == VK_F1 && menuBarVisible()) {
+        const int gameIndex = screen_ == Screen::Game
+            ? activeGameIndex_ : menu_catalog::gameIndex(menuSourceSelection_);
+        openHelp(gameIndex);
         return;
     }
     if (screen_ == Screen::Menu) {
@@ -735,9 +1029,15 @@ void DosApp::key(unsigned virtualKey) {
             if (nameConfirmed_) startGame(pendingGameIndex_);
             else if (window_) InvalidateRect(window_, nullptr, FALSE);
         }
-    } else if (screen_ == Screen::Name && virtualKey == VK_RETURN) {
+    } else if (screen_ == Screen::Name && virtualKey == VK_RETURN && !playerName_.empty()) {
         nameConfirmed_ = true;
-        startGame(pendingGameIndex_);
+        if (changingName_) {
+            changingName_ = false;
+            if (game_) game_->setPlayerName(playerName_);
+            screen_ = nameReturnScreen_;
+        } else {
+            startGame(pendingGameIndex_);
+        }
     } else if (screen_ == Screen::Game && game_ && dialog_ == Dialog::None) {
         game_->key(virtualKey);
     }

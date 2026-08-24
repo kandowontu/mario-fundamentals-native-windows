@@ -19,8 +19,9 @@ public:
     [[nodiscard]] static bool sourceGameIntroCompletionRegressionTest();
 
 private:
-    enum class Screen { Intro, Menu, GameIntro, Character, Name, Game, Credits };
+    enum class Screen { Intro, Menu, GameIntro, Character, Name, Game, Credits, Help };
     enum class Dialog { None, ConfirmReset, PlayAgain };
+    enum class MenuPopup { None, File, Options, Help };
     enum class IntroPhase {
         Interplay,
         Presage,
@@ -54,7 +55,14 @@ private:
     void renderGameIntro();
     void renderCharacter();
     void renderName();
+    void renderHelp();
     void renderDialog();
+    void renderMenuBar();
+    void renderMenuPopup();
+    [[nodiscard]] bool menuBarVisible() const noexcept;
+    [[nodiscard]] bool clickMenuBar(Point point);
+    void openHelp(int gameIndex);
+    void beginChangeName();
     void clickDialog(Point point);
     void click(Point point);
     void key(unsigned virtualKey);
@@ -95,6 +103,16 @@ private:
     bool characterConfirmed_{};
     bool nameConfirmed_{};
     std::wstring playerName_{L"My Friend"};
+    std::wstring nameBeforeEdit_;
+    Screen nameReturnScreen_{Screen::Menu};
+    Screen pictureReturnScreen_{Screen::Menu};
+    Screen helpReturnScreen_{Screen::Menu};
+    MenuPopup menuPopup_{MenuPopup::None};
+    int helpGameIndex_{};
+    int helpPage_{};
+    bool changingName_{};
+    bool animatedPieces_{true};
+    bool forcedJumps_{true};
     Rect viewport_{};
     FullscreenController fullscreen_;
 };

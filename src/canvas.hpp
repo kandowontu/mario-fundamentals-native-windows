@@ -16,6 +16,7 @@ public:
     Canvas& operator=(const Canvas&) = delete;
 
     void clear(std::uint32_t color);
+    void fillRect(Rect rect, std::uint32_t color);
     void swapColors(Rect rect, std::uint32_t first, std::uint32_t second);
     void outlineRect(Rect rect, std::uint32_t color, int thickness = 1);
     void line(Point from, Point to, std::uint32_t color, int thickness = 1);

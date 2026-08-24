@@ -33,6 +33,18 @@ void Canvas::clear(std::uint32_t color) {
     std::fill(pixels_, pixels_ + static_cast<std::size_t>(width_) * height_, color);
 }
 
+void Canvas::fillRect(Rect rect, std::uint32_t color) {
+    rect.left = std::clamp(rect.left, 0, width_);
+    rect.right = std::clamp(rect.right, rect.left, width_);
+    rect.top = std::clamp(rect.top, 0, height_);
+    rect.bottom = std::clamp(rect.bottom, rect.top, height_);
+    for (int y = rect.top; y < rect.bottom; ++y) {
+        std::fill(pixels_ + static_cast<std::size_t>(y) * width_ + rect.left,
+                  pixels_ + static_cast<std::size_t>(y) * width_ + rect.right,
+                  color);
+    }
+}
+
 void Canvas::swapColors(Rect rect, std::uint32_t first, std::uint32_t second) {
     rect.left = std::clamp(rect.left, 0, width_);
     rect.right = std::clamp(rect.right, rect.left, width_);

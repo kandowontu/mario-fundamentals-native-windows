@@ -14,9 +14,13 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   terminal hand/easel pose before the menu, matching CODE 12 `$1E14`/`$217A`.
 - Macintosh title-stage mouse-down now follows CODE 12's completion callback: clicking the live
   board skips the remaining voice/animation and lands on the fully revealed menu.
-- A new no-window Macintosh presentation sweep emits 171 exact 512×384 frames across startup,
-  title skip, menu, all five intros/openings, and Yacht roll/settle. The release script now requires
-  that sweep and the 166-frame 320×200 DOS sweep to regenerate successfully and silently.
+- The live Macintosh menu now gives its right-hand layer exclusively to the selected-game actor;
+  the completed title hand is no longer composited beneath it as a second glove/object.
+- The no-window presentation sweeps now emit 178 exact 512×384 Macintosh frames and 181 exact
+  320×200 DOS frames. They cover both Macintosh title/board mouse-down completion paths, all five
+  selected-game intro skips, DOS menu/help contexts, all intros/openings, and Yacht roll/settle.
+- The DOS source's eight-pixel `File / Options / Help` bar is restored exactly over main-menu and
+  gameplay frames, with context-specific commands and the Pak 8000/8001 two-page instruction UI.
 - Dominoes now follows CODE 14's exact first/later deal and highest-double dialogue tables. The
   corrected eight-way route eliminates the Macintosh post-deal abort and replaces four unrelated
   opening lines in both editions.

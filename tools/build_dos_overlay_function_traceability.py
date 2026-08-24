@@ -27,7 +27,7 @@ NATIVE_FILES = {
     "dominoes": "src/games/dominoes.cpp;src/games/dominoes.hpp",
     "go_fish": "src/games/go_fish.cpp;src/games/go_fish.hpp",
     "yacht": "src/games/yacht.cpp;src/games/yacht.hpp",
-    "shell": "src/dos_app.cpp;src/dos_app.hpp;src/launcher.cpp;src/launcher.hpp",
+    "shell": "src/dos_app.cpp;src/dos_app.hpp;src/dos_help_overlay.cpp;src/dos_help_overlay.hpp;src/launcher.cpp;src/launcher.hpp",
     "media_runtime": "src/asset_store.cpp;src/pak.cpp;src/movie.cpp;src/audio.cpp;src/canvas.cpp",
 }
 

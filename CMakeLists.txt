@@ -14,6 +14,7 @@ add_executable(MarioFundamentals WIN32
     src/main.cpp
     src/launcher.cpp
     src/dos_app.cpp
+    src/dos_help_overlay.cpp
     src/app.cpp
     src/asset_store.cpp
     src/pak.cpp

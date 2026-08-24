@@ -67,6 +67,7 @@ private:
     void beginGameName(int index);
     void beginChangeName();
     void tickGameIntro(unsigned milliseconds);
+    void finishGameIntro(bool skippedByInput = false);
     void drawTiledBackground(int resourceId);
     void drawMario(bool talking = false);
     bool selectMenuSource(int sourceSelection, bool animate = true);

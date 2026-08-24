@@ -189,7 +189,7 @@ The release script configures a static C++ runtime build, compiles the resources
 executable's full hidden/silent self-test, verifies the PE architecture and dependency set, proves
 both deterministic asset packs occur exactly once, proves all 1,707 Macintosh and 1,806 DOS ripped
 resources against their extraction manifests when those local audit records are present, reruns the
-self-test from an empty working directory, regenerates 171 Macintosh and 166 DOS no-window
+self-test from an empty working directory, regenerates 178 Macintosh and 181 DOS no-window
 presentation frames at the exact 512×384 and 320×200 logical sizes, and copies the result to `dist`.
 
 The dual-edition artifact produced here is an unreleased QA candidate. Its build-specific checksum
@@ -236,8 +236,9 @@ PASS mac_assets=1707 mac_pak=180 mac_frames=3166 mac_movies=467 mac_commands=858
 The DOS edition retains its source-sized UI and primary keyboard routes: C/G/D/B/Y select games,
 arrows cycle the easel, Return/Space starts, `N` opens the original New Game confirmation, and
 `S`/`M` toggle sound/music. Escape skips the active startup stage, returns from a game to the menu,
-or exits from the menu. Macintosh-only menu-bar/help/preferences controls remain in the Macintosh
-edition rather than being invented for the DOS shell.
+or exits from the menu. Its source 320x200 `File / Options / Help` strip, context-specific game
+commands, and two-page Pak-backed instruction screens are also restored without shifting the game
+artwork.
 
 ## Preservation records
 
