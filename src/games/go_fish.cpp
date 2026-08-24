@@ -41,7 +41,14 @@ std::vector<int> makeSourceDeck(SourceRandom& random) {
 }  // namespace
 
 GoFishGame::GoFishGame(GameContext context)
-    : Game(context), host_(context.assets, context.graphics, context.audio) {
+    : Game(context), host_(context.assets, context.graphics, context.audio, true,
+          [](int resourceId, Point scaled) {
+              if (resourceId >= 10000) return Point{121, 1};
+              if (resourceId == 5090) return Point{114, 16};
+              if (resourceId == 5091) return Point{28, 6};
+              if (resourceId == 5094) return Point{25, 4};
+              return scaled;
+          }) {
     for (int index = 0; index < 7; ++index) {
         victoryCardFlips_.push_back(std::make_unique<HostAnimation>(
             context.assets, context.graphics, context.audio));

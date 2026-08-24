@@ -38,8 +38,12 @@ public:
     }
 
 private:
+    [[nodiscard]] std::array<std::uint32_t, 256> loadDosPalette(int resourceId) const;
+
     const AssetStore& assets_;
     std::array<std::uint32_t, 256> palette_{};
+    std::array<std::uint32_t, 256> interplayPalette_{};
+    std::array<std::uint32_t, 256> presagePalette_{};
     std::unordered_map<int, std::shared_ptr<PakSheet>> sheets_;
     std::unordered_map<std::uint64_t, Sprite> sprites_;
 };

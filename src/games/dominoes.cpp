@@ -206,7 +206,11 @@ DominoIdleChoice chooseDominoIdle(SourceRandom& random, int& jokeIndex) {
 }  // namespace
 
 DominoesGame::DominoesGame(GameContext context)
-    : Game(context), host_(context.assets, context.graphics, context.audio) { reset(); }
+    : Game(context), host_(context.assets, context.graphics, context.audio, true,
+          [](int resourceId, Point scaled) {
+              if (resourceId >= 10000) return Point{7, 3};
+              return scaled;
+          }) { reset(); }
 
 void DominoesGame::sourceShuffleDeck(std::vector<Tile>& deck, SourceRandom& random) {
     if (deck.size() != 28) {

@@ -120,9 +120,17 @@ bool yachtHasWhiteDieToReroll(const std::array<bool, 5>& held) {
 }
 
 YachtGame::YachtGame(GameContext context)
-    : Game(context), host_(context.assets, context.graphics, context.audio),
+    : Game(context), host_(context.assets, context.graphics, context.audio, true,
+          [](int resourceId, Point scaled) {
+              if (resourceId >= 10000) return Point{118, 1};
+              return scaled;
+          }),
       rollAnimation_(context.assets, context.graphics, context.audio),
-      gestureAnimation_(context.assets, context.graphics, context.audio),
+      gestureAnimation_(context.assets, context.graphics, context.audio, true,
+          [](int resourceId, Point scaled) {
+              if (resourceId == 6021) return Point{-258, -90};
+              return scaled;
+          }),
       outcomeAnimation_(context.assets, context.graphics, context.audio) {
     // CODE 18 $318C initializes the four-joke cursor once when the Yacht
     // module is loaded.  $142E increments it before every joke.
@@ -1228,14 +1236,21 @@ void YachtGame::render(Canvas& canvas) {
     canvas.clear(rgb(0, 0, 0));
     drawBackground(canvas, 6001);
     if (!gestureAnimation_.active()) {
+        // Pak 6021 frame zero supplies the neutral base and the speech movies
+        // replace only its head.  Pak 6012 is the lower torso/hand component;
+        // it must remain below the face at the source registration rather
+        // than the prior displaced position that duplicated Mario's body.
         canvas.sprite(context_.graphics.sprite(6021),
                       dosEdition() ? 119 : 191, dosEdition() ? 9 : 18, false);
         (void)host_.render(canvas);
+        // Restore the lower neutral-pose component at its edition-specific
+        // authored registration.  The DOS Pak is cropped to its opaque
+        // 65x47 bounds; the Macintosh Pak retains its full-canvas offsets.
+        canvas.sprite(context_.graphics.sprite(6012),
+                      dosEdition() ? 119 : 0, dosEdition() ? 51 : 0, false);
     } else {
         (void)gestureAnimation_.render(canvas);
     }
-    canvas.sprite(context_.graphics.sprite(6012),
-                  dosEdition() ? 128 : 0, dosEdition() ? 32 : 0, false);
     (void)rollAnimation_.render(canvas);
     if (openingDelayMilliseconds_ == 0 && !showComputerDice_ && rolls_ == 0 &&
         computerAttempt_ == 0 && computerRerollStage_ == 0 && !host_.active())

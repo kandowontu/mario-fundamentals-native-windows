@@ -125,21 +125,32 @@ Sprite PakSheet::decodeFrame(int index, const std::array<std::uint32_t, 256>& pa
     return result;
 }
 
+std::array<std::uint32_t, 256> GraphicsAssets::loadDosPalette(int resourceId) const {
+    std::array<std::uint32_t, 256> result{};
+    const auto dib = assets_.get("DIB ", resourceId);
+    if (dib.size() < 1078 || dib[0] != 'B' || dib[1] != 'M' ||
+        readLe32(dib, 10) < 54) {
+        throw std::runtime_error("DOS DIB palette is invalid");
+    }
+    const std::size_t paletteOffset = 14U + readLe32(dib, 14);
+    if (paletteOffset + result.size() * 4U > dib.size()) {
+        throw std::runtime_error("DOS DIB palette is truncated");
+    }
+    for (std::size_t index = 0; index < result.size(); ++index) {
+        const std::size_t offset = paletteOffset + index * 4U;
+        result[index] = rgb(dib[offset + 2], dib[offset + 1], dib[offset]);
+    }
+    return result;
+}
+
 GraphicsAssets::GraphicsAssets(const AssetStore& assets) : assets_(assets) {
     if (assets_.dialect() == AssetDialect::Dos) {
-        const auto dib = assets_.get("DIB ", 1000);
-        if (dib.size() < 1078 || dib[0] != 'B' || dib[1] != 'M' ||
-            readLe32(dib, 10) < 54) {
-            throw std::runtime_error("DOS DIB palette is invalid");
-        }
-        const std::size_t paletteOffset = 14U + readLe32(dib, 14);
-        if (paletteOffset + palette_.size() * 4U > dib.size()) {
-            throw std::runtime_error("DOS DIB palette is truncated");
-        }
-        for (std::size_t index = 0; index < palette_.size(); ++index) {
-            const std::size_t offset = paletteOffset + index * 4U;
-            palette_[index] = rgb(dib[offset + 2], dib[offset + 1], dib[offset]);
-        }
+        palette_ = loadDosPalette(1000);
+        // The two publisher cards carry dedicated CLUTs in the DOS resource
+        // directory.  Decoding them through NewPalette is what produced the
+        // orange Interplay script and psychedelic Presage logo.
+        interplayPalette_ = loadDosPalette(111);
+        presagePalette_ = loadDosPalette(112);
         return;
     }
     const auto clut = assets_.get("clut", 1000);
@@ -172,7 +183,11 @@ const Sprite& GraphicsAssets::sprite(int resourceId, int frame) {
     if (!sheet) {
         sheet = std::make_shared<PakSheet>(assets_.get("Pak ", resourceId), assets_.dialect());
     }
-    return sprites_.emplace(key, sheet->decodeFrame(frame, palette_)).first->second;
+    const bool dos = assets_.dialect() == AssetDialect::Dos;
+    const auto& palette = dos && resourceId == 500 ? interplayPalette_
+                         : dos && resourceId == 501 ? presagePalette_
+                                                    : palette_;
+    return sprites_.emplace(key, sheet->decodeFrame(frame, palette)).first->second;
 }
 
 }  // namespace mf

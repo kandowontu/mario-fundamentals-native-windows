@@ -17,9 +17,11 @@ namespace {
 constexpr std::array<int, 5> kGameBackgrounds{4001, 3001, 2999, 5001, 6001};
 constexpr std::array<int, 5> kGameIntroBackgrounds{4000, 3000, 2998, 5000, 6000};
 constexpr std::array<int, 5> kSelectionY{79, 79, 77, 82, 78};
+constexpr std::array<int, 5> kButtonY{77, 93, 108, 123, 138};
+constexpr std::array<int, 5> kNeutralHandY{101, 101, 99, 104, 100};
 constexpr std::array<Rect, 5> kMenuButtons{{
-    {58, 78, 137, 94}, {58, 95, 137, 111}, {58, 112, 137, 128},
-    {58, 129, 137, 145}, {58, 146, 137, 162},
+    {58, 77, 136, 93}, {58, 93, 136, 108}, {58, 108, 136, 123},
+    {58, 123, 136, 138}, {58, 138, 136, 153},
 }};
 
 }  // namespace
@@ -156,20 +158,29 @@ void DosApp::renderQaFrames(std::wstring_view outputDirectory) {
 
     for (int gameIndex = 0; gameIndex < 5; ++gameIndex) {
         beginGameIntro(gameIndex);
-        gameIntroMilliseconds_ = 0;
-        save(L"07-intro-" + std::to_wstring(gameIndex) + L"-start.bmp");
-        gameIntroMilliseconds_ = gameIntroDurationMilliseconds_ / 2;
-        save(L"07-intro-" + std::to_wstring(gameIndex) + L"-middle.bmp");
-        gameIntroMilliseconds_ = gameIntroDurationMilliseconds_;
-        save(L"07-intro-" + std::to_wstring(gameIndex) + L"-end.bmp");
+        for (int sample = 0; sample <= 20; ++sample) {
+            gameIntroMilliseconds_ = gameIntroDurationMilliseconds_ *
+                                     static_cast<std::uint32_t>(sample) / 20U;
+            save(L"07-intro-" + std::to_wstring(gameIndex) + L"-" +
+                 (sample < 10 ? L"0" : L"") + std::to_wstring(sample) + L".bmp");
+        }
     }
     gameIntroMovies_.clear();
 
     for (int gameIndex = 0; gameIndex < 5; ++gameIndex) {
         startGame(gameIndex);
-        game_->render(canvas_);
-        const std::wstring name = L"1" + std::to_wstring(gameIndex) + L"-game.bmp";
-        canvas_.saveBmp((root / name).wstring());
+        constexpr std::array<int, 8> openingTicks{0, 1, 8, 16, 32, 64, 96, 128};
+        int elapsedTicks = 0;
+        for (const int targetTicks : openingTicks) {
+            while (elapsedTicks < targetTicks) {
+                (void)game_->tick();
+                ++elapsedTicks;
+            }
+            game_->render(canvas_);
+            const std::wstring name = L"1" + std::to_wstring(gameIndex) +
+                                      L"-opening-" + std::to_wstring(targetTicks) + L".bmp";
+            canvas_.saveBmp((root / name).wstring());
+        }
     }
     dialog_ = Dialog::PlayAgain;
     save(L"15-play-again.bmp");
@@ -298,6 +309,14 @@ void DosApp::drawLiveTitle(bool talking, bool concealMenu) {
     if (!talking || !talkingTitle_.render(canvas_)) {
         canvas_.sprite(graphics_.sprite(1014), 180, 49, false);
     }
+    // Every Snap* selection movie ends on frame zero, the open right hand.
+    // The original actor retains that terminal cel.  Our movie wrapper stops
+    // at completion, so explicitly restore the same cel while it is idle.
+    if (!menuSelection_.active()) {
+        const int selection = std::clamp(menuSourceSelection_ - 1, 0, 4);
+        canvas_.sprite(graphics_.sprite(menu_catalog::movie(selection + 1), 0),
+                       244, kNeutralHandY[static_cast<std::size_t>(selection)], false);
+    }
     // Page 1001 is the final menu page and therefore already contains all five
     // labels.  Before movie 1125 starts, its authored blank base cel must cover
     // that area so the completed menu is not exposed ahead of the board flip.
@@ -337,7 +356,7 @@ void DosApp::renderIntro() {
 void DosApp::renderMenu() {
     drawLiveTitle(false, false);
     canvas_.sprite(graphics_.sprite(1040, menuSourceSelection_ - 1),
-                   59, 78 + (menuSourceSelection_ - 1) * 17, false);
+                   58, kButtonY[static_cast<std::size_t>(menuSourceSelection_ - 1)], false);
     (void)menuSelection_.render(canvas_);
 }
 
@@ -442,19 +461,25 @@ void DosApp::beginGameIntro(int gameIndex) {
     gameIntroMovies_.clear();
     gameIntroMilliseconds_ = 0;
     gameIntroDurationMilliseconds_ = 0;
-    const auto add = [this](int id) {
-        gameIntroMovies_.push_back({Movie(assets_, id), 0, 0});
+    const auto add = [this](int id, int x, int y) {
+        gameIntroMovies_.push_back({Movie(assets_, id), x, y});
         const Movie& movie = gameIntroMovies_.back().movie;
         gameIntroDurationMilliseconds_ = std::max(
             gameIntroDurationMilliseconds_,
             (movie.duration() * 1000U + movie.timeScale() - 1U) / movie.timeScale());
     };
     switch (gameIndex) {
-    case 0: add(4999); break;
-    case 1: add(3002); break;
-    case 2: add(2801); add(2800); break;
-    case 3: add(5101); add(5102); break;
-    case 4: add(6100); add(6150); break;
+    // These direct-render offsets reconcile the positions written by DOS
+    // overlays 1, 13, 7, 17, and 30 with each MuV's intrinsic registration.
+    case 0: add(4999, -100, 126); break;
+    // Movie 3002's MuV header already carries the DOS stage baseline at
+    // y=128.  Overlay 13's 120 is a controller/actor field, not an additive
+    // QuickDraw offset; applying it twice put the entire Dominoes parade
+    // below the framebuffer.
+    case 1: add(3002, 0, 0); break;
+    case 2: add(2801, -93, 144); add(2800, -93, 144); break;
+    case 3: add(5101, 0, 120); add(5102, 0, 90); break;
+    case 4: add(6100, -90, 0); add(6150, -123, 0); break;
     }
     screen_ = Screen::GameIntro;
     if (window_) InvalidateRect(window_, nullptr, FALSE);

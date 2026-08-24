@@ -130,7 +130,12 @@ int drawBackgammonPool(std::array<int, Size>& pool, std::size_t& cursor,
 }  // namespace
 
 BackgammonGame::BackgammonGame(GameContext context)
-    : Game(context), host_(context.assets, context.graphics, context.audio),
+    : Game(context), host_(context.assets, context.graphics, context.audio, true,
+          [](int resourceId, Point scaled) {
+              if (resourceId >= 10000) return Point{116, 1};
+              if (resourceId >= 9000 && resourceId <= 9002) return Point{31, 7};
+              return scaled;
+          }),
       diceRoll_(context.assets, context.graphics, context.audio),
       secondDiceRoll_(context.assets, context.graphics, context.audio),
       victoryLeft_(context.assets, context.graphics, context.audio),

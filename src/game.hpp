@@ -19,10 +19,13 @@ struct GameContext {
 
 class HostAnimation {
 public:
+    using DosPlacement = std::function<Point(int, Point)>;
+
     HostAnimation(const AssetStore& assets, GraphicsAssets& graphics, Audio& audio,
-                  bool scaleDosCoordinates = true)
+                  bool scaleDosCoordinates = true, DosPlacement dosPlacement = {})
         : assets_(assets), graphics_(graphics), audio_(audio),
-          scaleDosCoordinates_(scaleDosCoordinates) {}
+          scaleDosCoordinates_(scaleDosCoordinates),
+          dosPlacement_(std::move(dosPlacement)) {}
 
     void play(int resourceId, int x, int y, bool playAudio = true,
               std::optional<std::uint32_t> holdSourceTime = std::nullopt) {
@@ -31,8 +34,8 @@ public:
             x = x * kDosLogicalWidth / kLogicalWidth;
             y = y * kDosLogicalHeight / kLogicalHeight;
         }
-        x_ = x;
-        y_ = y;
+        requestedX_ = x;
+        requestedY_ = y;
         audioEnabled_ = playAudio;
         holdSourceTime_ = holdSourceTime;
         start(resourceId);
@@ -48,6 +51,12 @@ public:
 
     void start(int resourceId) {
         movie_ = std::make_unique<Movie>(assets_, resourceId);
+        Point placement{requestedX_, requestedY_};
+        if (assets_.dialect() == AssetDialect::Dos && dosPlacement_) {
+            placement = dosPlacement_(resourceId, placement);
+        }
+        x_ = placement.x;
+        y_ = placement.y;
         elapsedMilliseconds_ = 0;
         holdingFrame_ = false;
         if (audioEnabled_) {
@@ -125,10 +134,13 @@ private:
     std::uint32_t elapsedMilliseconds_{};
     int x_{};
     int y_{};
+    int requestedX_{};
+    int requestedY_{};
     bool audioEnabled_{true};
     std::optional<std::uint32_t> holdSourceTime_;
     bool holdingFrame_{};
     bool scaleDosCoordinates_{true};
+    DosPlacement dosPlacement_;
 };
 
 class Game {

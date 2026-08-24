@@ -26,6 +26,20 @@ All notable native-port changes are documented here.
 
 ### Fixed
 
+- Decoded the Interplay and Presage publisher cards through their dedicated DOS `Intrply_clut`
+  and `Presage_clut` color tables instead of the general game palette.
+- Restored the title screen's terminal open-hand cel and placed all five red menu selections on
+  their exact DOS button rows, eliminating the extra lower button produced by accumulated spacing.
+- Registered every DOS speech head and full-body host movie against its game's original actor
+  position. Mario no longer appears over a scorecard, duplicates his head, or loses the neutral
+  torso between speech cels.
+- Rebuilt Yacht's neutral and roll-gesture composition from its correctly registered base,
+  lower-body, talking-head, and full-body layers, removing the duplicate torso and hands.
+- Restored each DOS game-introduction movie to its recovered stage registration and stopped
+  applying the Dominoes controller baseline a second time, which had moved its entire parade below
+  the framebuffer.
+- Expanded silent DOS presentation QA to sample 21 points across every game introduction and eight
+  timed frames across every opening conversation, in addition to the startup/menu captures.
 - Corrected the DOS-specific conventional `x/y`, `width/height`, and rectangle field order instead
   of applying the Macintosh QuickDraw vertical-first order. All 1,213 same-ID DOS Img/Pak records
   now match exactly, fixing clipped talking heads and displaced movie layers throughout the port.

@@ -73,7 +73,12 @@ bool sourceChaseBonus(int from, int to, int chaseSquare) {
 }  // namespace
 
 CheckersGame::CheckersGame(GameContext context)
-    : Game(context), host_(context.assets, context.graphics, context.audio) { reset(); }
+    : Game(context), host_(context.assets, context.graphics, context.audio, true,
+          [](int resourceId, Point scaled) {
+              if (resourceId >= 10000) return Point{116, 1};
+              if (resourceId >= 9000 && resourceId <= 9002) return Point{31, 7};
+              return scaled;
+          }) { reset(); }
 
 void CheckersGame::reset(bool preserveSession) {
     const int priorMarioWinCount = preserveSession ? marioWinCount_ : 0;
