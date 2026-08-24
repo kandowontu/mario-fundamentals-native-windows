@@ -1015,7 +1015,7 @@ void DominoesGame::click(Point point) {
             context_.audio.playEffect(5003);
             human_.push_back(boneyard_.back()); boneyard_.pop_back();
             context_.audio.playEffect(5042);
-            status_ = playable(human_.back()) ? L"Here's your bone—you can play it." : L"Draw again or choose a playable bone.";
+            status_ = playable(human_.back()) ? L"Here's your bone - you can play it." : L"Draw again or choose a playable bone.";
             const int sourceIndex = chooseHumanDrawSpeech(context_.random, humanHasDrawn_);
             humanHasDrawn_ = true;
             const int movie = dominoMovieForSourceIndex(sourceIndex);
@@ -1286,7 +1286,7 @@ void DominoesGame::setQaDragPresentation() {
     boneyard_.clear();
     selected_ = draggedIndex_ = -1;
     dragPoint_ = {};
-    status_ = L"Drag the 2–5 domino to the left end of the chain.";
+    status_ = L"Drag the 2-5 domino to the left end of the chain.";
 }
 
 bool DominoesGame::sourceIdleRegressionTest() {

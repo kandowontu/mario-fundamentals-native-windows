@@ -41,8 +41,11 @@ function Invoke-PresentationQa {
     if ($qa.ExitCode -ne 0) {
         throw "$Label presentation QA failed with exit code $($qa.ExitCode)."
     }
-    $freshFrames = @(Get-ChildItem -LiteralPath $OutputDirectory -Filter "*.bmp" -File |
-        Where-Object { $_.LastWriteTimeUtc -ge $started })
+    $allFrames = @(Get-ChildItem -LiteralPath $OutputDirectory -Filter "*.bmp" -File)
+    if ($allFrames.Count -ne $ExpectedFrames) {
+        throw "$Label presentation directory contains $($allFrames.Count) frames; expected exactly $ExpectedFrames. Remove obsolete QA captures."
+    }
+    $freshFrames = @($allFrames | Where-Object { $_.LastWriteTimeUtc -ge $started })
     if ($freshFrames.Count -ne $ExpectedFrames) {
         throw "$Label presentation QA wrote $($freshFrames.Count) fresh frames; expected $ExpectedFrames."
     }
@@ -55,10 +58,10 @@ function Invoke-PresentationQa {
 
 Invoke-PresentationQa -Argument "--render-mac-qa" `
     -OutputDirectory (Join-Path $projectRoot "work/qa/mac") -Label "macintosh" `
-    -ExpectedFrames 178 -ExpectedBytes 786486
+    -ExpectedFrames 200 -ExpectedBytes 786486
 Invoke-PresentationQa -Argument "--render-dos-qa" `
     -OutputDirectory (Join-Path $projectRoot "work/qa/dos") -Label "dos" `
-    -ExpectedFrames 181 -ExpectedBytes 256054
+    -ExpectedFrames 210 -ExpectedBytes 256054
 
 & (Join-Path $PSScriptRoot "test_fullscreen.ps1") -Executable $executable
 if ($LASTEXITCODE -ne 0) { throw "Hidden Alt+Enter integration test failed." }
@@ -131,6 +134,39 @@ finally {
     Remove-Item -LiteralPath $isolationOutput -ErrorAction SilentlyContinue
     Remove-Item -LiteralPath $isolationError -ErrorAction SilentlyContinue
     Remove-Item -LiteralPath $isolationRoot -ErrorAction SilentlyContinue
+}
+
+# A second, independent configure/build proves that the release artifact is
+# reproducible from the current source tree rather than merely stable across
+# incremental links. Keep the generated tree under work/ and validate the
+# resolved cleanup target before removing it.
+$workRoot = [System.IO.Path]::GetFullPath((Join-Path $projectRoot "work"))
+$reproductionRoot = [System.IO.Path]::GetFullPath(
+    (Join-Path $workRoot ("release-reproduction-" + [guid]::NewGuid().ToString("N"))))
+$workPrefix = $workRoot.TrimEnd([System.IO.Path]::DirectorySeparatorChar) +
+              [System.IO.Path]::DirectorySeparatorChar
+if (-not $reproductionRoot.StartsWith(
+        $workPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+    throw "Reproduction build path escaped the workspace work directory."
+}
+try {
+    cmake -S $projectRoot -B $reproductionRoot -G Ninja -DCMAKE_BUILD_TYPE=Release
+    if ($LASTEXITCODE -ne 0) { throw "Independent release configuration failed." }
+    cmake --build $reproductionRoot --parallel
+    if ($LASTEXITCODE -ne 0) { throw "Independent release build failed." }
+
+    $primaryHash = (Get-FileHash -LiteralPath $executable -Algorithm SHA256).Hash
+    $reproducedExecutable = Join-Path $reproductionRoot "MarioFundamentals.exe"
+    $reproducedHash = (Get-FileHash -LiteralPath $reproducedExecutable -Algorithm SHA256).Hash
+    if ($primaryHash -ne $reproducedHash) {
+        throw "Independent clean build hash $reproducedHash does not match $primaryHash."
+    }
+    Write-Output "PASS reproducible_clean_build_sha256=$primaryHash"
+}
+finally {
+    if (Test-Path -LiteralPath $reproductionRoot) {
+        Remove-Item -LiteralPath $reproductionRoot -Recurse -Force
+    }
 }
 
 New-Item -ItemType Directory -Force -Path $distributionRoot | Out-Null

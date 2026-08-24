@@ -16,15 +16,18 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   board skips the remaining voice/animation and lands on the fully revealed menu.
 - The live Macintosh menu now gives its right-hand layer exclusively to the selected-game actor;
   the completed title hand is no longer composited beneath it as a second glove/object.
-- The no-window presentation sweeps now emit 178 exact 512×384 Macintosh frames and 181 exact
+- The no-window presentation sweeps now emit 200 exact 512×384 Macintosh frames and 210 exact
   320×200 DOS frames. They cover both Macintosh title/board mouse-down completion paths, all five
   source-specific selected-game intro input routes, DOS menu/help contexts, all intros/openings,
-  and Yacht roll/settle.
+  Backgammon setup reveal, Dominoes drag/endings, Checkers endings, Go Fish hand transfer/victory,
+  Yacht scoring/selection/victory, and both Yacht roll/settle timelines.
 - The DOS source's eight-pixel `File / Options / Help` bar is restored exactly over main-menu and
   gameplay frames, with context-specific commands and the Pak 8000/8001 two-page instruction UI.
 - Dominoes now follows CODE 14's exact first/later deal and highest-double dialogue tables. The
   corrected eight-way route eliminates the Macintosh post-deal abort and replaces four unrelated
   opening lines in both editions.
+- Runtime status copy now stays within the original Pak font's supported character set; Unicode
+  en/em dashes can no longer appear as question-mark glyphs during Backgammon, Dominoes, or Go Fish.
 - The Yacht idle cup is suppressed by the same controller guard in both editions throughout the
   roll movie and all sequential die-settle passes, with separate Macintosh and DOS regressions.
 - DOS `Ply` motion pairs retain the source vertical/horizontal layout even though DOS `MuV` and
@@ -42,8 +45,9 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   authored.
 - DOS painting no longer erases the viewport to black before composing each timer frame. Only the
   letterbox is cleared, after the next logical frame is complete.
-- Expanded hidden visual output covers the title/talking head, flip, five menu gestures, all five
-  game introductions at three timestamps, five game boards, first-use panels, and replay panel.
+- Expanded hidden visual output covers every startup/title stage, four flip timestamps, all five
+  menu gestures, 21 timestamps for every game introduction, eight opening states for every game,
+  first-use/replay panels, and the deterministic interaction/result states listed above.
 
 ## Highlights
 
@@ -62,9 +66,9 @@ media, executable, emulator, installer, sound driver, or loose asset files.
 ## Release artifact
 
 No 2.0 artifact is currently published. A replacement checksum and reproducibility record will be
-inserted only after the corrected DOS presentation has been explicitly accepted. The release gate
-still requires an AMD64 PE32+ Windows GUI binary, Windows system dependencies only, identical clean
-builds, an empty-directory silent self-test, and exactly one embedded copy of each deterministic
+inserted only after the corrected dual-edition presentation has been explicitly accepted. The
+release gate still requires an AMD64 PE32+ Windows GUI binary, Windows system dependencies only,
+identical clean builds, an empty-directory silent self-test, and exactly one embedded copy of each deterministic
 asset pack.
 
 ## Credits and rights

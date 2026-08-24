@@ -153,11 +153,13 @@ The player-win outcome regression also requires `$1B16`'s five-pass 1–5 die re
   title sequences, synchronized in-game talking heads, low-frequency idle prompts/jokes, and the
   original New Game/Play Again dialogs are restored. Source selectors retain their lazy-shuffle and
   cross-round state where the original module globals did.
-- The silent presentation gate regenerates 178 Macintosh and 181 DOS logical-resolution frames,
+- The silent presentation gate regenerates 200 Macintosh and 210 DOS logical-resolution frames,
   covering both Macintosh title mouse-down routes, all five source-specific selected-game intro
   mouse routes (two finishes, one single-tick advance, and two ignored inputs),
-  every menu selection, 21 samples for every game intro, eight opening states for every game, the
-  Macintosh Yacht roll/settle sequence, and DOS menu/help context screens.
+  every menu selection, 21 samples for every game intro, eight opening states for every game,
+  deterministic Backgammon setup, Dominoes drag/outcome, Checkers outcome, Go Fish hand/victory,
+  and Yacht score/selection/victory states, both Yacht roll/settle sequences, and DOS menu/help
+  context screens.
 - CODE 12 `$1032`'s two sound-bearing random menu idles and `$12F8`'s independent blink are restored.
   Its third randomized branch is also closed: decoded CODE 16 dispatch and A5 table data prove that
   operation 21 is a zero-movie/zero-sound record and 12061 fails the controller's 23-entry range

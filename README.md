@@ -189,14 +189,14 @@ The release script configures a static C++ runtime build, compiles the resources
 executable's full hidden/silent self-test, verifies the PE architecture and dependency set, proves
 both deterministic asset packs occur exactly once, proves all 1,707 Macintosh and 1,806 DOS ripped
 resources against their extraction manifests when those local audit records are present, reruns the
-self-test from an empty working directory, regenerates 178 Macintosh and 181 DOS no-window
+self-test from an empty working directory, regenerates 200 Macintosh and 210 DOS no-window
 presentation frames at the exact 512×384 and 320×200 logical sizes, and copies the result to `dist`.
 
 The dual-edition artifact produced here is an unreleased QA candidate. Its build-specific checksum
 is written to `dist/SHA256SUMS.txt`; no candidate should be redistributed as a 2.0 release until the
-DOS presentation audit is explicitly accepted. The hidden self-test runs from an otherwise empty
-directory containing only the executable, proving that no disk image, original application, DOS
-support file, loose asset, or generated sidecar is required at runtime.
+corrected dual-edition presentation audit is explicitly accepted. The hidden self-test runs from an
+otherwise empty directory containing only the executable, proving that no disk image, original
+application, DOS support file, loose asset, or generated sidecar is required at runtime.
 
 To run only the executable-level audit:
 
@@ -245,6 +245,7 @@ artwork.
 - [Reverse-engineering report](docs/REVERSE_ENGINEERING.md)
 - [Function and subsystem audit](docs/FUNCTION_AUDIT.md)
 - [Music and sound audit](docs/AUDIO_AUDIT.md)
+- [Fidelity and release-withdrawal matrix](docs/QA_MATRIX.md)
 - [Asset catalog](docs/ASSET_CATALOG.md)
 - [Version 2.0.0 release notes](docs/RELEASE_NOTES_2.0.0.md)
 - Machine-readable disassembly, decoded DATA image, overlay records, movie catalogs, converted

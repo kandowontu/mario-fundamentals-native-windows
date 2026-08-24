@@ -630,7 +630,7 @@ void BackgammonGame::resolveRoll() {
         rolled_ = true;
         if (humanDie > marioDie) {
             host_.play(11620, -11, -1);
-            status_ = L"You win the opening roll " + std::to_wstring(humanDie) + L"–" +
+            status_ = L"You win the opening roll " + std::to_wstring(humanDie) + L"-" +
                       std::to_wstring(marioDie) + L". Select a piece.";
             if (legalFirstMoves().empty()) finishHumanTurn();
         } else {

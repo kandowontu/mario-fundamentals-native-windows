@@ -604,7 +604,7 @@ void GoFishGame::ask(bool human, int requestedRank) {
         }
         beginConversation(movies);
         humanTurn_ = human;
-        status_ = human ? L"You got what you wanted—you get another turn!" :
+        status_ = human ? L"You got what you wanted - you get another turn!" :
                           L"Mario got what he asked for and gets another turn!";
         if (made) status_ += human ? L" That's a book for you." : L" That's a book for Mario.";
         checkEnd();
@@ -630,7 +630,7 @@ void GoFishGame::ask(bool human, int requestedRank) {
         if (gotRequestedRank) {
             movies.push_back(drawPool(humanSuccessPool_, humanSuccessPoolCursor_));
             humanTurn_ = true;
-            status_ = L"You fished what you asked for—you get another turn!";
+            status_ = L"You fished what you asked for - you get another turn!";
         } else {
             humanTurn_ = false;
             status_ = L"Go fish! Now it's Mario's turn.";

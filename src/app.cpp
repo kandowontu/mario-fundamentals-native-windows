@@ -271,6 +271,71 @@ void App::renderQaFrames(std::wstring_view outputDirectory) {
         }
     }
 
+    // Render deterministic interactive and outcome states, not only passive
+    // openings. These setters exercise the same game renderers used by live
+    // mouse/turn paths and expose layering, geometry, text, and sprite errors.
+    startGame(0);
+    if (auto* backgammon = dynamic_cast<BackgammonGame*>(game_.get())) {
+        for (const int revealed : std::array{0, 1, 5, 10, 15, 30}) {
+            backgammon->setQaSetupRevealPresentation(revealed);
+            save(std::wstring(L"31-backgammon-setup-") + (revealed < 10 ? L"0" : L"") +
+                 std::to_wstring(revealed) + L".bmp");
+        }
+    }
+
+    startGame(1);
+    if (auto* dominoes = dynamic_cast<DominoesGame*>(game_.get())) {
+        dominoes->setQaDragPresentation();
+        save(L"32-dominoes-drag.bmp");
+    }
+    constexpr std::array<std::pair<int, std::wstring_view>, 3> dominoOutcomes{{
+        {1, L"human"}, {-1, L"mario"}, {2, L"tie"},
+    }};
+    for (const auto& [winner, label] : dominoOutcomes) {
+        startGame(1);
+        if (auto* dominoes = dynamic_cast<DominoesGame*>(game_.get())) {
+            dominoes->setQaOutcomePresentation(winner, winner == 2);
+            save(L"33-dominoes-outcome-" + std::wstring(label) + L".bmp");
+        }
+    }
+
+    constexpr std::array<std::pair<int, std::wstring_view>, 4> checkerOutcomes{{
+        {1, L"human-elimination"}, {2, L"human-stuck"},
+        {-1, L"mario-first"}, {-2, L"mario-later"},
+    }};
+    for (const auto& [variant, label] : checkerOutcomes) {
+        startGame(2);
+        if (auto* checkers = dynamic_cast<CheckersGame*>(game_.get())) {
+            checkers->setQaOutcomePresentation(variant);
+            save(L"34-checkers-outcome-" + std::wstring(label) + L".bmp");
+        }
+    }
+
+    startGame(3);
+    if (auto* goFish = dynamic_cast<GoFishGame*>(game_.get())) {
+        goFish->setQaHandSlotsPresentation(false);
+        save(L"35-gofish-hand.bmp");
+        goFish->setQaHandSlotsPresentation(true);
+        save(L"35-gofish-hand-transfer.bmp");
+    }
+    for (const int letters : std::array{0, 3, 7}) {
+        startGame(3);
+        if (auto* goFish = dynamic_cast<GoFishGame*>(game_.get())) {
+            goFish->setQaVictoryPresentation(letters);
+            save(L"35-gofish-victory-" + std::to_wstring(letters) + L".bmp");
+        }
+    }
+
+    startGame(4);
+    if (auto* yacht = dynamic_cast<YachtGame*>(game_.get())) {
+        yacht->setQaScorecardPresentation();
+        save(L"36-yacht-scorecard.bmp");
+        yacht->setQaDiceSelectionPresentation();
+        save(L"36-yacht-dice-selection.bmp");
+        yacht->setQaVictoryPresentation();
+        save(L"36-yacht-victory.bmp");
+    }
+
     startGame(4);
     if (auto* yacht = dynamic_cast<YachtGame*>(game_.get())) {
         yacht->setQaRollPresentation();

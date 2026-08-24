@@ -1,0 +1,42 @@
+# Fidelity and release-withdrawal matrix
+
+This matrix turns the reported defects and release requirements into explicit evidence. `Automated
+pass` means the current hidden gate proves the named invariant; it does not authorize publication.
+The `v2.0.0` release remains withdrawn until the replacement artifact is visually accepted.
+
+| Requirement or reported defect | Current evidence | State |
+| --- | --- | --- |
+| Self-contained native Windows executable | `tools/verify_release.py` requires AMD64 GUI PE, Windows system imports only, no compiler runtime DLLs, and exactly one embedded copy of each Macintosh/DOS pack. The isolated self-test runs from a directory containing only the EXE. | Automated pass |
+| Correct Macintosh and DOS source media/assets | Preservation verification hashes all 1,707 Macintosh and 1,806 DOS resources against the extraction manifests; `docs/ASSET_CATALOG.md` records source-media and pack hashes. | Automated pass |
+| Macintosh BrainStorm/Stepping Stone startup, title speech, and easel menu | `src/app.cpp::tickIntro`, movie 1111/12091/1125 decoding, the eight startup captures, four reveal samples, and `docs/AUDIO_AUDIT.md`'s direct/cued sound map cover the complete path. | Automated pass |
+| DOS Interplay/Presage colors, credits, title speech, and menu | `src/dos_app.cpp`, six startup captures, four reveal samples, source palette tests, and overlays 20/21/25 in `work/disassembly/dos` cover the path. | Automated pass |
+| Temporary softlock after “Proudly Present” | MIDI output is prewarmed asynchronously and sequence requests queue until the mapper is ready; the isolated hidden startup/self-test completes. See `docs/AUDIO_AUDIT.md`. | Automated pass |
+| No background Mario/audio process after exit | Both window destroy paths stop voices and music and terminate their message loops; every gate run ends with no `MarioFundamentals` process. | Automated pass |
+| Frame-to-frame menu/gameplay shifting | `Canvas::present` performs one explicit nearest-neighbour logical-to-client map before a 1:1 upload, eliminating DPI-dependent `StretchBlt` phase changes. Every QA frame is pinned to 512×384 or 320×200. | Automated pass |
+| Black repaint flicker | Both shells suppress erase-background; DOS composes the complete logical frame before touching the window DC and clears only the letterbox. | Automated pass |
+| Board flip centered and menu concealed before reveal | Macintosh/DOS dialect-specific MuV/Img ordering is independently validated; movie 1125's persistent base frame covers the latent menu. Four timeline frames per edition exercise start through terminal reveal. | Automated pass |
+| Clicking the DOS board cannot rewind the reveal | `DosApp::introSkipTarget` advances DimTitle/TalkingTitle to MenuReveal and MenuReveal to the completed menu; `03g/03h` captures exercise the live skip route. | Automated pass |
+| Macintosh title/easel click skips like vanilla | CODE 12 `$1DDC`, `$1E14`, and `$217A` converge on the same completion post. `08/09` and `09a/09b` exercise live and board-flip mouse routes. | Automated pass |
+| Macintosh selected-game intro input matches vanilla | CODE 11/14/16/17/18 prove two immediate finishes, one Dominoes single-tick advance, and two ignored mouse inputs; key routing is separately exercised without leaking a Windows `WM_CHAR`. | Automated pass |
+| No duplicate/missing title hand or menu actor | Title and selected-game right-hand layers are mutually exclusive; the terminal title pose and all five menu selections are rendered in the Mac sweep. | Automated pass |
+| Mario head/torso compositing is solid during speech | The fixed torso renders before the live head and the complete neutral actor is used only between lines. Game intros/openings and outcome captures exercise these layers in both editions. | Automated pass |
+| Yacht cup does not duplicate | CODE 18's stationary-cup guard is ported through the roll movie and all five settle passes. Seven roll/settle frames are now generated for both editions. | Automated pass |
+| Backgammon setup reveal is aligned and complete | CODE 11's eight stack records and all 46 controller passes have semantic regressions; visual QA renders 0, 1, 5, 10, 15, and all 30 revealed checkers in both dialects. | Automated pass |
+| Dominoes deals, accepts a legal drag, and reaches all endings | Opening/deal timing, exact deck, boneyard, geometry, and drag/drop regressions run in both dialects; QA renders a legal drag plus player, Mario, and blocked-tie result states. | Automated pass |
+| Checkers intro/gameplay and endings | Full-path strategy, capture rules, replay state, idle behavior, and four ending branches are regression-tested; all four result presentations render in both dialects. | Automated pass |
+| Go Fish deals all cards progressively and remains playable | The seven-card deal/group timeline, stable hand-slot transfer, click rectangles, strategy, dialogue, and three outcomes are regression-tested; grouped hand, transfer, and 0/3/7-letter victory frames render in both dialects. | Automated pass |
+| Yacht scoring, selection, turn order, and endings | Score/category/input, adviser, roll order, dialogue, cup, and all outcome branches have executable regressions; scorecard, held-dice selection, victory, and roll/settle states render in both dialects. | Automated pass |
+| Music, speech, and effects are complete | `docs/AUDIO_AUDIT.md` maps startup, menu, intro, and per-game direct calls plus every movie cue; the decoder verifies 313 Mac sounds/6,968 MIDI events and 278 DOS sounds/12,253 XMI events. | Automated pass |
+| Alt+Enter fullscreen works in both editions | `tools/test_fullscreen.ps1` exercises fullscreen entry and exact windowed restoration for each edition without changing the Windows display mode. | Automated pass |
+| Repository credits/rights are accurate | `CREDITS.md`, source/tooling license boundaries, source-media provenance, and the withdrawn-draft notice are present. Original game data is explicitly excluded from the source license. | Present |
+| No premature public release | GitHub `v2.0.0` is a withdrawn draft and has no public tag or downloadable public release artifact. | Enforced |
+
+## Current gate
+
+`tools/build_release.ps1` must pass all semantic, asset, audiovisual, presentation, fullscreen,
+preservation, PE/dependency, and isolated-runtime checks. It now requires exactly 200 fresh
+Macintosh frames and 210 fresh DOS frames at their native logical dimensions. Any missing, stale,
+wrong-sized, or corrupt frame fails the build.
+
+The remaining publication condition is explicit visual acceptance of the corrected candidate. Until
+then, passing this matrix produces only an unreleased QA artifact.
