@@ -15,6 +15,7 @@ public:
     explicit App(HINSTANCE instance);
     ~App();
     int run(int showCommand);
+    [[nodiscard]] static bool sourceIntroSkipRegressionTest();
 
 private:
     enum class Screen {
@@ -58,6 +59,7 @@ private:
     void typeCharacter(wchar_t character);
     void tickIntro(unsigned milliseconds);
     void advanceIntro(IntroPhase phase);
+    void skipTitleIntro();
     void enterNameScreen();
     void beginGameIntro(int index);
     void beginGameCharacter(int index);

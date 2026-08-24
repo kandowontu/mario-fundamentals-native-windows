@@ -218,6 +218,11 @@ stage, and sound 5011 plus the 1.5-second movie 1125 wipe run together after tha
 This ordering avoids folding voice duration into the authored pause or holding movie 1125's first
 title-picture frame over the live menu.
 
+The same controller's mouse-down branch at `$1DDC` clears the live-stage flag and posts callback
+`$2E0`; its natural completion at `$217A` posts that identical callback. The native shell therefore
+accepts a click anywhere on the live Macintosh title/board stage as an immediate transition to the
+fully revealed menu, while leaving the preceding publisher-card controllers untouched.
+
 The preceding publisher controller at `$1B0A`/`$1B74` explicitly loads `$1C` (28) controller
 counts for the Stepping Stone card.  At the same 100 ms cadence demonstrated by the title
 controller's 15/2/5-count pauses, this is a 2.8-second hold; the original high-cadence startup

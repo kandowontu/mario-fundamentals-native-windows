@@ -46,6 +46,13 @@ constexpr wchar_t kPreferencesKey[] = L"Software\\MarioFundamentalsNative";
 // CODE 6 initializes its Pak-backed editor's character cap at $0f.
 constexpr std::size_t kMaximumPlayerNameLength = 15;
 
+constexpr bool macTitleIntroClickSkips(int phase) {
+    // CODE 12 $1DDC handles mouse-down while the title-stage controller is
+    // active and posts the same $2E0 completion callback as its natural end at
+    // $217A. The publisher cards precede this controller and are not skipped.
+    return phase >= 7;
+}
+
 }  // namespace
 
 App::App(HINSTANCE instance)
@@ -90,6 +97,15 @@ App::~App() {
     if (steppingStoneBitmap_) DeleteObject(steppingStoneBitmap_);
     if (steppingStoneFadeBitmap_) DeleteObject(steppingStoneFadeBitmap_);
     for (HBITMAP bitmap : helpBitmaps_) if (bitmap) DeleteObject(bitmap);
+}
+
+bool App::sourceIntroSkipRegressionTest() {
+    return !macTitleIntroClickSkips(static_cast<int>(IntroPhase::StartupBlack)) &&
+           !macTitleIntroClickSkips(static_cast<int>(IntroPhase::TitleGap)) &&
+           macTitleIntroClickSkips(static_cast<int>(IntroPhase::Silhouette)) &&
+           macTitleIntroClickSkips(static_cast<int>(IntroPhase::Greeting)) &&
+           macTitleIntroClickSkips(static_cast<int>(IntroPhase::TalkingHead)) &&
+           macTitleIntroClickSkips(static_cast<int>(IntroPhase::MenuReveal));
 }
 
 void App::createWindow(int showCommand) {
@@ -716,6 +732,21 @@ void App::advanceIntro(IntroPhase phase) {
     introPhaseMilliseconds_ = 0;
 }
 
+void App::skipTitleIntro() {
+    // The source mouse-down terminates the live title controller immediately.
+    // Finish movie 1111 on its terminal hand/easel cel so entering the menu
+    // cannot briefly expose an earlier title pose.
+    audio_.stop();
+    introHandMilliseconds_ = introHandMovie_.duration() * 1000U /
+                             introHandMovie_.timeScale();
+    introPhase_ = IntroPhase::MenuReveal;
+    introPhaseMilliseconds_ = 0;
+    screen_ = Screen::Menu;
+    audio_.playMusic(audio_catalog::kMenuMusic);
+    showSelectedMenuPose();
+    if (window_) InvalidateRect(window_, nullptr, FALSE);
+}
+
 void App::tickIntro(unsigned milliseconds) {
     introPhaseMilliseconds_ += milliseconds;
     if (introPhase_ >= IntroPhase::Greeting) {
@@ -1069,6 +1100,11 @@ Point App::toLogical(Point client) const {
 }
 
 void App::click(Point logical) {
+    if (screen_ == Screen::Intro &&
+        macTitleIntroClickSkips(static_cast<int>(introPhase_))) {
+        skipTitleIntro();
+        return;
+    }
     if (dialog_ != Dialog::None) {
         clickDialog(logical);
         return;

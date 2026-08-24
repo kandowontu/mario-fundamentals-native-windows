@@ -1136,6 +1136,48 @@ bool YachtGame::sourceTurnOrderRegressionTest() {
            outcomePhase_ == OutcomePhase::Announcement;
 }
 
+bool YachtGame::shouldDrawStationaryCup() const noexcept {
+    // Pak 6010 frame 12 is the idle roll control. Movie 6020 owns the large
+    // cup from mouse-down until every die has settled. The rule is deliberately
+    // edition-neutral: Macintosh and DOS share this controller state.
+    return openingDelayMilliseconds_ == 0 && !showComputerDice_ && rolls_ == 0 &&
+           computerAttempt_ == 0 && computerRerollStage_ == 0 &&
+           pendingRollPlayer_ == 0 && !rollAnimation_.active() &&
+           !gestureAnimation_.active() && !host_.active();
+}
+
+bool YachtGame::sourceCupPresentationRegressionTest() {
+    host_.stop();
+    rollAnimation_.stop();
+    gestureAnimation_.stop();
+    outcomeAnimation_.stop();
+    introPhase_ = IntroPhase::Complete;
+    openingDelayMilliseconds_ = 0;
+    showComputerDice_ = false;
+    rolls_ = 0;
+    winner_ = 0;
+    computerAttempt_ = 0;
+    computerRerollStage_ = 0;
+    pendingRollPlayer_ = 0;
+    held_.fill(false);
+
+    if (!shouldDrawStationaryCup()) return false;
+    roll();
+    if (pendingRollPlayer_ != 1 || !rollAnimation_.active() ||
+        shouldDrawStationaryCup()) return false;
+
+    // The movie can finish before the five sequential die-settle passes. The
+    // pending controller must continue suppressing the idle cup during them.
+    rollAnimation_.stop();
+    if (shouldDrawStationaryCup()) return false;
+    pendingRollPlayer_ = 0;
+    rolls_ = 1;
+    if (shouldDrawStationaryCup()) return false;
+    rolls_ = 0;
+    showComputerDice_ = true;
+    return !shouldDrawStationaryCup();
+}
+
 void YachtGame::setQaVictoryPresentation() {
     host_.stop();
     openingDelayMilliseconds_ = 0;
@@ -1253,10 +1295,7 @@ void YachtGame::render(Canvas& canvas) {
         (void)gestureAnimation_.render(canvas);
     }
     (void)rollAnimation_.render(canvas);
-    if (openingDelayMilliseconds_ == 0 && !showComputerDice_ && rolls_ == 0 &&
-        computerAttempt_ == 0 && computerRerollStage_ == 0 &&
-        pendingRollPlayer_ == 0 && !rollAnimation_.active() &&
-        !gestureAnimation_.active() && !host_.active())
+    if (shouldDrawStationaryCup())
         canvas.sprite(context_.graphics.sprite(6010, 12),
                       dosEdition() ? 136 : 217, dosEdition() ? 86 : 166, false);
     canvas.pakText(context_.graphics,

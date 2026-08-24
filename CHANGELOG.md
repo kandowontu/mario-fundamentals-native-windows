@@ -26,6 +26,10 @@ All notable native-port changes are documented here.
 
 ### Fixed
 
+- Restored the Macintosh title controller's source mouse-down behavior: clicking the live
+  title/board sequence now stops its current voice and enters the completed menu immediately.
+- Applied the Yacht stationary-cup suppression to the shared Macintosh/DOS controller and added
+  per-edition roll-state regressions covering both the animated shake and sequential die settling.
 - Decoded DOS `Ply` motion payloads in their retained vertical/horizontal order instead of the
   `x/y` order used by DOS `MuV` and `Img` records. This restores the intended motion axis across
   every translated movie: Yacht now sails horizontally, game-intro actors cross their stages,

@@ -10,6 +10,10 @@ media, executable, emulator, installer, sound driver, or loose asset files.
 
 ## Corrective QA after withdrawal
 
+- Macintosh title-stage mouse-down now follows CODE 12's completion callback: clicking the live
+  board skips the remaining voice/animation and lands on the fully revealed menu.
+- The Yacht idle cup is suppressed by the same controller guard in both editions throughout the
+  roll movie and all sequential die-settle passes, with separate Macintosh and DOS regressions.
 - DOS `Ply` motion pairs retain the source vertical/horizontal layout even though DOS `MuV` and
   `Img` geometry uses conventional x/y fields. The runtime now treats those dialects separately;
   all five game introductions move on their authored axes, the Yacht crosses the water instead

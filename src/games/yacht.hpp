@@ -31,6 +31,7 @@ public:
     [[nodiscard]] bool sourceOutcomeRegressionTest(int expectedWinner);
     [[nodiscard]] bool sourceComputerSelectionRegressionTest();
     [[nodiscard]] bool sourceTurnOrderRegressionTest();
+    [[nodiscard]] bool sourceCupPresentationRegressionTest();
     [[nodiscard]] static bool sourceDialogueRegressionTest();
     void setQaVictoryPresentation();
     void setQaScorecardPresentation();
@@ -84,6 +85,7 @@ private:
     void continueComputerReroll();
     [[nodiscard]] int drawDialoguePool(std::vector<int>& movies, std::size_t& cursor);
     [[nodiscard]] int total(const std::array<int, 12>& scores) const;
+    [[nodiscard]] bool shouldDrawStationaryCup() const noexcept;
     [[nodiscard]] static std::wstring_view categoryName(int category);
     [[nodiscard]] static int categoryMovie(int category);
 
