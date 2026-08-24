@@ -16,6 +16,7 @@ public:
     int run(int showCommand);
     void renderQaFrames(std::wstring_view outputDirectory);
     [[nodiscard]] static bool sourceIntroSkipRegressionTest();
+    [[nodiscard]] static bool sourceGameIntroCompletionRegressionTest();
 
 private:
     enum class Screen { Intro, Menu, GameIntro, Character, Name, Game, Credits };

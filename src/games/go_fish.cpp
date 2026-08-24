@@ -555,6 +555,28 @@ bool GoFishGame::sourceHandSlotRegressionTest() const {
     return humanRankAtPoint(slots, {clearedCard.left, clearedCard.top}) == -1;
 }
 
+bool GoFishGame::sourceOpeningDealRegressionTest() {
+    host_.stop();
+    directSpeechMilliseconds_ = 0;
+    moviesAfterDirectSpeech_.clear();
+    openingFirstSpeechPlaying_ = false;
+    openingDelayMilliseconds_ = 4000;
+    openingDealSoundDelayMilliseconds_ = 0;
+    openingDealSoundCount_ = 0;
+
+    std::array<int, 7> visibleCounts{};
+    int transitionCount = 0;
+    for (int tickIndex = 0; tickIndex < 200 && openingDealSoundCount_ < 7; ++tickIndex) {
+        const int before = openingDealSoundCount_;
+        if (!tick()) return false;
+        if (openingDealSoundCount_ == before) continue;
+        if (openingDealSoundCount_ != before + 1 || transitionCount >= 7) return false;
+        visibleCounts[static_cast<std::size_t>(transitionCount++)] = openingDealSoundCount_;
+    }
+    return transitionCount == 7 &&
+           visibleCounts == std::array<int, 7>{1, 2, 3, 4, 5, 6, 7};
+}
+
 void GoFishGame::ask(bool human, int requestedRank) {
     context_.audio.playEffect(5010);
     auto& asking = human ? human_ : computer_;
@@ -726,6 +748,11 @@ bool GoFishGame::tick() {
     }
 
     if (openingDelayMilliseconds_ > 0 && !host_.active() && directSpeechMilliseconds_ == 0) {
+        // Every source deal advances the visible hand.  Without marking these
+        // controller ticks dirty, Windows presented the first card and then
+        // skipped directly to the consolidated hand even though all seven
+        // deal counters advanced internally.
+        changed = true;
         if (openingDealSoundCount_ < 7) {
             if (openingDealSoundDelayMilliseconds_ <= 0) {
                 // $7DA plays snd 5032 after each of the seven opening deals.

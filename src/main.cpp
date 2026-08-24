@@ -586,7 +586,8 @@ int selfTest(HINSTANCE instance) {
     if (!dominoes->sourceStrategyRegressionTest() ||
         !mf::DominoesGame::sourceIdleRegressionTest() ||
         !mf::DominoesGame::sourceDialogueRegressionTest() ||
-        !dominoes->sourceDragRegressionTest()) {
+        !dominoes->sourceDragRegressionTest() ||
+        !dominoes->sourceBoneyardHitboxRegressionTest()) {
         throw std::runtime_error("Dominoes source strategy regression");
     }
     auto dominoesHumanOutcome = std::make_unique<mf::DominoesGame>(context);
@@ -621,7 +622,8 @@ int selfTest(HINSTANCE instance) {
     auto goFish = std::make_unique<mf::GoFishGame>(context);
     if (!goFish->sourceStrategyRegressionTest() ||
         !goFish->sourceDialogueRegressionTest() ||
-        !goFish->sourceHandSlotRegressionTest()) {
+        !goFish->sourceHandSlotRegressionTest() ||
+        !goFish->sourceOpeningDealRegressionTest()) {
         throw std::runtime_error("Go Fish source strategy regression");
     }
     auto goFishHumanOutcome = std::make_unique<mf::GoFishGame>(context);
@@ -725,7 +727,8 @@ int selfTest(HINSTANCE instance) {
         dosMenuFinal.right != 139 || dosMenuFinal.bottom != 153) {
         throw std::runtime_error("DOS movie coordinate dialect regression");
     }
-    if (!mf::DosApp::sourceIntroSkipRegressionTest())
+    if (!mf::DosApp::sourceIntroSkipRegressionTest() ||
+        !mf::DosApp::sourceGameIntroCompletionRegressionTest())
         throw std::runtime_error("DOS title/menu skip progression regression");
     mf::Audio dosAudio(dosAssets);
     std::size_t dosMidiEvents = 0;
@@ -786,7 +789,8 @@ int selfTest(HINSTANCE instance) {
     auto dosDominoesBlockedTieOutcome = std::make_unique<mf::DominoesGame>(dosContext);
     if (!dosDominoes->sourceStrategyRegressionTest())
         throw std::runtime_error("DOS Dominoes strategy regression");
-    if (!dosDominoes->sourceDragRegressionTest())
+    if (!dosDominoes->sourceDragRegressionTest() ||
+        !dosDominoes->sourceBoneyardHitboxRegressionTest())
         throw std::runtime_error("DOS Dominoes drag regression");
     if (!dosDominoesHumanOutcome->sourceOutcomeRegressionTest(1, false))
         throw std::runtime_error("DOS Dominoes player outcome regression");
@@ -825,7 +829,8 @@ int selfTest(HINSTANCE instance) {
         throw std::runtime_error("DOS Go Fish strategy regression");
     if (!dosGoFish->sourceDialogueRegressionTest())
         throw std::runtime_error("DOS Go Fish dialogue regression");
-    if (!dosGoFish->sourceHandSlotRegressionTest())
+    if (!dosGoFish->sourceHandSlotRegressionTest() ||
+        !dosGoFish->sourceOpeningDealRegressionTest())
         throw std::runtime_error("DOS Go Fish hand-slot regression");
     if (!dosGoFishHumanOutcome->sourceOutcomeRegressionTest(1))
         throw std::runtime_error("DOS Go Fish player outcome regression");

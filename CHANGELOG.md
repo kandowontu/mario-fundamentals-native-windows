@@ -26,6 +26,13 @@ All notable native-port changes are documented here.
 
 ### Fixed
 
+- Ended DOS game introductions when their source actors complete instead of holding blank or
+  trailing cels for the Macintosh-only two-second tableau delay; corrected the Dominoes parade's
+  eight-pixel stage registration.
+- Repainted every intermediate Go Fish opening deal so all seven cards visibly arrive one at a
+  time instead of the first card being followed by a fully consolidated hand.
+- Restored the DOS Dominoes boneyard button hitbox and mouse capture, making draws and drag-to-table
+  moves work at the rendered 320x200 controls even when the pointer crosses the window edge.
 - Routed `Alt+Enter` through Windows system-key handling and a shared borderless-fullscreen
   controller for both editions; `F11` now follows the same path in both shells.
 - Made DOS startup skipping monotonic: clicks or Escape on the live title advance into the board

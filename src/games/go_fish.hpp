@@ -17,6 +17,7 @@ public:
     [[nodiscard]] bool sourceStrategyRegressionTest() const;
     [[nodiscard]] bool sourceDialogueRegressionTest() const;
     [[nodiscard]] bool sourceHandSlotRegressionTest() const;
+    [[nodiscard]] bool sourceOpeningDealRegressionTest();
     [[nodiscard]] bool sourceOutcomeRegressionTest(int expectedWinner);
     void setQaVictoryPresentation(int letterCount);
     void setQaHandSlotsPresentation(bool afterTransfer);

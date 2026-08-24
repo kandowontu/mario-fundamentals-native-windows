@@ -961,7 +961,10 @@ void DominoesGame::click(Point point) {
     idleElapsedSourceTicks_ = 0;
     if (winner_ || !dealComplete_ || pendingComputerOpening_ >= 0 ||
         computerTurnPending_ || host_.active()) return;
-    if (drawButton_.contains(point)) {
+    const Rect drawButton = dosEdition()
+        ? Rect{299, 149, 320, 188}
+        : drawButton_;
+    if (drawButton.contains(point)) {
         // $2350 reserves 9202 for the source's fourteen-bone hand limit.
         if (!boneyard_.empty() && human_.size() >= 14) {
             context_.audio.playEffect(9202);
@@ -1216,6 +1219,23 @@ bool DominoesGame::sourceDragRegressionTest() {
     return wrongEndRejected && correctEndAccepted && shortChainRadiusAccepted &&
            shortChainBoundaryRejected && tieChoosesRight && wrappedRadiusAccepted &&
            wrappedBoundaryRejected && overlapUsesPips && captureLossRestoresBone;
+}
+
+bool DominoesGame::sourceBoneyardHitboxRegressionTest() {
+    host_.stop();
+    dealComplete_ = true;
+    pendingComputerOpening_ = -1;
+    computerTurnPending_ = false;
+    winner_ = 0;
+    requiredHumanOpening_ = -1;
+    human_.assign(1, Tile{0, 0});
+    boneyard_.assign(1, Tile{6, 6});
+    const std::size_t humanBefore = human_.size();
+    const std::size_t boneyardBefore = boneyard_.size();
+    const Point button = dosEdition() ? Point{309, 168} : Point{494, 321};
+    click(button);
+    return human_.size() == humanBefore + 1 &&
+           boneyard_.size() + 1 == boneyardBefore;
 }
 
 void DominoesGame::setQaDragPresentation() {

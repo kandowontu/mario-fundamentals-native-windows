@@ -35,6 +35,11 @@ constexpr IntroSkipTarget introSkipTarget(int phase) {
     return IntroSkipTarget::Menu;
 }
 
+constexpr bool dosGameIntroComplete(std::uint32_t elapsedMilliseconds,
+                                    std::uint32_t durationMilliseconds) {
+    return elapsedMilliseconds >= durationMilliseconds;
+}
+
 }  // namespace
 
 DosApp::DosApp(HINSTANCE instance)
@@ -122,6 +127,14 @@ bool DosApp::sourceIntroSkipRegressionTest() {
                IntroSkipTarget::MenuReveal &&
            introSkipTarget(static_cast<int>(IntroPhase::MenuReveal)) ==
                IntroSkipTarget::Menu;
+}
+
+bool DosApp::sourceGameIntroCompletionRegressionTest() {
+    constexpr std::uint32_t duration = 7000;
+    return !dosGameIntroComplete(0, duration) &&
+           !dosGameIntroComplete(duration - 1, duration) &&
+           dosGameIntroComplete(duration, duration) &&
+           dosGameIntroComplete(duration + 1, duration);
 }
 
 void DosApp::renderQaFrames(std::wstring_view outputDirectory) {
@@ -258,9 +271,17 @@ LRESULT DosApp::handleMessage(HWND window, UINT message, WPARAM wParam, LPARAM l
     case WM_TIMER:
         tick();
         return 0;
-    case WM_LBUTTONDOWN:
-        click(toLogical({GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)}));
+    case WM_LBUTTONDOWN: {
+        const Point logical = toLogical({GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
+        if (screen_ == Screen::Game && game_ && dialog_ == Dialog::None) {
+            SetCapture(window);
+            game_->mouseDown(logical);
+        } else {
+            click(logical);
+        }
+        InvalidateRect(window, nullptr, FALSE);
         return 0;
+    }
     case WM_MOUSEMOVE:
         if (screen_ == Screen::Game && game_ && dialog_ == Dialog::None)
             game_->mouseMove(toLogical({GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)}));
@@ -268,6 +289,12 @@ LRESULT DosApp::handleMessage(HWND window, UINT message, WPARAM wParam, LPARAM l
     case WM_LBUTTONUP:
         if (screen_ == Screen::Game && game_ && dialog_ == Dialog::None)
             game_->mouseUp(toLogical({GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)}));
+        if (GetCapture() == window) ReleaseCapture();
+        InvalidateRect(window, nullptr, FALSE);
+        return 0;
+    case WM_CAPTURECHANGED:
+        if (screen_ == Screen::Game && game_) game_->mouseCancel();
+        InvalidateRect(window, nullptr, FALSE);
         return 0;
     case WM_CHAR:
         characterInput(static_cast<wchar_t>(wParam));
@@ -517,11 +544,10 @@ void DosApp::beginGameIntro(int gameIndex) {
     // These direct-render offsets reconcile the positions written by DOS
     // overlays 1, 13, 7, 17, and 30 with each MuV's intrinsic registration.
     case 0: add(4999, -100, 126); break;
-    // Movie 3002's MuV header already carries the DOS stage baseline at
-    // y=128.  Overlay 13's 120 is a controller/actor field, not an additive
-    // QuickDraw offset; applying it twice put the entire Dominoes parade
-    // below the framebuffer.
-    case 1: add(3002, 0, 0); break;
+    // Overlay 13 anchors the surviving composite actor at stage y=120, while
+    // movie 3002 registers its image plane at y=128.  Subtract the movie
+    // registration instead of adding the actor anchor a second time.
+    case 1: add(3002, 0, -8); break;
     case 2: add(2801, -93, 144); add(2800, -93, 144); break;
     case 3: add(5101, 0, 120); add(5102, 0, 90); break;
     case 4: add(6100, -90, 0); add(6150, -123, 0); break;
@@ -786,7 +812,11 @@ void DosApp::tick() {
                 audio_.playEffect(sound);
         }
         repaint = true;
-        if (gameIntroMilliseconds_ >= gameIntroDurationMilliseconds_ + 2000U)
+        // The DOS overlay controllers leave as soon as their final live actor
+        // completes.  The Macintosh shell's two-second tableau hold does not
+        // exist here; retaining it exposed blank/trailing cels in every DOS
+        // introduction, most visibly the separated Yacht hull.
+        if (dosGameIntroComplete(gameIntroMilliseconds_, gameIntroDurationMilliseconds_))
             finishGameIntro();
     } else if (screen_ == Screen::Game && game_) {
         if (dialog_ == Dialog::None) repaint |= game_->tick();

@@ -25,6 +25,7 @@ public:
     [[nodiscard]] bool sourceOutcomeRegressionTest(int expectedWinner, bool blocked);
     [[nodiscard]] bool sourceReplayRegressionTest();
     [[nodiscard]] bool sourceDragRegressionTest();
+    [[nodiscard]] bool sourceBoneyardHitboxRegressionTest();
     void setQaDragPresentation();
     void setQaOutcomePresentation(int expectedWinner, bool blocked);
 
