@@ -1722,10 +1722,10 @@ bool App::tickMenuSelectionController(unsigned milliseconds) {
         menuTransitionWorkingSelection_ = menu_catalog::stepSelection(
             menuTransitionWorkingSelection_, menuTransitionDirection_);
         menuPointerSourceSelection_ = menuTransitionWorkingSelection_;
-        // $EE4-$F00 emits direct snd 5003 only while no tracked line owns the
-        // source sound channel. Non-adjacent targets therefore retain the
-        // controller's one-row-per-pass feedback without interrupting speech.
-        if (!audio_.soundPlaying())
+        // $EE4-$F00 calls CODE 1 $B22 before direct snd 5003. That query sees
+        // both tracked speech and the still-draining 104 ms effect channel, so
+        // a 33 ms multi-row traversal cannot stack several copies of the click.
+        if (!audio_.directSoundBusy())
             audio_.playEffect(audio_catalog::kMenuSelectionSound);
         if (menuTransitionWorkingSelection_ == menuTransitionTargetSelection_) {
             menuTransitionDelayTicks_ = 0;
@@ -1909,7 +1909,7 @@ bool App::tickMenuIdleControllers() {
             if (menuFootShowNext_) {
                 menuBootVisible_ = true;
                 menuFootShowNext_ = false;
-                if (menuFootToggleCount_ > 0 && !audio_.soundPlaying())
+                if (menuFootToggleCount_ > 0 && !audio_.directSoundBusy())
                     audio_.playEffect(audio_catalog::kMenuFootSound);
             } else {
                 menuBootVisible_ = false;

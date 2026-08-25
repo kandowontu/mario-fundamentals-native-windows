@@ -22,6 +22,13 @@ runtime.
 The release self-test checks all of these counts, validates every sampled sound and MIDI file, and
 asserts that the dangling-cue set is exactly `{23019, 23020, 23021, 23022, 23023}`.
 
+CODE 1 `$B22` is the direct-sound channel busy query used before guarded UI effects; `$CAA` queues
+the effect and keeps that channel occupied for the sample's integer-ceiling duration. The native
+audio layer therefore tracks direct-effect lifetime separately from speech lifetime. Movie voices
+can remain concurrent, but a controller using `$B22` cannot stack the same effect every 33 ms while
+the preceding sample is still draining. A silent executable regression pins the 105 ms busy window
+of the 1,152-sample/11,025 Hz `snd ` 5003 menu click.
+
 ## DOS 1.0 resource coverage
 
 - All 278 `SND` resources decode from their six-byte little-endian header into unsigned 8-bit mono
@@ -110,7 +117,7 @@ Stepping Stone voice cue; a timed executable regression guards both foreground c
 | Title speech sequence | tracked sounds 5012, 5000, 5001, 8056, and 5011 |
 | Checkers menu-selection hand animation | all seven authored cues in movie 1111 at times 120, 180, 420, 480, 540, 600, and 660; CODE 12 pins the spoken title hand to `duration-1`, so these do not fire during the title voice |
 | C/G/D/B/Y menu-selection movies | exact authored cue streams from movies 1111-1115: common 5009/5013 gesture cues plus 5017 motion, 5014, or 5028 dice cues as authored |
-| Change menu selection | direct effect 5003 at `$EE4-$F00` for each one-row pointer step while the tracked channel is free, in addition to the outgoing/incoming movies' authored cues |
+| Change menu selection | direct effect 5003 at `$EE4-$F00` after each one-row pointer step only when CODE 1 `$B22` reports the direct channel free; its 105 ms busy window suppresses overlapping clicks during the 33 ms traversal, in addition to the outgoing/incoming movies' authored cues |
 | Start selected game | tracked sound 5010 after the current selection or idle actor finishes |
 | PICT 128 title/about presentation | tracked sound 5057 from CODE 5 `$2E` |
 | PICT 129 credits presentation | tracked sound 5072 from CODE 5 `$324` |

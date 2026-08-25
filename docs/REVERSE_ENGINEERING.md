@@ -324,6 +324,13 @@ BrainStorm transition and sound 8042 accompanies Stepping Stone. Its main-menu `
 also routes sound 5004 with actor 500's Pak-1011 shoe cycle and sound 5006 when actor 1500 is hidden
 for movie 1101's bow-tie spin; `$12F8` schedules the separate silent actor-471 blink overlay.
 
+CODE 1 `$B22` tests the Sound Manager enable flag and the current direct channel before returning
+busy; `$CAA` submits a priority-`$8000` effect to that scheduler. CODE 12 `$EE4-$F00` uses this pair
+for snd 5003 after a pointer row changes. The sample contains 1,152 frames at 11,025 Hz, which rounds
+up to a 105 ms busy lifetime, longer than three 33 ms controller passes. The native audio layer now
+tracks that lifetime separately from speech, so non-adjacent menu travel cannot pile up one click per
+row while the preceding click is still audible.
+
 All 11 `Midi` resources are standard format-0, one-track files with a 480-tick division. The native
 sequencer handles variable-length deltas, running status, tempo meta-events, channel messages, and
 looping, then sends short messages to WinMM. The audit parses 6,968 channel events. The recovered

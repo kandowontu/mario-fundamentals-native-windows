@@ -13,8 +13,8 @@ from pathlib import Path
 SEGMENT_COVERAGE = {
     1: {
         "disposition": "mixed_native_runtime_and_semantic_reimplementation",
-        "native": "Win32 process/event runtime, typed state, source QuickDraw RNG",
-        "files": "src/main.cpp;src/app.cpp;src/source_random.hpp;src/common.hpp",
+        "native": "Win32 process/event runtime, typed state, source QuickDraw RNG and direct-sound arbitration",
+        "files": "src/main.cpp;src/app.cpp;src/audio.cpp;src/audio.hpp;src/source_random.hpp;src/common.hpp",
         "verification": "release self-test;static PE audit;docs/FUNCTION_AUDIT.md",
     },
     2: {
@@ -138,6 +138,7 @@ SEGMENT_COVERAGE = {
 # deliberately name important branches inside the containing structural entry.
 LANDMARKS = {
     1: {
+        0xB22: "direct-sound channel busy query",
         0x352C: "QuickDraw random-range scaler",
     },
     3: {

@@ -185,6 +185,15 @@ bool Audio::startVoice(int resourceId, bool tracked) {
         if (tracked) {
             activeSoundRemainingMilliseconds_ =
                 (static_cast<std::uint64_t>(sampleCount) * 1000U + sampleRate - 1U) / sampleRate;
+        } else {
+            // CODE 1 $CAA feeds one direct-effect scheduler, and $B22 reports
+            // that channel busy until its sample drains. Keep movie/effect
+            // voices concurrent, but retain the longest live duration so
+            // source controllers cannot enqueue overlapping guarded effects.
+            activeDirectEffectRemainingMilliseconds_ = std::max(
+                activeDirectEffectRemainingMilliseconds_,
+                (static_cast<std::uint64_t>(sampleCount) * 1000U + sampleRate - 1U) /
+                    sampleRate);
         }
         voices_.push_back(std::move(voice));
         return true;
@@ -421,6 +430,11 @@ void Audio::tick(unsigned milliseconds) {
     } else {
         activeSoundRemainingMilliseconds_ -= milliseconds;
     }
+    if (activeDirectEffectRemainingMilliseconds_ <= milliseconds) {
+        activeDirectEffectRemainingMilliseconds_ = 0;
+    } else {
+        activeDirectEffectRemainingMilliseconds_ -= milliseconds;
+    }
     std::erase_if(voices_, [](const std::unique_ptr<Voice>& voice) {
         if (!(voice->header.dwFlags & WHDR_DONE)) return false;
         closeVoice(*voice);
@@ -448,6 +462,30 @@ void Audio::stop() {
     for (const auto& voice : voices_) closeVoice(*voice);
     voices_.clear();
     activeSoundRemainingMilliseconds_ = 0;
+    activeDirectEffectRemainingMilliseconds_ = 0;
+}
+
+bool Audio::sourceDirectSoundGateRegressionTest() {
+    if (!voices_.empty() || soundPlaying() || directEffectPlaying()) return false;
+
+    // snd 5003 is 1,152 samples at 11,025 Hz, so the source channel remains
+    // busy for 105 integer milliseconds. Exercise the same 33 ms cadence used
+    // by the menu controller without opening a WinMM output device.
+    activeDirectEffectRemainingMilliseconds_ = 105;
+    if (!directSoundBusy()) return false;
+    tick(33);
+    if (!directEffectPlaying()) return false;
+    tick(33);
+    if (!directEffectPlaying()) return false;
+    tick(38);
+    if (!directEffectPlaying()) return false;
+    tick(1);
+    if (directSoundBusy()) return false;
+
+    activeSoundRemainingMilliseconds_ = 1;
+    const bool trackedLineIsBusy = directSoundBusy();
+    activeSoundRemainingMilliseconds_ = 0;
+    return trackedLineIsBusy;
 }
 
 void Audio::stopMusic() {

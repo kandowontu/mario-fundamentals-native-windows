@@ -19,8 +19,8 @@ All notable native-port changes are documented here.
 - Silent, no-window Macintosh presentation output covering startup, title skip, four board-flip
   positions, every menu pose, 21 points across each game intro, eight opening states per game, and
   stationary/contact cup plus seven Yacht roll/settle states. The release gate regenerates and
-  validates all 221 Macintosh and 231 DOS frames at each edition's exact logical dimensions.
-- A fail-closed 219-file vanilla-capture inventory and 50 independent pixel/edge comparisons,
+  validates all 230 Macintosh and 231 DOS frames at each edition's exact logical dimensions.
+- A fail-closed 225-file vanilla-capture inventory and 52 independent pixel/edge comparisons,
   including the title silhouette/open hand, four menu selections, Go Fish question/transfer, and
   Yacht dice/marker/composed-hand states.
 
@@ -33,6 +33,12 @@ All notable native-port changes are documented here.
 
 ### Fixed
 
+- Restored CODE 1 `$B22`/`$CAA` direct-sound arbitration. The 105 ms Macintosh menu click now keeps
+  the source channel busy across adjacent 33 ms pointer steps instead of launching overlapping
+  copies during a multi-row selection change.
+- Ported CODE 12's complete Macintosh menu-selection controller: immediate pressed feedback,
+  outgoing hold-to-neutral retraction, signed one-row C/G/D/B/Y pointer traversal, hidden-label
+  interval, three-pass delay, retarget boundaries, and exact incoming hold times.
 - Pinned Macintosh title movie 1111 to CODE 12's `duration-1` open-hand cel while Mario speaks;
   checker-stack frames and their effects now run only under the live menu-selection controller.
 - Composed both time-zero cels of Yacht movie 6021 for idle Mario in both editions, restoring his

@@ -30,6 +30,13 @@ public:
     [[nodiscard]] bool soundPlaying() const noexcept {
         return activeSoundRemainingMilliseconds_ != 0;
     }
+    [[nodiscard]] bool directEffectPlaying() const noexcept {
+        return activeDirectEffectRemainingMilliseconds_ != 0;
+    }
+    [[nodiscard]] bool directSoundBusy() const noexcept {
+        return soundPlaying() || directEffectPlaying();
+    }
+    [[nodiscard]] bool sourceDirectSoundGateRegressionTest();
     [[nodiscard]] bool enabled() const noexcept { return soundEnabled_ && musicEnabled_; }
     [[nodiscard]] bool soundEnabled() const noexcept { return soundEnabled_; }
     [[nodiscard]] bool musicEnabled() const noexcept { return musicEnabled_; }
@@ -71,6 +78,7 @@ private:
     std::uint64_t midiElapsed_{};
     std::uint64_t midiDuration_{};
     std::uint64_t activeSoundRemainingMilliseconds_{};
+    std::uint64_t activeDirectEffectRemainingMilliseconds_{};
     int activeMusicResourceId_{-1};
     int requestedMusicResourceId_{-1};
     bool requestedMusicLoop_{true};

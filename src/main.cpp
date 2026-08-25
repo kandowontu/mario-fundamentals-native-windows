@@ -187,6 +187,12 @@ int selfTest(HINSTANCE instance) {
     if (!assets.contains("snd ", 9203) || audio.soundWaveSize(9203) == 0) {
         throw std::runtime_error("CODE 6 delete-key sound is absent or invalid");
     }
+    {
+        mf::Audio directSoundGateProbe(assets);
+        if (!directSoundGateProbe.sourceDirectSoundGateRegressionTest()) {
+            throw std::runtime_error("CODE 1 direct-sound busy gate changed");
+        }
+    }
     if (mf::audio_catalog::kBrainstormSound != 8038 ||
         mf::audio_catalog::kSteppingStoneSound != 8042 ||
         mf::audio_catalog::kMenuSelectionSound != 5003 ||

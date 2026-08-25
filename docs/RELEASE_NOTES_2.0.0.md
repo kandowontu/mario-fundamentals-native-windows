@@ -27,6 +27,9 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   C/G/D/B/Y pointer traversal, the hidden-label interval, three-pass target delay, and immediate
   pressed-control feedback are preserved as well. This replaces the former universal 180-tick
   shortcut and direct actor swap.
+- CODE 1 `$B22`/`$CAA` direct-sound arbitration is now retained separately from tracked speech.
+  The 1,152-sample snd 5003 menu click occupies the source channel for 105 ms, preventing adjacent
+  33 ms pointer steps from launching several overlapping copies during a long selection move.
 - The no-window presentation sweeps now emit 230 exact 512×384 Macintosh frames and 231 exact
   320×200 DOS frames. They cover both Macintosh title/board mouse-down completion paths, all five
   source-specific selected-game intro input routes, DOS menu/help contexts, all intros/openings,
