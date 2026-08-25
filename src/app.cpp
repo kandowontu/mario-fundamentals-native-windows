@@ -1225,7 +1225,7 @@ void App::tickIntro(unsigned milliseconds) {
         }
         break;
     case IntroPhase::Greeting:
-        if (!audio_.soundPlaying()) advanceIntro(IntroPhase::GreetingPause);
+        if (!audio_.directSoundBusy()) advanceIntro(IntroPhase::GreetingPause);
         break;
     case IntroPhase::GreetingPause:
         if (introPhaseMilliseconds_ >= 200U) {
@@ -1234,7 +1234,7 @@ void App::tickIntro(unsigned milliseconds) {
         }
         break;
     case IntroPhase::TitleCue:
-        if (!audio_.soundPlaying()) {
+        if (!audio_.directSoundBusy()) {
             audio_.playSound(5001);
             advanceIntro(IntroPhase::TitleResponse);
         }
@@ -1242,7 +1242,7 @@ void App::tickIntro(unsigned milliseconds) {
     case IntroPhase::TitleResponse:
         // CODE 12 state 3 starts its five-count pause only after sound 5001
         // finishes; time spent speaking is not part of that pause.
-        if (audio_.soundPlaying()) {
+        if (audio_.directSoundBusy()) {
             introPhaseMilliseconds_ = 0;
         } else if (introPhaseMilliseconds_ >= 500U) {
             audio_.playSound(8056);
@@ -1266,7 +1266,7 @@ void App::tickIntro(unsigned milliseconds) {
         // voice clip.
         const std::uint32_t movieMilliseconds =
             menuRevealMovie_.duration() * 1000U / menuRevealMovie_.timeScale();
-        if (introPhaseMilliseconds_ >= movieMilliseconds && !audio_.soundPlaying()) {
+        if (introPhaseMilliseconds_ >= movieMilliseconds && !audio_.directSoundBusy()) {
             screen_ = Screen::Menu;
             showSelectedMenuPose();
         }
@@ -1283,6 +1283,8 @@ void App::enterNameScreen() {
 void App::beginGameIntro(int index) {
     if (index < 0 || index >= 5) return;
     menuLaunchGameIndex_ = -1;
+    menuLaunchDelayMilliseconds_ = 0;
+    menuLaunchSoundStarted_ = false;
     menuSelectionHost_.stop();
     menuBowTieHost_.stop();
     menuBootVisible_ = false;
@@ -1290,9 +1292,6 @@ void App::beginGameIntro(int index) {
     menuBlinkVisible_ = false;
     audio_.stop();
     audio_.stopMusic();
-    // CODE 12 $1400 starts tracked snd 5010 after the menu actors settle.
-    // The shorter snd 5003 belongs to changing the highlighted label.
-    audio_.playSound(audio_catalog::kMenuLaunchSound);
     audio_.playMusic(audio_catalog::kPrimaryGameMusic[static_cast<std::size_t>(index)]);
     game_.reset();
     activeGameIndex_ = -1;
@@ -1980,14 +1979,32 @@ void App::startSelectedMenuGame() {
 void App::requestMenuGame(int index) {
     if (screen_ != Screen::Menu || index < 0 || index >= 5 || menuLaunchGameIndex_ >= 0) return;
     menuLaunchGameIndex_ = index;
+    menuLaunchDelayMilliseconds_ = 0;
+    menuLaunchSoundStarted_ = false;
     tryStartPendingMenuGame();
 }
 
 bool App::tryStartPendingMenuGame() {
     if (screen_ != Screen::Menu || menuLaunchGameIndex_ < 0) return false;
     if (menuSelectionTransitionActive() || menuIdleRunning_ || menuBlinkRunning_) return false;
+    if (!menuLaunchSoundStarted_) {
+        // CODE 12 $1400 state zero starts tracked snd 5010 only after the
+        // selection/idle actors settle. Its ten-count pause and three $B22
+        // callers keep the menu live until that shared channel drains.
+        audio_.playSound(audio_catalog::kMenuLaunchSound);
+        menuLaunchSoundStarted_ = true;
+        menuLaunchDelayMilliseconds_ = 1000;
+        return true;
+    }
+    if (menuLaunchDelayMilliseconds_ > 0) {
+        menuLaunchDelayMilliseconds_ =
+            std::max(0, menuLaunchDelayMilliseconds_ - 33);
+        return false;
+    }
+    if (audio_.directSoundBusy()) return false;
     const int index = menuLaunchGameIndex_;
     menuLaunchGameIndex_ = -1;
+    menuLaunchSoundStarted_ = false;
     beginGameIntro(index);
     return true;
 }
@@ -2077,6 +2094,8 @@ void App::returnToMenu() {
     game_.reset();
     gameIntroMovies_.clear();
     menuLaunchGameIndex_ = -1;
+    menuLaunchDelayMilliseconds_ = 0;
+    menuLaunchSoundStarted_ = false;
     pendingGameIndex_ = -1;
     characterGameIndex_ = -1;
     nameGameIndex_ = -1;

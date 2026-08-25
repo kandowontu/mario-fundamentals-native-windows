@@ -21,6 +21,7 @@ public:
     [[nodiscard]] unsigned postFinishDelayMilliseconds() const noexcept override { return 0; }
     [[nodiscard]] bool sourceStrategyRegressionTest() const;
     [[nodiscard]] bool sourceOpeningRegressionTest() const;
+    [[nodiscard]] bool sourceDealPresentationRegressionTest();
     [[nodiscard]] static bool sourceIdleRegressionTest();
     [[nodiscard]] static bool sourceDialogueRegressionTest();
     [[nodiscard]] bool sourceOutcomeRegressionTest(int expectedWinner, bool blocked);
@@ -50,6 +51,7 @@ private:
         HumanSecondDelay,
         MarioAnnouncement,
         MarioAnnouncementDelay,
+        ChainResetWait,
         ReplayPrompt,
         ReplayDelay,
         FinalDelay,
@@ -101,7 +103,6 @@ private:
     int lastComputerMoveSpeechSourceIndex_{-99};
     int lastHumanMoveSpeechSourceIndex_{-99};
     int dealDelayMilliseconds_{};
-    int dealSoundDelayMilliseconds_{};
     int dealSoundCount_{};
     int tileCommitSoundDelayMilliseconds_{};
     bool chainReflowSoundPending_{};

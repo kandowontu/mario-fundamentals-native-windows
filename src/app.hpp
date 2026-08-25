@@ -175,6 +175,8 @@ private:
     bool menuBlinkVisible_{};
     bool menuIdleQaFreeze_{};
     int menuLaunchGameIndex_{-1};
+    int menuLaunchDelayMilliseconds_{};
+    bool menuLaunchSoundStarted_{};
     int pendingGameIndex_{-1};
     int characterGameIndex_{-1};
     int nameGameIndex_{-1};

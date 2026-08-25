@@ -328,8 +328,13 @@ CODE 1 `$B22` tests the Sound Manager enable flag and the current direct channel
 busy; `$CAA` submits a priority-`$8000` effect to that scheduler. CODE 12 `$EE4-$F00` uses this pair
 for snd 5003 after a pointer row changes. The sample contains 1,152 frames at 11,025 Hz, which rounds
 up to a 105 ms busy lifetime, longer than three 33 ms controller passes. The native audio layer now
-tracks that lifetime separately from speech, so non-adjacent menu travel cannot pile up one click per
-row while the preceding click is still audible.
+tracks that lifetime separately from speech and unions the two states for the source query, so
+non-adjacent menu travel cannot pile up one click per row while the preceding click is still audible.
+The complete caller scan contains fifteen sites: nine in CODE 12 (`$EE4`, `$1118`,
+`$1522/$1552/$1582`, `$203C/$2064/$208A/$2132`), five in CODE 14
+(`$E42/$F2A`, `$1174`, `$1528`, `$19C6`), and one in CODE 17 (`$139A`). Their native counterparts
+respectively cover menu UI/launch/title, Dominoes deal/result/reset/move selection, and the
+standalone Go Fish 26015 response gate; `docs/AUDIO_AUDIT.md` records the complete mapping.
 
 All 11 `Midi` resources are standard format-0, one-track files with a 480-tick division. The native
 sequencer handles variable-length deltas, running status, tempo meta-events, channel messages, and

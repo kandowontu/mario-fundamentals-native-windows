@@ -63,8 +63,7 @@ private:
     void rememberHumanQuestion(int rank);
     void beginConversation(std::span<const int> movies);
     void appendConversation(std::span<const int> movies);
-    void beginAfterDirectSpeech(int sound, unsigned milliseconds,
-                                std::span<const int> movies);
+    void beginAfterDirectSpeech(int sound, std::span<const int> movies);
     void resetSourceIdle();
     void cancelSourceIdle();
     [[nodiscard]] bool tickSourceIdle(bool eligible);
@@ -101,7 +100,7 @@ private:
     int openingDealSoundDelayMilliseconds_{};
     int openingDealSoundCount_{};
     bool openingFirstSpeechPlaying_{};
-    unsigned directSpeechMilliseconds_{};
+    bool directSpeechPending_{};
     std::vector<int> moviesAfterDirectSpeech_;
     std::array<int, 200> humanQuestionMemory_{};
     std::array<int, 30> computerQuestionHistory_{};

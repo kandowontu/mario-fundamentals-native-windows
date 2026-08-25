@@ -36,6 +36,13 @@ All notable native-port changes are documented here.
 - Restored CODE 1 `$B22`/`$CAA` direct-sound arbitration. The 105 ms Macintosh menu click now keeps
   the source channel busy across adjacent 33 ms pointer steps instead of launching overlapping
   copies during a multi-row selection change.
+- Dispositioned all fifteen original `$B22` call sites and restored their shared speech/effect
+  waits across the Macintosh title, menu launch, Dominoes, and Go Fish controllers.
+- Replaced Dominoes' fixed aggregate opening delay with CODE 14's seven channel-gated 5044 deal
+  passes and two-pass inter-pair cadence, revealing exactly one player/computer pair at a time in
+  both editions.
+- Replaced Go Fish's guessed standalone-26015 timer with CODE 17 `$139A`'s real direct-channel
+  completion gate.
 - Ported CODE 12's complete Macintosh menu-selection controller: immediate pressed feedback,
   outgoing hold-to-neutral retraction, signed one-row C/G/D/B/Y pointer traversal, hidden-label
   interval, three-pass delay, retarget boundaries, and exact incoming hold times.
@@ -61,7 +68,7 @@ All notable native-port changes are documented here.
 - Restored the Macintosh title controller's source mouse-down behavior: clicking the live
   title/board sequence now stops its current voice and enters the completed menu immediately.
 - Applied the Yacht stationary-cup suppression to the shared Macintosh/DOS controller and added
-  per-edition roll-state regressions covering both the animated shake and sequential die settling.
+  per-edition full-path regressions covering every animated-shake and sequential-die-settle pass.
 - Re-registered the Macintosh Yacht dialogue head, torso, idle actor, stationary cup, and roll
   movie against the preserved vanilla capture. The stationary and roll-contact cups now occupy the
   same `(218,129)-(296,228)` rectangle, with an exact regional hash preventing a jump or duplicate.

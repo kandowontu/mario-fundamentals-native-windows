@@ -92,7 +92,7 @@ void GoFishGame::beginConversation(std::span<const int> movies) {
 }
 
 void GoFishGame::appendConversation(std::span<const int> movies) {
-    if (directSpeechMilliseconds_ != 0) {
+    if (directSpeechPending_) {
         moviesAfterDirectSpeech_.insert(
             moviesAfterDirectSpeech_.end(), movies.begin(), movies.end());
         return;
@@ -104,11 +104,15 @@ void GoFishGame::appendConversation(std::span<const int> movies) {
     for (int movie : movies) host_.queue(movie);
 }
 
-void GoFishGame::beginAfterDirectSpeech(int sound, unsigned milliseconds,
-                                        std::span<const int> movies) {
+void GoFishGame::beginAfterDirectSpeech(int sound, std::span<const int> movies) {
     context_.audio.playEffect(sound);
-    directSpeechMilliseconds_ = milliseconds;
-    moviesAfterDirectSpeech_.assign(movies.begin(), movies.end());
+    directSpeechPending_ = context_.audio.directSoundBusy();
+    if (directSpeechPending_) {
+        moviesAfterDirectSpeech_.assign(movies.begin(), movies.end());
+    } else {
+        moviesAfterDirectSpeech_.clear();
+        beginConversation(movies);
+    }
 }
 
 void GoFishGame::reset() {
@@ -134,7 +138,7 @@ void GoFishGame::reset() {
     pendingComputerRank_ = -1;
     computerTurnWaiting_ = false;
     openingFirstSpeechPlaying_ = false;
-    directSpeechMilliseconds_ = 0;
+    directSpeechPending_ = false;
     moviesAfterDirectSpeech_.clear();
     humanQuestionMemory_.fill(99);
     computerQuestionHistory_.fill(99);
@@ -557,7 +561,7 @@ bool GoFishGame::sourceHandSlotRegressionTest() const {
 
 bool GoFishGame::sourceOpeningDealRegressionTest() {
     host_.stop();
-    directSpeechMilliseconds_ = 0;
+    directSpeechPending_ = false;
     moviesAfterDirectSpeech_.clear();
     openingFirstSpeechPlaying_ = false;
     openingDelayMilliseconds_ = 4000;
@@ -654,7 +658,7 @@ void GoFishGame::ask(bool human, int requestedRank) {
             movies.push_back(drawPool(humanTurnPool_, humanTurnPoolCursor_));
         }
         // This line is a standalone sound in the original resource stream.
-        beginAfterDirectSpeech(26015, 1736, movies);
+        beginAfterDirectSpeech(26015, movies);
     }
     checkEnd();
 }
@@ -669,7 +673,7 @@ void GoFishGame::appendHumanTurnAnnouncement() {
 
 void GoFishGame::computerTurn() {
     if (winner_ || humanTurn_ || pendingComputerRank_ >= 0 || computerTurnWaiting_ ||
-        host_.active() || directSpeechMilliseconds_ != 0 || openingDelayMilliseconds_ != 0 ||
+        host_.active() || directSpeechPending_ || openingDelayMilliseconds_ != 0 ||
         openingFirstSpeechPlaying_) return;
 
     if (computer_.empty()) {
@@ -736,10 +740,12 @@ bool GoFishGame::tick() {
     bool changed = host_.tick();
     for (const auto& flip : victoryCardFlips_) changed |= flip->tick();
 
-    if (directSpeechMilliseconds_ != 0) {
-        directSpeechMilliseconds_ = directSpeechMilliseconds_ > 33 ?
-            directSpeechMilliseconds_ - 33 : 0;
-        if (directSpeechMilliseconds_ == 0 && !moviesAfterDirectSpeech_.empty()) {
+    if (directSpeechPending_) {
+        // CODE 17 state 51 ($139A) waits on CODE 1 $B22. A hard-coded WAV
+        // duration kept this delay even with sound disabled and could drift
+        // from the actual output channel.
+        if (!context_.audio.directSoundBusy()) directSpeechPending_ = false;
+        if (!directSpeechPending_ && !moviesAfterDirectSpeech_.empty()) {
             const std::vector<int> movies = std::move(moviesAfterDirectSpeech_);
             moviesAfterDirectSpeech_.clear();
             beginConversation(movies);
@@ -747,7 +753,7 @@ bool GoFishGame::tick() {
         changed = true;
     }
 
-    if (openingDelayMilliseconds_ > 0 && !host_.active() && directSpeechMilliseconds_ == 0) {
+    if (openingDelayMilliseconds_ > 0 && !host_.active() && !directSpeechPending_) {
         // Every source deal advances the visible hand.  Without marking these
         // controller ticks dirty, Windows presented the first card and then
         // skipped directly to the consolidated hand even though all seven
@@ -777,13 +783,13 @@ bool GoFishGame::tick() {
         computerTurn();
         changed = true;
     } else if (pendingComputerRank_ >= 0 && !host_.active() &&
-               directSpeechMilliseconds_ == 0) {
+               !directSpeechPending_) {
         const int requested = pendingComputerRank_;
         pendingComputerRank_ = -1;
         ask(false, requested);
         if (!winner_ && !humanTurn_) computerTurnWaiting_ = true;
         changed = true;
-    } else if (computerTurnWaiting_ && !host_.active() && directSpeechMilliseconds_ == 0) {
+    } else if (computerTurnWaiting_ && !host_.active() && !directSpeechPending_) {
         computerTurnWaiting_ = false;
         computerTurn();
         changed = true;
@@ -791,7 +797,7 @@ bool GoFishGame::tick() {
     changed |= tickOutcome();
     const bool waitingForPlayer = !winner_ && humanTurn_ && pendingComputerRank_ < 0 &&
         !computerTurnWaiting_ && openingDelayMilliseconds_ == 0 &&
-        !openingFirstSpeechPlaying_ && directSpeechMilliseconds_ == 0 && !host_.active();
+        !openingFirstSpeechPlaying_ && !directSpeechPending_ && !host_.active();
     changed |= tickSourceIdle(waitingForPlayer);
     return changed;
 }
@@ -807,7 +813,7 @@ bool GoFishGame::tickOutcome() {
 
     switch (outcomePhase_) {
     case OutcomePhase::Announcement:
-        if (host_.active() || directSpeechMilliseconds_ != 0) return false;
+        if (host_.active() || directSpeechPending_) return false;
         if (winner_ == 1) {
             // CODE 17 $209E-$2218 deals Pak 5211's seven Y-O-U-W-I-N-!
             // faces one at a time after the player's outcome line.
@@ -905,7 +911,7 @@ void GoFishGame::setQaVictoryPresentation(int letterCount) {
     host_.stop();
     openingDelayMilliseconds_ = 0;
     openingFirstSpeechPlaying_ = false;
-    directSpeechMilliseconds_ = 0;
+    directSpeechPending_ = false;
     moviesAfterDirectSpeech_.clear();
     winner_ = 1;
     victoryLetterCount_ = std::clamp(letterCount, 0, 7);
@@ -920,7 +926,7 @@ void GoFishGame::setQaHandSlotsPresentation(bool afterTransfer) {
     openingDealSoundDelayMilliseconds_ = 0;
     openingDealSoundCount_ = 7;
     openingFirstSpeechPlaying_ = false;
-    directSpeechMilliseconds_ = 0;
+    directSpeechPending_ = false;
     moviesAfterDirectSpeech_.clear();
     // The retained source sequence first asks for rank 5 (Luigi), transfers
     // that card, then asks for rank 10 (Yoshi). Pak 5007 follows the same
@@ -974,7 +980,7 @@ void GoFishGame::checkEnd() {
 
 void GoFishGame::click(Point point) {
     if (winner_ || !humanTurn_ || human_.empty() || host_.active() ||
-        directSpeechMilliseconds_ != 0 || openingDelayMilliseconds_ != 0 ||
+        directSpeechPending_ || openingDelayMilliseconds_ != 0 ||
         openingFirstSpeechPlaying_) return;
     cancelSourceIdle();
     const int requested = humanRankAtPoint(humanHandSlots_, point);

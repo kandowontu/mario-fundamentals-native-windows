@@ -314,8 +314,11 @@ void DominoesGame::reset(bool preserveSession) {
     computerDrawsThisTurn_ = 0;
     lastComputerMoveSpeechSourceIndex_ = -99;
     lastHumanMoveSpeechSourceIndex_ = -99;
-    dealDelayMilliseconds_ = 3000;
-    dealSoundDelayMilliseconds_ = dealSoundCount_ = 0;
+    // $E1C preloads the first pair's pass counter to two. $EFE clears it
+    // after each deal, producing two controller passes between later pairs.
+    // Every pair is additionally paced by CODE 1 $B22.
+    dealDelayMilliseconds_ = 0;
+    dealSoundCount_ = 0;
     tileCommitSoundDelayMilliseconds_ = 0;
     chainReflowSoundPending_ = false;
     outcomeDelayTicks_ = 0;
@@ -357,19 +360,21 @@ bool DominoesGame::tick() {
         chainReflowSoundPending_ = false;
         changed = true;
     }
-    if (dealDelayMilliseconds_ > 0) {
-        if (dealSoundCount_ < 7) {
-            if (dealSoundDelayMilliseconds_ <= 0) {
-                // $EE4 fires snd 5044 once for each dealt pair of bones.
+    if (!dealComplete_) {
+        changed = true;
+        if (dealDelayMilliseconds_ > 0) {
+            dealDelayMilliseconds_ = std::max(0, dealDelayMilliseconds_ - 33);
+        } else if (dealSoundCount_ < 7) {
+            // $E42 waits on CODE 1 $B22 before exposing each player pair;
+            // $EE4 then fires snd 5044. The first pass consequently waits for
+            // the opening host line instead of dealing underneath it.
+            if (!context_.audio.directSoundBusy()) {
                 context_.audio.playEffect(5044);
                 ++dealSoundCount_;
-                dealSoundDelayMilliseconds_ = 250;
-            } else {
-                dealSoundDelayMilliseconds_ = std::max(0, dealSoundDelayMilliseconds_ - 33);
+                if (dealSoundCount_ < 7) dealDelayMilliseconds_ = 66;
             }
-        }
-        dealDelayMilliseconds_ = std::max(0, dealDelayMilliseconds_ - 33);
-        if (dealDelayMilliseconds_ == 0) {
+        } else if (!context_.audio.directSoundBusy()) {
+            // $F2A applies the same gate after the seventh pair.
             dealComplete_ = true;
             if (pendingComputerOpening_ >= 0) {
                 status_ = L"I place the first doublet.";
@@ -378,13 +383,12 @@ bool DominoesGame::tick() {
             }
             host_.play(openingMovie_, 14, 5);
         }
-        changed = true;
     }
     if (dealComplete_ && pendingComputerOpening_ >= 0 && !host_.active()) {
         const std::size_t index = static_cast<std::size_t>(pendingComputerOpening_);
         chain_.push_back(computer_[index]);
         computer_.erase(computer_.begin() + static_cast<std::ptrdiff_t>(index));
-        context_.audio.playEffect(5043);
+        if (!context_.audio.directSoundBusy()) context_.audio.playEffect(5043);
         context_.audio.playEffect(5042);
         tileCommitSoundDelayMilliseconds_ = 396;
         pendingComputerOpening_ = -1;
@@ -565,6 +569,29 @@ bool DominoesGame::sourceOpeningRegressionTest() const {
     });
 }
 
+bool DominoesGame::sourceDealPresentationRegressionTest() {
+    host_.stop();
+    dealComplete_ = false;
+    dealDelayMilliseconds_ = 0;
+    dealSoundCount_ = 0;
+
+    std::array<int, 7> visibleCounts{};
+    std::array<int, 7> transitionTicks{};
+    int transitionCount = 0;
+    for (int tickIndex = 0; tickIndex < 64 && !dealComplete_; ++tickIndex) {
+        const int before = dealSoundCount_;
+        if (!tick()) return false;
+        if (dealSoundCount_ == before) continue;
+        if (dealSoundCount_ != before + 1 || transitionCount >= 7) return false;
+        const std::size_t transition = static_cast<std::size_t>(transitionCount++);
+        visibleCounts[transition] = dealSoundCount_;
+        transitionTicks[transition] = tickIndex;
+    }
+    return dealComplete_ && transitionCount == 7 &&
+           visibleCounts == std::array<int, 7>{1, 2, 3, 4, 5, 6, 7} &&
+           transitionTicks == std::array<int, 7>{0, 3, 6, 9, 12, 15, 18};
+}
+
 bool DominoesGame::play(std::vector<Tile>& hand, std::size_t index, bool preferLeft,
                         bool allowOtherEnd) {
     if (index >= hand.size()) return false;
@@ -697,7 +724,7 @@ bool DominoesGame::tickOutcome() {
         if (host_.active()) return false;
         if (outcomeDelayTicks_-- > 0) return true;
         // Source state 3 waits for the result cue to drain before speech.
-        if (context_.audio.soundPlaying()) return false;
+        if (context_.audio.directSoundBusy()) return false;
         int movie = 10062;
         if (winner_ < 0) {
             // Result one at $1190: source indices 49/45/46.
@@ -752,7 +779,8 @@ bool DominoesGame::tickOutcome() {
         // The common result controller runs $14C6 before the replay prompt
         // for source result 2 (the player), resetting the chain with 5023.
         context_.audio.playEffect(5023);
-        outcomePhase_ = OutcomePhase::ReplayPrompt;
+        outcomeDelayTicks_ = 3;
+        outcomePhase_ = OutcomePhase::ChainResetWait;
         return true;
     case OutcomePhase::MarioAnnouncement: {
         if (host_.active()) return false;
@@ -768,7 +796,17 @@ bool DominoesGame::tickOutcome() {
         if (outcomeDelayTicks_-- > 0) return true;
         if (outcomeKind_ == OutcomeKind::Blocked && winner_ > 0 && winner_ != 2) {
             context_.audio.playEffect(5023);
+            outcomeDelayTicks_ = 3;
+            outcomePhase_ = OutcomePhase::ChainResetWait;
+        } else {
+            outcomePhase_ = OutcomePhase::ReplayPrompt;
         }
+        return true;
+    case OutcomePhase::ChainResetWait:
+        // CODE 14 $1528 waits for snd 5023, then holds the reset actor for
+        // three controller passes before entering the replay question.
+        if (context_.audio.directSoundBusy()) return false;
+        if (outcomeDelayTicks_-- > 0) return true;
         outcomePhase_ = OutcomePhase::ReplayPrompt;
         return true;
     case OutcomePhase::ReplayPrompt: {
@@ -977,7 +1015,9 @@ void DominoesGame::computerStep() {
     }
     // CODE 14 $19D4 selects Mario's tile with snd 5043 before $2A58
     // commits it with the normal 5042 placement sound.
-    context_.audio.playEffect(5043);
+    // $19C6 lets the move proceed while suppressing 5043 if the direct
+    // channel is occupied; it does not overlap another guarded cue.
+    if (!context_.audio.directSoundBusy()) context_.audio.playEffect(5043);
     play(computer_, best, preferLeft);
     computerTurnPending_ = false;
     if (computer_.empty()) {
@@ -1275,7 +1315,7 @@ void DominoesGame::setQaDragPresentation() {
     host_.stop();
     dealComplete_ = true;
     dealDelayMilliseconds_ = 0;
-    dealSoundDelayMilliseconds_ = 0;
+    dealSoundCount_ = 7;
     pendingComputerOpening_ = -1;
     computerTurnPending_ = false;
     winner_ = 0;
@@ -1411,9 +1451,11 @@ void DominoesGame::render(Canvas& canvas) {
         canvas.sprite(context_.graphics.sprite(10000),
                       dosEdition() ? 17 : 27, dosEdition() ? 19 : 19, false);
     }
+    const int visibleDealCount = dealComplete_ ? 7 : std::clamp(dealSoundCount_, 0, 7);
     if (!characterChooser_ && computer_.size() <= 28) {
         canvas.sprite(context_.graphics.sprite(3701,
-                                                dealComplete_ ? static_cast<int>(computer_.size()) : 0),
+                                                std::min(visibleDealCount,
+                                                    static_cast<int>(computer_.size()))),
                       dosEdition() ? 31 : 50, dosEdition() ? 40 : 77, false);
     }
     const int visible = characterChooser_ || !dealComplete_
@@ -1422,7 +1464,8 @@ void DominoesGame::render(Canvas& canvas) {
     for (int index = 0; index < visible; ++index) {
         drawTile(canvas, chain_[start + index], chainTileRect(index, visible));
     }
-    if (!characterChooser_ && dealComplete_) for (std::size_t index = 0; index < human_.size(); ++index) {
+    if (!characterChooser_) for (std::size_t index = 0;
+         index < human_.size() && index < static_cast<std::size_t>(visibleDealCount); ++index) {
         if (static_cast<int>(index) == draggedIndex_) continue;
         const int x = (dosEdition() ? 4 : 7) + static_cast<int>(index) *
                       (dosEdition() ? 22 : 35);
@@ -1446,7 +1489,8 @@ void DominoesGame::render(Canvas& canvas) {
                       dosEdition() ? 299 : 478, dosEdition() ? 149 : 286, false);
     if (!characterChooser_ && boneyard_.size() <= 28) {
         const Sprite& count = context_.graphics.sprite(
-            3701, dealComplete_ ? static_cast<int>(boneyard_.size()) : 28);
+            3701, dealComplete_ ? static_cast<int>(boneyard_.size())
+                                : 28 - visibleDealCount * 2);
         canvas.sprite(count, (dosEdition() ? 309 : 494) - count.width / 2,
                       dosEdition() ? 173 : 332, false);
     }

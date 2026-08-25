@@ -24,10 +24,26 @@ asserts that the dangling-cue set is exactly `{23019, 23020, 23021, 23022, 23023
 
 CODE 1 `$B22` is the direct-sound channel busy query used before guarded UI effects; `$CAA` queues
 the effect and keeps that channel occupied for the sample's integer-ceiling duration. The native
-audio layer therefore tracks direct-effect lifetime separately from speech lifetime. Movie voices
-can remain concurrent, but a controller using `$B22` cannot stack the same effect every 33 ms while
-the preceding sample is still draining. A silent executable regression pins the 105 ms busy window
-of the 1,152-sample/11,025 Hz `snd ` 5003 menu click.
+audio layer tracks direct-effect lifetime separately from speech lifetime, then unions both for the
+source busy query because tracked `$A18` speech and priority `$CAA` effects occupy the same original
+Sound Manager channel. Movie voices can remain concurrent, but a controller using `$B22` cannot
+stack the same effect every 33 ms while the preceding sample is still draining. A silent executable
+regression pins the 105 ms busy window of the 1,152-sample/11,025 Hz `snd ` 5003 menu click.
+
+The instruction scan finds exactly fifteen `$B22` callers. All fifteen are dispositioned here; no
+other CODE segment calls the query.
+
+| Original caller(s) | Source purpose | Native controller and evidence |
+| --- | --- | --- |
+| CODE 12 `$EE4` | Guard menu-pointer effect 5003 | One-row menu traversal calls `Audio::directSoundBusy`; the 105 ms no-stacking regression exercises the route. |
+| CODE 12 `$1118` | Guard shoe-idle effect 5004 | The actor-500 idle controller starts 5004 only when the shared direct channel is free. |
+| CODE 12 `$1522/$1552/$1582` | Drain menu actors, sound 5010, and the ten-count launch hold | `App::tryStartPendingMenuGame` waits the selection/idle actors, starts 5010 once, preserves the ten-count delay, then waits the shared channel before entering the game intro. |
+| CODE 12 `$203C/$2064/$208A/$2132` | Gate the 5012/5000/5001/5011 title states and final handoff | `App::tickIntro` uses `directSoundBusy` at all four corresponding state boundaries; the hidden startup sweep covers every state. |
+| CODE 14 `$E42/$F2A` | Pace seven opening Dominoes pairs and drain the seventh cue | `DominoesGame::tick` exposes exactly one player/computer pair after each free-channel check, plays 5044 seven times, preserves `$EFE`'s two controller passes between later pairs, and waits once more before the opening move. A semantic regression asserts visible counts 1 through 7 and exact silent pass indices `0,3,6,9,12,15,18` in both editions. |
+| CODE 14 `$1174` | Drain the blocked-result cue before speech | `DominoesGame::tickOutcome` uses the shared direct-channel query before choosing the result line. |
+| CODE 14 `$1528` | Drain chain-reset effect 5023 before the three-pass replay hold | `OutcomePhase::ChainResetWait` preserves both the sound gate and the subsequent controller delay. |
+| CODE 14 `$19C6` | Suppress selection effect 5043 when Mario moves while the channel is occupied | Both opening and ordinary Mario tile selection use the guarded effect route; the move itself is never incorrectly blocked. |
+| CODE 17 `$139A` | Drain standalone Go Fish sound 26015 before the queued response movies | `GoFishGame::beginAfterDirectSpeech` and `tick` use the actual channel state, not a guessed WAV-duration timer. |
 
 ## DOS 1.0 resource coverage
 
@@ -118,7 +134,7 @@ Stepping Stone voice cue; a timed executable regression guards both foreground c
 | Checkers menu-selection hand animation | all seven authored cues in movie 1111 at times 120, 180, 420, 480, 540, 600, and 660; CODE 12 pins the spoken title hand to `duration-1`, so these do not fire during the title voice |
 | C/G/D/B/Y menu-selection movies | exact authored cue streams from movies 1111-1115: common 5009/5013 gesture cues plus 5017 motion, 5014, or 5028 dice cues as authored |
 | Change menu selection | direct effect 5003 at `$EE4-$F00` after each one-row pointer step only when CODE 1 `$B22` reports the direct channel free; its 105 ms busy window suppresses overlapping clicks during the 33 ms traversal, in addition to the outgoing/incoming movies' authored cues |
-| Start selected game | tracked sound 5010 after the current selection or idle actor finishes |
+| Start selected game | tracked sound 5010 after the current selection or idle actor finishes, followed by CODE 12's ten-count hold and shared-channel drain before the game-intro controller starts |
 | PICT 128 title/about presentation | tracked sound 5057 from CODE 5 `$2E` |
 | PICT 129 credits presentation | tracked sound 5072 from CODE 5 `$324` |
 | Mario right-shoe idle | direct effect 5004 on CODE 12 `$1032` actor-500 show cycles and its terminal cue; Pak 1011 is composited at source point `(313,288)` |

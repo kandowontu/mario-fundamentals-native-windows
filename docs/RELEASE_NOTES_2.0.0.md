@@ -30,6 +30,13 @@ media, executable, emulator, installer, sound driver, or loose asset files.
 - CODE 1 `$B22`/`$CAA` direct-sound arbitration is now retained separately from tracked speech.
   The 1,152-sample snd 5003 menu click occupies the source channel for 105 ms, preventing adjacent
   33 ms pointer steps from launching several overlapping copies during a long selection move.
+- The complete fifteen-caller `$B22` audit now covers the remaining title and menu-launch waits,
+  Dominoes deal/result/reset/selection states, and Go Fish's standalone 26015 continuation. The
+  native query unions tracked speech and direct effects just like the original shared channel.
+- Dominoes now exposes one player/computer pair after each of CODE 14 `$E42`'s seven free-channel
+  checks, retains `$EFE`'s two controller passes between later pairs, and drains the seventh 5044
+  cue at `$F2A` before the opening move. The prior fixed-delay path that made the other bones pop
+  into existence has been removed in both editions.
 - The no-window presentation sweeps now emit 230 exact 512×384 Macintosh frames and 231 exact
   320×200 DOS frames. They cover both Macintosh title/board mouse-down completion paths, all five
   source-specific selected-game intro input routes, DOS menu/help contexts, all intros/openings,
@@ -63,8 +70,9 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   below their original swimming lanes.
 - The Yacht idle cup is suppressed by the same controller guard in both editions throughout the
   roll movie and all sequential die-settle passes, with separate Macintosh and DOS regressions.
-  Every movie tick also proves there is at most one large cup cel; vanilla's two small cup-shaped
-  counters remain because they are the authored remaining-roll markers.
+  The regression executes the entire live movie-to-five-die-settle transition and checks every
+  controller pass. Every movie tick also proves there is at most one large cup cel; vanilla's two
+  small cup-shaped counters remain because they are the authored remaining-roll markers.
 - DOS `Ply` motion pairs retain the source vertical/horizontal layout even though DOS `MuV` and
   `Img` geometry uses conventional x/y fields. The runtime now treats those dialects separately;
   all five game introductions move on their authored axes, the Yacht crosses the water instead

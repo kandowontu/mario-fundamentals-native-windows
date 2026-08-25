@@ -629,6 +629,7 @@ int selfTest(HINSTANCE instance) {
     auto dominoes = std::make_unique<mf::DominoesGame>(context);
     if (!dominoes->sourceStrategyRegressionTest() ||
         !dominoes->sourceOpeningRegressionTest() ||
+        !dominoes->sourceDealPresentationRegressionTest() ||
         !mf::DominoesGame::sourceIdleRegressionTest() ||
         !mf::DominoesGame::sourceDialogueRegressionTest() ||
         !dominoes->sourceDragRegressionTest() ||
@@ -922,7 +923,8 @@ int selfTest(HINSTANCE instance) {
     auto dosDominoesBlockedMarioOutcome = std::make_unique<mf::DominoesGame>(dosContext);
     auto dosDominoesBlockedTieOutcome = std::make_unique<mf::DominoesGame>(dosContext);
     if (!dosDominoes->sourceStrategyRegressionTest() ||
-        !dosDominoes->sourceOpeningRegressionTest())
+        !dosDominoes->sourceOpeningRegressionTest() ||
+        !dosDominoes->sourceDealPresentationRegressionTest())
         throw std::runtime_error("DOS Dominoes strategy regression");
     if (!dosDominoes->sourceDragRegressionTest() ||
         !dosDominoes->sourceBoneyardHitboxRegressionTest())

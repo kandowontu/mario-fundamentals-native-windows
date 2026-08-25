@@ -1191,13 +1191,27 @@ bool YachtGame::sourceCupPresentationRegressionTest() {
     if (pendingRollPlayer_ != 1 || !rollAnimation_.active() ||
         shouldDrawStationaryCup()) return false;
 
-    // The movie can finish before the five sequential die-settle passes. The
-    // pending controller must continue suppressing the idle cup during them.
-    rollAnimation_.stop();
-    if (shouldDrawStationaryCup()) return false;
-    pendingRollPlayer_ = 0;
-    rolls_ = 1;
-    if (shouldDrawStationaryCup()) return false;
+    // Exercise the complete live path rather than manufacturing its terminal
+    // state. The movie can finish before the five sequential die-settle
+    // passes, and the pending controller must continue suppressing the idle
+    // cup during every one of them in both resource editions.
+    bool sawMovie = false;
+    int settledDice = 0;
+    for (int tickIndex = 0;
+         tickIndex < 256 && (pendingRollPlayer_ != 0 || rollAnimation_.active());
+         ++tickIndex) {
+        if (shouldDrawStationaryCup()) return false;
+        sawMovie = sawMovie || rollAnimation_.active();
+        const int previousSettlingIndex = settlingDieIndex_;
+        (void)tick();
+        if (settlingDieIndex_ > previousSettlingIndex)
+            settledDice += settlingDieIndex_ - previousSettlingIndex;
+        if ((pendingRollPlayer_ != 0 || rollAnimation_.active()) &&
+            shouldDrawStationaryCup()) return false;
+    }
+    if (!sawMovie || settledDice != 5 || pendingRollPlayer_ != 0 ||
+        rollAnimation_.active() || rolls_ != 1 || shouldDrawStationaryCup()) return false;
+
     rolls_ = 0;
     showComputerDice_ = true;
     return !shouldDrawStationaryCup();
