@@ -102,7 +102,10 @@ original executable, emulator, installer, DOS driver, or loose asset file at run
   player-victory movies and timed effect, branch-specific pauses, Mario's replay question, and only
   then the original Play Again dialog. Its idle controller now alternates by source draw between
   the three nonrepeating full-body Mario movies and three nonrepeating voiced prompts; the invented
-  Backgammon knock-knock path has been removed.
+  Backgammon knock-knock path has been removed. The two-click input controller resolves a selected
+  checker's legal destination before treating an occupied point as another selection, so building
+  onto friendly stacks works as in CODE 11. Eight full matches per edition exercise the public roll,
+  point, bar, and bearing-off controls through the native result sequence.
 - Dominoes uses CODE 14's exact three-pass 84-call tile swap, dealt-half doublet guarantee,
   backward alternating deal, deal/opening speech draws, hand-order candidate enumeration, and
   smallest-exposed-pip selection, including the original random side choice when a tile fits both

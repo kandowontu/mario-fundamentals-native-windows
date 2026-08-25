@@ -22,6 +22,7 @@ public:
     [[nodiscard]] bool sourceSetupRevealRegressionTest();
     [[nodiscard]] static bool sourceCheckerGeometryRegressionTest();
     [[nodiscard]] bool sourceOutcomeRegressionTest(bool humanWins);
+    [[nodiscard]] bool sourceFullMatchRegressionTest();
     void setQaSetupRevealPresentation(int revealedCheckers);
 
 private:

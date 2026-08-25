@@ -91,6 +91,11 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   their overlays before applying MuV bounds. This removes the second registration that displaced
   Backgammon by `(101,18)`, both Checkers actors by their separate origins, and both Go Fish actors
   below their original swimming lanes.
+- Backgammon's second checker click now follows CODE 11 `$8CC-$91A`: it cancels when the selected
+  checker itself is clicked, otherwise it validates the destination before considering any new
+  selection. Legal moves onto friendly stacks no longer reselect the destination and stall the
+  turn. Eight complete public-input matches per edition now gate rolls, moves, hits, bar entry,
+  bearing off, checker conservation, Mario's delayed turns, and result completion.
 - The Yacht idle cup is suppressed by the same controller guard in both editions throughout the
   roll movie and all sequential die-settle passes, with separate Macintosh and DOS regressions.
   The regression executes the entire live movie-to-five-die-settle transition and checks every

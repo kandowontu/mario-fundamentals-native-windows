@@ -648,6 +648,14 @@ implementations remain evidence-backed rather than inferred from modern versions
   high oversized roll is used immediately even when moving with the low die first would consume both
   dice. Native self-tests cover bar hits and own-blot entry, point making, safe/fallback play, doubles,
   exact bearing from a stack, ordinary blot hits, and that final-checker edge.
+- Backgammon's mouse controller establishes selection at CODE 11 `$856-$8C8`; only after that flag
+  is set does `$8CC-$91A` handle a repeated-click cancellation or validate another point as the
+  destination. A friendly destination is therefore not a new selection merely because it already
+  contains a player checker. The native input controller now preserves that order, restoring legal
+  point-building moves. Eight deterministic matches per edition drive the public roll button and
+  two-click point/bar/off-board hit records from the full setup through the result controller.
+  Speech alone is fast-forwarded; dice movies, checker motion, Mario's delayed plan, hits, entries,
+  and bearing off remain live, with exact 15+15 checker conservation checked after every move.
 - Backgammon does not begin directly on a fully painted board. `$DD8` spends two controller passes
   installing and presenting the game, then lazily shuffles A5-`$3B52`'s indices `[3,4,0]` and starts
   one of `MuV ` 11603 (“Let's play!”), 11604 (“Good luck!”), or 11600 (“Nice to see you again!”)

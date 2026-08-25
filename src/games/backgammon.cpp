@@ -730,6 +730,187 @@ bool BackgammonGame::sourceOutcomeRegressionTest(bool humanWins) {
            (humanWins ? sawPairedVictoryMovies : sawMarioDelay && !sawPairedVictoryMovies);
 }
 
+bool BackgammonGame::sourceFullMatchRegressionTest() {
+    const std::uint32_t savedSeed = context_.random.seed();
+    const auto fail = [&]() {
+        context_.random.setSeed(savedSeed);
+        return false;
+    };
+    constexpr std::array<std::uint32_t, 8> seeds{
+        1U, 17U, 0x1234U, 0x4d415249U,
+        0x00c0ffeeU, 0x13579bdfU, 0x2468ace0U, 0x7ffffffeU};
+    bool sawHumanRoll = false;
+    bool sawMarioRoll = false;
+    bool sawHumanMove = false;
+    bool sawMarioMove = false;
+    bool sawHit = false;
+    bool sawBarEntry = false;
+    bool sawBearOff = false;
+    bool sawFriendlyPointBuild = false;
+    bool sawSelectionCancel = false;
+
+    const auto sameState = [](const State& left, const State& right) {
+        return left.points == right.points && left.humanBar == right.humanBar &&
+               left.computerBar == right.computerBar && left.humanOff == right.humanOff &&
+               left.computerOff == right.computerOff;
+    };
+    const auto stateIsValid = [&]() {
+        int human = state_.humanBar + state_.humanOff;
+        int computer = state_.computerBar + state_.computerOff;
+        if (state_.humanBar < 0 || state_.humanOff < 0 || state_.computerBar < 0 ||
+            state_.computerOff < 0 || state_.humanBar > 15 || state_.humanOff > 15 ||
+            state_.computerBar > 15 || state_.computerOff > 15) return false;
+        for (const int count : state_.points) {
+            if (count < -15 || count > 15) return false;
+            if (count > 0) human += count;
+            else computer -= count;
+        }
+        if (human != 15 || computer != 15 || dice_.size() > 4 ||
+            std::any_of(dice_.begin(), dice_.end(), [](int die) { return die < 1 || die > 6; }) ||
+            pendingRoll_ < -1 || pendingRoll_ > 2 || pendingFirst_ < 0 || pendingFirst_ > 6 ||
+            pendingSecond_ < 0 || pendingSecond_ > 6 || diceOwner_ < -1 || diceOwner_ > 1 ||
+            winner_ < -1 || winner_ > 1 ||
+            (computerMovesPending_ && computerMoveIndex_ >= computerMoves_.size())) return false;
+        if (dice_.size() > 2 && !std::all_of(dice_.begin() + 1, dice_.end(),
+                [&](int die) { return die == dice_.front(); })) return false;
+        return selected_ == -99 || selected_ == 24 ||
+               (selected_ >= 0 && selected_ < 24);
+    };
+    const auto center = [&](int point) {
+        Rect rect{};
+        if (point == 24) {
+            rect = barRect_;
+            if (dosEdition())
+                rect = {dosX(rect.left), dosY(rect.top), dosX(rect.right), dosY(rect.bottom)};
+        } else if (point == -2) {
+            rect = offRect_;
+            if (dosEdition())
+                rect = {dosX(rect.left), dosY(rect.top), dosX(rect.right), dosY(rect.bottom)};
+        } else {
+            rect = pointRect(point);
+        }
+        return Point{(rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2};
+    };
+
+    for (const std::uint32_t seed : seeds) {
+        context_.random.setSeed(seed);
+        reset(false);
+        bool matchSawStartup = false;
+        bool matchSawOpening = false;
+        bool matchSawHumanMove = false;
+        bool matchSawMarioMove = false;
+
+        for (int controllerPass = 0; controllerPass < 30000 && !finished();
+             ++controllerPass) {
+            host_.stop();
+            const bool playerCanAct = startupPhase_ == StartupPhase::Complete && !winner_ &&
+                !characterChooser_ && pendingRoll_ == 0 && !computerRollPending_ &&
+                !computerMovesPending_ && !pieceAnimation_.active && !diceRoll_.active() &&
+                !secondDiceRoll_.active() && !host_.active();
+            if (playerCanAct) {
+                if (!rolled_) {
+                    Rect rect = rollButton_;
+                    if (dosEdition())
+                        rect = {dosX(rect.left), dosY(rect.top),
+                                dosX(rect.right), dosY(rect.bottom)};
+                    click({(rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2});
+                    if (pendingRoll_ == 1) sawHumanRoll = true;
+                    if (pendingRoll_ == 0 || !diceRoll_.active() || !secondDiceRoll_.active())
+                        return fail();
+                } else {
+                    const std::vector<Move> legal = legalFirstMoves();
+                    if (legal.empty()) return fail();
+                    const auto rank = [&](const Move& move) {
+                        int value = move.die * 100;
+                        if (move.to == -2) value += 100000;
+                        if (move.from == 24) value += 10000;
+                        if (move.to >= 0 && move.to < 24) {
+                            if (state_.points[move.to] == -1) value += 20000;
+                            if (state_.points[move.to] == 1) value += 2000;
+                            if (state_.points[move.to] == 0) value -= 100;
+                        }
+                        if (move.from >= 0 && move.from < 24) {
+                            value += (23 - move.from) * 10;
+                            if (state_.points[move.from] == 2) value -= 500;
+                        }
+                        return value;
+                    };
+                    const Move chosen = *std::max_element(
+                        legal.begin(), legal.end(), [&](const Move& left, const Move& right) {
+                            return rank(left) < rank(right);
+                        });
+                    const auto actual = std::find_if(legal.begin(), legal.end(), [&](const Move& move) {
+                        return move.from == chosen.from && move.to == chosen.to;
+                    });
+                    if (actual == legal.end()) return fail();
+                    const State before = state_;
+                    std::vector<int> expectedDice = dice_;
+                    State expected = before;
+                    apply(expected, 1, *actual);
+                    const auto usedDie = std::find(expectedDice.begin(), expectedDice.end(), actual->die);
+                    if (usedDie == expectedDice.end()) return fail();
+                    expectedDice.erase(usedDie);
+                    if (expected.humanOff != 15 && !expectedDice.empty()) {
+                        auto sortedDice = expectedDice;
+                        std::sort(sortedDice.begin(), sortedDice.end());
+                        if (sequences(expected, 1, sortedDice).empty()) expectedDice.clear();
+                    }
+                    click(center(chosen.from));
+                    if (selected_ != chosen.from) return fail();
+                    if (!sawSelectionCancel) {
+                        click(center(chosen.from));
+                        if (selected_ != -99) return fail();
+                        sawSelectionCancel = true;
+                        click(center(chosen.from));
+                        if (selected_ != chosen.from) return fail();
+                    }
+                    click(center(chosen.to));
+                    if (!sameState(state_, expected) || dice_ != expectedDice || selected_ != -99)
+                        return fail();
+                    sawHumanMove = matchSawHumanMove = true;
+                    sawFriendlyPointBuild |= chosen.to >= 0 && chosen.to < 24 &&
+                                             before.points[chosen.to] > 0;
+                    sawHit |= state_.computerBar > before.computerBar;
+                    sawBarEntry |= state_.humanBar < before.humanBar;
+                    sawBearOff |= state_.humanOff > before.humanOff;
+                }
+            }
+
+            const State beforeTick = state_;
+            Move expectedComputerMove{};
+            bool haveExpectedComputerMove = false;
+            if (computerMovesPending_ && computerMoveIndex_ < computerMoves_.size()) {
+                expectedComputerMove = computerMoves_[computerMoveIndex_];
+                haveExpectedComputerMove = true;
+            }
+            const int pendingBefore = pendingRoll_;
+            (void)tick();
+            matchSawStartup |= startupPhase_ == StartupPhase::Complete;
+            matchSawOpening |= !opening_;
+            sawMarioRoll |= pendingBefore == -1 || pendingRoll_ == -1;
+
+            if (!sameState(beforeTick, state_)) {
+                if (!haveExpectedComputerMove) return fail();
+                State expected = beforeTick;
+                apply(expected, -1, expectedComputerMove);
+                if (!sameState(state_, expected)) return fail();
+                sawMarioMove = matchSawMarioMove = true;
+                sawHit |= state_.humanBar > beforeTick.humanBar;
+                sawBarEntry |= state_.computerBar < beforeTick.computerBar;
+                sawBearOff |= state_.computerOff > beforeTick.computerOff;
+            }
+            if (!stateIsValid()) return fail();
+        }
+
+        if (!finished() || winner_ == 0 || !matchSawStartup || !matchSawOpening ||
+            !matchSawHumanMove || !matchSawMarioMove || !stateIsValid()) return fail();
+    }
+
+    context_.random.setSeed(savedSeed);
+    return sawHumanRoll && sawMarioRoll && sawHumanMove && sawMarioMove && sawHit &&
+           sawBarEntry && sawBearOff && sawFriendlyPointBuild && sawSelectionCancel;
+}
+
 bool BackgammonGame::tickOutcome() {
     if (outcomePhase_ == OutcomePhase::None || outcomePhase_ == OutcomePhase::Complete) {
         return false;
@@ -1049,19 +1230,30 @@ void BackgammonGame::click(Point point) {
     if (!rolled_) return;
     const int target = hitPoint(point);
     const auto legal = legalFirstMoves();
-    if (target == 24 && state_.humanBar > 0) {
-        selected_ = 24;
-        context_.audio.playEffect(5053);
-        status_ = L"Choose an entry point.";
+    if (selected_ == -99) {
+        if (target == 24 && state_.humanBar > 0) {
+            selected_ = 24;
+            context_.audio.playEffect(5053);
+            status_ = L"Choose an entry point.";
+        } else if (target >= 0 && target < 24 && state_.points[target] > 0 &&
+                   state_.humanBar == 0) {
+            selected_ = target;
+            context_.audio.playEffect(5053);
+            status_ = L"Choose where to move.";
+        }
         return;
     }
-    if (target >= 0 && target < 24 && state_.points[target] > 0 && state_.humanBar == 0) {
-        selected_ = target;
+    // CODE 11 $8CC-$91A handles a second click only after a checker has
+    // entered the selected state. Clicking it again cancels selection;
+    // otherwise the destination validator runs even when that point already
+    // contains a friendly stack. Treating every friendly point as a fresh
+    // selection made legal point-building moves impossible through the UI.
+    if (target == selected_) {
+        selected_ = -99;
         context_.audio.playEffect(5053);
-        status_ = L"Choose where to move.";
+        status_ = L"Select a piece.";
         return;
     }
-    if (selected_ == -99) return;
     const auto found = std::find_if(legal.begin(), legal.end(), [&](const Move& move) {
         return move.from == selected_ && move.to == target;
     });

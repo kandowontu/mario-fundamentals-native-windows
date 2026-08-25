@@ -612,6 +612,7 @@ int selfTest(HINSTANCE instance) {
     auto backgammon = std::make_unique<mf::BackgammonGame>(context);
     auto backgammonSetup = std::make_unique<mf::BackgammonGame>(context);
     auto backgammonStartup = std::make_unique<mf::BackgammonGame>(context);
+    auto backgammonFullMatch = std::make_unique<mf::BackgammonGame>(context);
     if (!backgammon->sourceStrategyRegressionTest() ||
         !mf::BackgammonGame::sourceIdleRegressionTest() ||
         !mf::BackgammonGame::sourceCheckerGeometryRegressionTest() ||
@@ -620,6 +621,8 @@ int selfTest(HINSTANCE instance) {
         !backgammonSetup->sourceSetupRevealRegressionTest()) {
         throw std::runtime_error("Backgammon source strategy regression");
     }
+    if (!backgammonFullMatch->sourceFullMatchRegressionTest())
+        throw std::runtime_error("Backgammon full-match controller regression");
     auto backgammonHumanOutcome = std::make_unique<mf::BackgammonGame>(context);
     auto backgammonMarioOutcome = std::make_unique<mf::BackgammonGame>(context);
     if (!backgammonHumanOutcome->sourceOutcomeRegressionTest(true) ||
@@ -922,6 +925,7 @@ int selfTest(HINSTANCE instance) {
     auto dosBackgammonSetup = std::make_unique<mf::BackgammonGame>(dosContext);
     auto dosBackgammonHumanOutcome = std::make_unique<mf::BackgammonGame>(dosContext);
     auto dosBackgammonMarioOutcome = std::make_unique<mf::BackgammonGame>(dosContext);
+    auto dosBackgammonFullMatch = std::make_unique<mf::BackgammonGame>(dosContext);
     if (!dosBackgammon->sourceStrategyRegressionTest() ||
         !dosBackgammon->sourceDialogueRegressionTest() ||
         !dosBackgammonStartup->sourceStartupRegressionTest() ||
@@ -930,6 +934,8 @@ int selfTest(HINSTANCE instance) {
         !dosBackgammonMarioOutcome->sourceOutcomeRegressionTest(false)) {
         throw std::runtime_error("DOS Backgammon native behavior regression");
     }
+    if (!dosBackgammonFullMatch->sourceFullMatchRegressionTest())
+        throw std::runtime_error("DOS Backgammon full-match controller regression");
     if (dosAudio.requestedMusicResourceId() != 141)
         throw std::runtime_error("DOS Backgammon player-win XMI routing regression");
     auto dosDominoes = std::make_unique<mf::DominoesGame>(dosContext);

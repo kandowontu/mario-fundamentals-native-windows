@@ -36,6 +36,10 @@ All notable native-port changes are documented here.
 
 ### Fixed
 
+- Restored CODE 11 `$856-$91A` Backgammon click precedence. Once a checker is selected, a legal
+  friendly-stack destination now performs the move instead of reselecting that point; a repeat
+  click on the selected checker cancels it. Eight complete public-input matches per edition now
+  enforce checker conservation, hits, bar entry, bearing off, and result-controller completion.
 - Restored CODE 1 `$B22`/`$CAA` direct-sound arbitration. The 105 ms Macintosh menu click now keeps
   the source channel busy across adjacent 33 ms pointer steps instead of launching overlapping
   copies during a multi-row selection change.
