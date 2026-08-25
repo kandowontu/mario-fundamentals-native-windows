@@ -1217,6 +1217,175 @@ bool YachtGame::sourceCupPresentationRegressionTest() {
     return !shouldDrawStationaryCup();
 }
 
+bool YachtGame::sourceFullMatchRegressionTest() {
+    const std::uint32_t savedSeed = context_.random.seed();
+    const auto fail = [&]() {
+        context_.random.setSeed(savedSeed);
+        return false;
+    };
+    constexpr std::array<std::uint32_t, 8> seeds{
+        1U, 17U, 0x1234U, 0x4d415249U,
+        0x00c0ffeeU, 0x13579bdfU, 0x2468ace0U, 0x7ffffffeU};
+    bool sawPlayerRoll = false;
+    bool sawPlayerHold = false;
+    bool sawPlayerUnhold = false;
+    bool sawMarioRoll = false;
+    bool sawPlayerScore = false;
+    bool sawMarioScore = false;
+
+    const auto scoreIsValid = [](int category, int score) {
+        if (score < 0) return score == -1;
+        if (category >= 0 && category < 6)
+            return score <= 5 * (category + 1) && score % (category + 1) == 0;
+        if (category == 6) return score >= 5 && score <= 30;
+        if (category == 7 || category == 8) return score == 0 || (score >= 5 && score <= 30);
+        if (category == 9) return score == 0 || score == 25;
+        if (category == 10) return score == 0 || score == 30;
+        return category == 11 && (score == 0 || score == 50);
+    };
+
+    for (const std::uint32_t seed : seeds) {
+        context_.random.setSeed(seed);
+        reset();
+        std::array<int, 12> previousHuman = humanScores_;
+        std::array<int, 12> previousComputer = computerScores_;
+        bool matchSawPlayerRoll = false;
+        bool matchSawMarioRoll = false;
+        bool matchSawPlayerScore = false;
+        bool matchSawMarioScore = false;
+        bool matchSawFullScorecards = false;
+
+        const auto stateIsValid = [&]() {
+            if (round_ < 0 || round_ > 12 || rolls_ < 0 || rolls_ > 3 ||
+                winner_ < -1 || winner_ > 2 || pendingRollPlayer_ < -1 ||
+                pendingRollPlayer_ > 1 || settlingDieIndex_ < 0 || settlingDieIndex_ > 5 ||
+                computerAttempt_ < 0 || computerAttempt_ > 3 ||
+                computerRerollStage_ < 0 || computerRerollStage_ > 8) return false;
+            if (std::any_of(dice_.begin(), dice_.end(),
+                    [](int die) { return die < 1 || die > 6; })) return false;
+            for (int category = 0; category < 12; ++category) {
+                if (!scoreIsValid(category, humanScores_[static_cast<std::size_t>(category)]) ||
+                    !scoreIsValid(category, computerScores_[static_cast<std::size_t>(category)])) {
+                    return false;
+                }
+            }
+            if (round_ < 12) {
+                const int humanFilled = static_cast<int>(std::count_if(
+                    humanScores_.begin(), humanScores_.end(), [](int score) { return score >= 0; }));
+                const int computerFilled = static_cast<int>(std::count_if(
+                    computerScores_.begin(), computerScores_.end(), [](int score) { return score >= 0; }));
+                if ((humanFilled != round_ && humanFilled != round_ + 1) ||
+                    (computerFilled != round_ && computerFilled != round_ + 1) ||
+                    computerFilled < humanFilled || computerFilled > humanFilled + 1) return false;
+            }
+            if ((pendingRollPlayer_ != 0 || rollAnimation_.active()) &&
+                shouldDrawStationaryCup()) return false;
+            return true;
+        };
+
+        // Speech is fast-forwarded, but every state transition is owned by
+        // the live intro, roll, die-select, scorecard, Mario-turn, and outcome
+        // controllers. Any dead input state therefore reaches the ceiling.
+        for (int controllerPass = 0; controllerPass < 20000 && !finished();
+             ++controllerPass) {
+            host_.stop();
+            const bool playerCanAct = !winner_ && introPhase_ == IntroPhase::Complete &&
+                openingDelayMilliseconds_ == 0 && pendingRollPlayer_ == 0 &&
+                !pendingComputerAfterSpeech_ && !rollAnimation_.active() &&
+                !gestureAnimation_.active() && !host_.active() &&
+                computerRerollStage_ == 0;
+            if (playerCanAct) {
+                const Point rollPoint = dosEdition() ? Point{159, 113} : Point{257, 178};
+                if (rolls_ == 0) {
+                    click(rollPoint);
+                    if (pendingRollPlayer_ != 1 || !rollAnimation_.active()) return fail();
+                    sawPlayerRoll = matchSawPlayerRoll = true;
+                } else if (rolls_ == 1) {
+                    for (const int index : {0, 2}) {
+                        Rect rect = yachtDieRect(index, held_[static_cast<std::size_t>(index)]);
+                        Point point{(rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2};
+                        if (dosEdition()) point = {dosX(point.x), dosY(point.y)};
+                        click(point);
+                        if (!held_[static_cast<std::size_t>(index)]) return fail();
+                    }
+                    sawPlayerHold = true;
+                    click(rollPoint);
+                    if (pendingRollPlayer_ != 1 || !rollAnimation_.active()) return fail();
+                    sawPlayerRoll = matchSawPlayerRoll = true;
+                } else if (rolls_ == 2) {
+                    for (const int index : {0, 1}) {
+                        const bool wasHeld = held_[static_cast<std::size_t>(index)];
+                        Rect rect = yachtDieRect(index, wasHeld);
+                        Point point{(rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2};
+                        if (dosEdition()) point = {dosX(point.x), dosY(point.y)};
+                        click(point);
+                        if (held_[static_cast<std::size_t>(index)] == wasHeld) return fail();
+                    }
+                    sawPlayerUnhold = true;
+                    click(rollPoint);
+                    if (pendingRollPlayer_ != 1 || !rollAnimation_.active()) return fail();
+                    sawPlayerRoll = matchSawPlayerRoll = true;
+                } else {
+                    int category = -1;
+                    int bestScore = -1;
+                    for (int candidate = 0; candidate < 12; ++candidate) {
+                        if (humanScores_[static_cast<std::size_t>(candidate)] >= 0) continue;
+                        const int score = yachtCategoryScore(candidate, dice_);
+                        if (score > bestScore) {
+                            category = candidate;
+                            bestScore = score;
+                        }
+                    }
+                    if (category < 0) return fail();
+                    const int sourceRow = 11 - category;
+                    Point point{kPlayerScoreLineLeft + kPlayerScoreLineWidth / 2,
+                                kPlayerScoreLineTop + sourceRow * kPlayerScoreLineHeight +
+                                    kPlayerScoreLineHeight / 2};
+                    if (dosEdition()) point = {dosX(point.x), dosY(point.y)};
+                    click(point);
+                    if (humanScores_[static_cast<std::size_t>(category)] != bestScore ||
+                        !pendingComputerAfterSpeech_) return fail();
+                    sawPlayerScore = matchSawPlayerScore = true;
+                }
+            }
+
+            const int pendingBefore = pendingRollPlayer_;
+            (void)tick();
+            sawMarioRoll |= pendingBefore == -1 || pendingRollPlayer_ == -1;
+            matchSawMarioRoll |= pendingBefore == -1 || pendingRollPlayer_ == -1;
+
+            for (int category = 0; category < 12; ++category) {
+                const std::size_t index = static_cast<std::size_t>(category);
+                const auto changedLegally = [&](int previous, int current) {
+                    if (previous < 0) return current < 0 || current >= 0;
+                    if (current == previous) return true;
+                    return current < 0 && (outcomePhase_ == OutcomePhase::ScorecardClear ||
+                                           outcomePhase_ == OutcomePhase::Complete);
+                };
+                if (!changedLegally(previousHuman[index], humanScores_[index]) ||
+                    !changedLegally(previousComputer[index], computerScores_[index])) return fail();
+                if (previousComputer[index] < 0 && computerScores_[index] >= 0) {
+                    sawMarioScore = matchSawMarioScore = true;
+                }
+            }
+            previousHuman = humanScores_;
+            previousComputer = computerScores_;
+            matchSawFullScorecards |=
+                std::all_of(humanScores_.begin(), humanScores_.end(), [](int score) { return score >= 0; }) &&
+                std::all_of(computerScores_.begin(), computerScores_.end(), [](int score) { return score >= 0; });
+            if (!stateIsValid()) return fail();
+        }
+
+        if (!finished() || winner_ == 0 || round_ != 12 || !matchSawPlayerRoll ||
+            !matchSawMarioRoll || !matchSawPlayerScore || !matchSawMarioScore ||
+            !matchSawFullScorecards || !stateIsValid()) return fail();
+    }
+
+    context_.random.setSeed(savedSeed);
+    return sawPlayerRoll && sawPlayerHold && sawPlayerUnhold && sawMarioRoll &&
+           sawPlayerScore && sawMarioScore;
+}
+
 void YachtGame::setQaVictoryPresentation() {
     host_.stop();
     openingDelayMilliseconds_ = 0;

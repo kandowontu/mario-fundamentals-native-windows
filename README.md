@@ -68,7 +68,9 @@ original executable, emulator, installer, DOS driver, or loose asset file at run
     and the original Pizza/Jamaica/Giovanni/Yucca knock-knock cycle.
     Its dice controller uses the original white-reroll/red-held lanes, sequential Mario selection
     effects, remaining-roll markers, pre-roll hand gesture, player-owned twelve-round lifecycle,
-    delayed Mario score commits, and progressive five-die player-win reveal.
+    delayed Mario score commits, and progressive five-die player-win reveal. Eight deterministic
+    full matches per edition exercise those controls through real roll, die, and scorecard clicks
+    and require both twelve-line scorecards plus the result controller to complete.
 - Go Fish now follows CODE 17's recovered greeting/"I'm-a go first" opening, shuffled dialogue
   pools, its four-cards-per-rank numbering with source Pak 5006 corner numerals, 300-pair source
   deck swap, contiguous source deal,

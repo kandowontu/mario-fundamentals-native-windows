@@ -96,6 +96,10 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   The regression executes the entire live movie-to-five-die-settle transition and checks every
   controller pass. Every movie tick also proves there is at most one large cup cel; vanilla's two
   small cup-shaped counters remain because they are the authored remaining-roll markers.
+- Yacht now has eight full public-input matches per edition in the release gate. Each one performs
+  all player rolls, holds and releases dice through their source hit records, fills the right
+  scorecard, lets Mario's recovered adviser fill the left scorecard, reaches round twelve, and
+  drains the native result sequence while enforcing cup, dice, score, and turn-state invariants.
 - DOS `Ply` motion pairs retain the source vertical/horizontal layout even though DOS `MuV` and
   `Img` geometry uses conventional x/y fields. The runtime now treats those dialects separately;
   all five game introductions move on their authored axes, the Yacht crosses the water instead

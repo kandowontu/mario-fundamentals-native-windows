@@ -700,11 +700,13 @@ int selfTest(HINSTANCE instance) {
     auto yachtComputerSelection = std::make_unique<mf::YachtGame>(context);
     auto yachtTurnOrder = std::make_unique<mf::YachtGame>(context);
     auto yachtCupPresentation = std::make_unique<mf::YachtGame>(context);
+    auto yachtFullMatch = std::make_unique<mf::YachtGame>(context);
     if (!mf::App::sourceIntroSkipRegressionTest() ||
         !mf::YachtGame::sourceDialogueRegressionTest() ||
         !yachtComputerSelection->sourceComputerSelectionRegressionTest() ||
         !yachtTurnOrder->sourceTurnOrderRegressionTest() ||
         !yachtCupPresentation->sourceCupPresentationRegressionTest() ||
+        !yachtFullMatch->sourceFullMatchRegressionTest() ||
         !yachtHumanOutcome->sourceOutcomeRegressionTest(1) ||
         !yachtMarioOutcome->sourceOutcomeRegressionTest(-1) ||
         !yachtTieOutcome->sourceOutcomeRegressionTest(2)) {
@@ -1010,9 +1012,11 @@ int selfTest(HINSTANCE instance) {
     auto dosYachtMarioOutcome = std::make_unique<mf::YachtGame>(dosContext);
     auto dosYachtTieOutcome = std::make_unique<mf::YachtGame>(dosContext);
     auto dosYachtCupPresentation = std::make_unique<mf::YachtGame>(dosContext);
+    auto dosYachtFullMatch = std::make_unique<mf::YachtGame>(dosContext);
     if (!dosYachtSelection->sourceComputerSelectionRegressionTest() ||
         !dosYachtTurnOrder->sourceTurnOrderRegressionTest() ||
         !dosYachtCupPresentation->sourceCupPresentationRegressionTest() ||
+        !dosYachtFullMatch->sourceFullMatchRegressionTest() ||
         !dosYachtHumanOutcome->sourceOutcomeRegressionTest(1) ||
         !dosYachtMarioOutcome->sourceOutcomeRegressionTest(-1) ||
         !dosYachtTieOutcome->sourceOutcomeRegressionTest(2)) {

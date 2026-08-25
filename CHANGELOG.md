@@ -23,6 +23,9 @@ All notable native-port changes are documented here.
 - A fail-closed 225-file vanilla-capture inventory and 52 independent pixel/edge comparisons,
   including the title silhouette/open hand, four menu selections, Go Fish question/transfer, and
   Yacht dice/marker/composed-hand states.
+- Eight deterministic full Yacht matches per edition, driven through the public roll, die-control,
+  and score-line click paths with continuous dice, scorecard, turn, cup-ownership, and completion
+  invariants.
 
 ### Changed
 

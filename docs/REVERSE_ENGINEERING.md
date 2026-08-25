@@ -510,6 +510,11 @@ implementations remain evidence-backed rather than inferred from modern versions
   Mario's `$176A` path speaks its lead-in and category name first, pauses two source ticks, commits
   the score and effect 5003 at `$1848`, removes the green markers, waits nine ticks, and only then
   clears the dice for the player handoff.
+  The release self-test exercises this as eight uninterrupted matches per edition. It fast-forwards
+  speech only, then uses the public roll, die-control, and score-line click paths through all twelve
+  rounds and the complete outcome controller. Per-pass invariants cover dice values, score formats,
+  scorecard ownership, Mario/player turn ordering, controller bounds, and stationary-cup exclusion
+  throughout every live roll and settle sequence.
 
 - Yacht's dice are two distinct Pak 6010 control lanes. `$2B42` places flag-zero white dice at
   `(154,261)`, `(195,261)`, `(236,261)`, `(277,261)`, and `(318,261)`; `$2C40` places flag-one red

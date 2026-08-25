@@ -145,6 +145,11 @@ scorecards finish with twelve entries. Mario's `$176A` scoring sequence defers i
 effect 5003 until both announcement clips and the two-tick pause complete, then preserves the
 source nine-tick post-score handoff delay. These transitions have an executable lifecycle regression.
 The player-win outcome regression also requires `$1B16`'s five-pass 1–5 die reveal before movie 6022.
+Eight seeded full matches in each asset dialect now drive those controllers continuously from the
+Good Luck/I Go First opening through all twelve rounds and the real result sequence. They use the
+public roll button, white/red die hit records, and right-scorecard lines; require all 24 category
+records to be committed exactly once before the source wipe; and reject invalid dice, score,
+turn-stage, cup-ownership, or nonterminating states after every controller pass.
 
 ## Fidelity boundaries
 

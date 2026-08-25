@@ -32,6 +32,7 @@ public:
     [[nodiscard]] bool sourceComputerSelectionRegressionTest();
     [[nodiscard]] bool sourceTurnOrderRegressionTest();
     [[nodiscard]] bool sourceCupPresentationRegressionTest();
+    [[nodiscard]] bool sourceFullMatchRegressionTest();
     [[nodiscard]] static bool sourceDialogueRegressionTest();
     void setQaVictoryPresentation();
     void setQaScorecardPresentation();
