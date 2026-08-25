@@ -17,6 +17,7 @@ public:
     [[nodiscard]] unsigned postFinishDelayMilliseconds() const noexcept override { return 0; }
     [[nodiscard]] bool sourceStrategyRegressionTest() const;
     [[nodiscard]] static bool sourceIdleRegressionTest();
+    [[nodiscard]] bool sourceFullMatchRegressionTest();
     [[nodiscard]] bool sourceOutcomeRegressionTest(int outcomeVariant);
     [[nodiscard]] bool sourceReplayRegressionTest();
     void setQaOutcomePresentation(int outcomeVariant);

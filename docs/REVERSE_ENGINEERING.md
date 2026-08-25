@@ -605,6 +605,13 @@ implementations remain evidence-backed rather than inferred from modern versions
   or complete joke uses `$2B62` to install `Random(250)+60`. The native state machine reproduces
   these branches, delays, shuffle calls, cycle order, and the source's explicit (+3,-2) visual
   adjustment. Four deterministic seeds cover every first-level branch and the hidden shuffle calls.
+- Checkers full-match verification starts from the recovered twelve-piece formation and drives four
+  deterministic games per dialect through `hitSquare`'s source-shaped board geometry: one click
+  selects a legal piece and the second lands it. Only speech is fast-forwarded; the 330 ms piece
+  actor, forced continuation clicks, Mario's delayed multi-step plan, crowning, and `$0E98` outcome
+  controller all remain live. Every controller pass rejects pieces outside `-2..2`, pieces on
+  non-playable squares, increasing piece counts, invalid selection/continuation records, or a match
+  that cannot reach the replay-complete state.
 - Yacht's adviser begins at CODE 18 `$3596` and internally orders categories as Aces through Sixes,
   Four of a Kind, Full House, Little Straight, Big Straight, Yacht, then Choice. `$36F2` handles
   completed-category priorities. `$37A2` then tries triples, the first longest consecutive fragment,

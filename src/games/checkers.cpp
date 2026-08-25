@@ -789,6 +789,91 @@ bool CheckersGame::sourceIdleRegressionTest() {
                                   std::uint32_t{564950498U}};
 }
 
+bool CheckersGame::sourceFullMatchRegressionTest() {
+    const std::uint32_t savedSeed = context_.random.seed();
+    const bool savedAnimatedPieces = animatedPieces_;
+    const bool savedForcedJumps = forcedJumps_;
+    const auto fail = [&]() {
+        context_.random.setSeed(savedSeed);
+        animatedPieces_ = savedAnimatedPieces;
+        forcedJumps_ = savedForcedJumps;
+        return false;
+    };
+    constexpr std::array<std::uint32_t, 4> seeds{
+        1U, 0x434f4445U, 0x13579bdfU, 0x7ffffffeU};
+    bool sawCapture = false;
+    bool sawCrown = false;
+    bool sawHumanMove = false;
+    bool sawMarioMove = false;
+
+    animatedPieces_ = true;
+    forcedJumps_ = true;
+    for (const std::uint32_t seed : seeds) {
+        context_.random.setSeed(seed);
+        reset();
+        int previousHumanPieces = 12;
+        int previousMarioPieces = 12;
+        bool matchHadHumanMove = false;
+        bool matchHadMarioMove = false;
+
+        // Fast-forward only host speech. Board input still enters through the
+        // real two-click selector, piece movement still drains its 330 ms
+        // actor, and Mario still advances through his delayed live plan.
+        for (int controllerPass = 0; controllerPass < 60000 && !finished();
+             ++controllerPass) {
+            host_.stop();
+            const auto before = board_;
+
+            if (!winner_ && turn_ > 0 && !pieceAnimation_.active) {
+                const auto moves = legalMoves(1, continuation_);
+                if (moves.empty()) return fail();
+                const Move move = moves.front();
+                click(squareCenter(move.from));
+                host_.stop();
+                click(squareCenter(move.to));
+            }
+
+            (void)tick();
+            int humanPieces = 0;
+            int marioPieces = 0;
+            for (int square = 0; square < static_cast<int>(board_.size()); ++square) {
+                const int piece = board_[static_cast<std::size_t>(square)];
+                if (piece < -2 || piece > 2) return fail();
+                if (piece != 0 && ((square % 8 + square / 8) & 1) == 0) return fail();
+                humanPieces += piece > 0;
+                marioPieces += piece < 0;
+                sawCrown |= std::abs(piece) == 2;
+            }
+            if (humanPieces > previousHumanPieces || marioPieces > previousMarioPieces ||
+                humanPieces > 12 || marioPieces > 12) return fail();
+            sawCapture |= humanPieces < previousHumanPieces || marioPieces < previousMarioPieces;
+            previousHumanPieces = humanPieces;
+            previousMarioPieces = marioPieces;
+
+            if (board_ != before) {
+                if (turn_ < 0 || (pieceAnimation_.active && pieceAnimation_.piece > 0)) {
+                    sawHumanMove = true;
+                    matchHadHumanMove = true;
+                }
+                if (turn_ > 0 || (pieceAnimation_.active && pieceAnimation_.piece < 0)) {
+                    sawMarioMove = true;
+                    matchHadMarioMove = true;
+                }
+            }
+            if (selected_ < -1 || selected_ >= 64 || continuation_ < -1 ||
+                continuation_ >= 64 || (winner_ < -1 || winner_ > 1)) return fail();
+        }
+
+        if (!finished() || winner_ == 0 || !matchHadHumanMove || !matchHadMarioMove)
+            return fail();
+    }
+
+    context_.random.setSeed(savedSeed);
+    animatedPieces_ = savedAnimatedPieces;
+    forcedJumps_ = savedForcedJumps;
+    return sawCapture && sawCrown && sawHumanMove && sawMarioMove;
+}
+
 bool CheckersGame::sourceOutcomeRegressionTest(int outcomeVariant) {
     if (outcomeVariant != 1 && outcomeVariant != 2 &&
         outcomeVariant != -1 && outcomeVariant != -2) return false;

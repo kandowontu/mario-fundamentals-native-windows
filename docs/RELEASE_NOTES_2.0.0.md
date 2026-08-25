@@ -49,6 +49,10 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   editions through actual card clicks. It checks all 52 cards and every persistent hand record after
   each transition, so a lost card, duplicate card, broken hit target, or input-dead turn blocks the
   candidate rather than passing through isolated opening/outcome fixtures.
+- Checkers release verification now completes four deterministic matches in both editions through
+  actual piece-selection and destination clicks. The test retains animated movement and Mario's
+  delayed multi-step turns while checking playable-square occupancy, captures, crowning, selection
+  records, and monotonic piece counts until the real result/replay sequence finishes.
 - The no-window presentation sweeps now emit 230 exact 512×384 Macintosh frames and 231 exact
   320×200 DOS frames. They cover both Macintosh title/board mouse-down completion paths, all five
   source-specific selected-game intro input routes, DOS menu/help contexts, all intros/openings,

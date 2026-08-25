@@ -654,6 +654,9 @@ int selfTest(HINSTANCE instance) {
         !mf::CheckersGame::sourceIdleRegressionTest()) {
         throw std::runtime_error("Checkers source strategy regression");
     }
+    auto checkersFullMatch = std::make_unique<mf::CheckersGame>(context);
+    if (!checkersFullMatch->sourceFullMatchRegressionTest())
+        throw std::runtime_error("Checkers full-match controller regression");
     auto checkersHumanEliminationOutcome = std::make_unique<mf::CheckersGame>(context);
     auto checkersHumanStuckOutcome = std::make_unique<mf::CheckersGame>(context);
     auto checkersFirstMarioOutcome = std::make_unique<mf::CheckersGame>(context);
@@ -964,6 +967,9 @@ int selfTest(HINSTANCE instance) {
         !dosCheckers->sourceReplayRegressionTest()) {
         throw std::runtime_error("DOS Checkers native behavior regression");
     }
+    auto dosCheckersFullMatch = std::make_unique<mf::CheckersGame>(dosContext);
+    if (!dosCheckersFullMatch->sourceFullMatchRegressionTest())
+        throw std::runtime_error("DOS Checkers full-match controller regression");
     if (dosAudio.requestedMusicResourceId() != 143)
         throw std::runtime_error("DOS Checkers player-win XMI routing regression");
     auto dosGoFish = std::make_unique<mf::GoFishGame>(dosContext);
