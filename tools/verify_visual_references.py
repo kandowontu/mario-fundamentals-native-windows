@@ -5,8 +5,10 @@ The Macintosh reference set was captured from the original image in the
 Internet Archive vMac emulator; the DOS set contains independent native-size
 screenshots.  The browser scales the Macintosh 512x384 game surface, so the
 verifier removes the stable emulator/window chrome and resamples that surface.
-Both editions compare only scene regions whose geometry is not controlled by
-random cards, pieces, speech mouths, or the mouse cursor.
+Static cases compare scene regions whose geometry is not controlled by random
+cards, pieces, speech mouths, or the mouse cursor. Independently captured
+dynamic intro instants and source-matched Yacht actor/cup regions cover the
+registered foreground actors that those static regions intentionally omit.
 
 This is deliberately a tolerant structural check, not a claim that a browser
 screenshot can be byte-identical to the native renderer.  It independently
@@ -45,6 +47,57 @@ class Sample:
 
 
 MAC_SAMPLES = (
+    # Whole-frame dynamic captures catch source actor registration and staging
+    # errors that board/chrome-only comparisons deliberately exclude.
+    Sample(
+        "dominoes-intro",
+        "original-dominoes-trace-3.png",
+        "11-intro-1-15.bmp",
+        ((0, 0, 512, 384),),
+        15.0,
+    ),
+    Sample(
+        "checkers-intro",
+        "original-checkers-initial.png",
+        "11-intro-2-02.bmp",
+        ((0, 0, 512, 384),),
+        12.5,
+    ),
+    Sample(
+        "go-fish-intro-early",
+        "original-gofish-trace-1.png",
+        "11-intro-3-04.bmp",
+        ((0, 0, 512, 384),),
+        6.0,
+    ),
+    Sample(
+        "go-fish-intro-late",
+        "original-gofish-trace-2.png",
+        "11-intro-3-19.bmp",
+        ((0, 0, 512, 384),),
+        5.0,
+    ),
+    Sample(
+        "yacht-intro-early",
+        "original-yacht-trace-1.png",
+        "11-intro-4-00.bmp",
+        ((0, 0, 512, 384),),
+        13.0,
+    ),
+    Sample(
+        "yacht-intro-middle",
+        "original-yacht-trace-2.png",
+        "11-intro-4-08.bmp",
+        ((0, 0, 512, 384),),
+        14.0,
+    ),
+    Sample(
+        "yacht-intro-late",
+        "original-yacht-trace-3.png",
+        "11-intro-4-16.bmp",
+        ((0, 0, 512, 384),),
+        7.0,
+    ),
     Sample(
         "backgammon-board",
         "original-backgammon-board.png",
@@ -79,6 +132,20 @@ MAC_SAMPLES = (
         "24-opening-32.bmp",
         ((0, 0, 145, 325), (367, 0, 512, 325)),
         10.0,
+    ),
+    Sample(
+        "yacht-center-actor",
+        "original-yacht-trace-5.png",
+        "24-opening-32.bmp",
+        ((145, 0, 367, 220),),
+        30.0,
+    ),
+    Sample(
+        "yacht-roll-contact-cup",
+        "original-yacht-trace-6.png",
+        "30-yacht-roll-0.bmp",
+        ((222, 135, 292, 225),),
+        3.0,
     ),
 )
 
@@ -310,9 +377,10 @@ def main() -> int:
         },
         "method": (
             "Gaussian-smoothed 64x64 regional RGB RMSE; the Macintosh browser capture is "
-            "reduced to its stable game surface; dynamic actor/card/piece/cursor regions are "
-            "excluded from the stable-layout cases, while five source-timed DOS intro cases "
-            "compare their complete frames"
+            "reduced to its stable game surface; random actor/card/piece/cursor regions are "
+            "excluded from stable-layout cases, while seven source-timed Macintosh and five "
+            "source-timed DOS intro cases compare complete frames; two Macintosh Yacht regions "
+            "independently verify the gameplay actor and roll-contact cup"
         ),
         "cases": cases,
     }

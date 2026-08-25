@@ -197,6 +197,20 @@ vertical-then-horizontal ordering. CODE 18 confirms the Yacht title actors at ho
 6150's lower hull begins at y=240. The same correction places the Macintosh movie 1125 final
 menu-wipe cel at `(26,135)`, exactly over the matching pixels in Pak 1001.
 
+CODE 14 registers all three Macintosh Dominoes title actors against one shared stage point, with
+movie 3004 four pixels to the right. Inputs `(18,220)`, `(18,220)`, and `(22,220)` make the terminal
+3002/3003/3004 bounds `(400,270)-(477,323)`, `(169,283)-(400,323)`, and
+`(133,283)-(173,308)`: five joined dominoes followed by Yoshi. Treating each movie's complementary
+horizontal origin as another caller offset scattered those layers and left only one partial domino.
+
+The Yacht gameplay cast has a separate source registration from its title boats. Dialogue movies
+use input `(15,-1)` (movie 11411 frame 3 is `(228,18)-(336,123)`) over Pak 6012 at `(26,0)`; the
+complete idle Pak 6021 actor is at `(217,18)`. Pak 6010 frame 12's stationary cup is
+`(218,129)-(296,228)`, and movie 6020 input `(0,-9)` gives its first live frame those identical
+bounds. The controller suppresses the stationary frame from mouse-down through the movie and all
+five settle passes, so the contact frame neither jumps nor doubles. These Macintosh values do not
+replace the separately recovered DOS placements.
+
 The DOS records deliberately differ: `MuV ` uses `x, y, width, height`, while `Img ` uses
 `x, y, left, top, right, bottom`. This is proven across all 1,213 same-ID DOS Img/Pak pairs: every
 decoded source rectangle exactly equals its Pak frame dimensions under conventional DOS ordering,
@@ -232,7 +246,9 @@ The same controller's mouse-down branch at `$1DDC` and Escape branch at `$1E14` 
 flag and post callback `$2E0`; its natural completion at `$217A` posts that identical callback. The
 native shell therefore routes either input through one completion path that stops the active voice,
 installs movie 1111's terminal hand/easel cel, and enters the fully revealed menu. The preceding
-publisher-card controller remains independent.
+publisher-card controller remains independent. A board-coordinate mouse-down is exercised by the
+silent QA route and must hash-identically to a live-title skip, proving that an in-progress board
+reveal cannot remain active or move backward after the click.
 
 The selected-game title actors do not share one universal input rule. Backgammon CODE 11
 `$24/$2A` routes both key-down and mouse-down directly to the `$1C4` completion post, and Yacht

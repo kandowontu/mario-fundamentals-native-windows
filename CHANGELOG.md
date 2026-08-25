@@ -18,8 +18,8 @@ All notable native-port changes are documented here.
   preservation, and empty-directory release verification.
 - Silent, no-window Macintosh presentation output covering startup, title skip, four board-flip
   positions, every menu pose, 21 points across each game intro, eight opening states per game, and
-  seven Yacht roll/settle states. The release gate regenerates and validates all 171 frames plus
-  the DOS sweep at each edition's exact logical dimensions.
+  stationary/contact cup plus seven Yacht roll/settle states. The release gate regenerates and
+  validates all 201 frames plus the DOS sweep at each edition's exact logical dimensions.
 
 ### Changed
 
@@ -39,6 +39,11 @@ All notable native-port changes are documented here.
   title/board sequence now stops its current voice and enters the completed menu immediately.
 - Applied the Yacht stationary-cup suppression to the shared Macintosh/DOS controller and added
   per-edition roll-state regressions covering both the animated shake and sequential die settling.
+- Re-registered the Macintosh Yacht dialogue head, torso, idle actor, stationary cup, and roll
+  movie against the preserved vanilla capture. The stationary and roll-contact cups now occupy the
+  same `(218,129)-(296,228)` rectangle, with an exact regional hash preventing a jump or duplicate.
+- Restored CODE 14's shared Macintosh Dominoes title registration, joining all five dominoes and
+  Yoshi instead of leaving a single scattered partial tile.
 - Decoded DOS `Ply` motion payloads in their retained vertical/horizontal order instead of the
   `x/y` order used by DOS `MuV` and `Img` records. This restores the intended motion axis across
   every translated movie: Yacht now sails horizontally, game-intro actors cross their stages,

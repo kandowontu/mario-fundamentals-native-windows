@@ -36,6 +36,7 @@ public:
     void setQaVictoryPresentation();
     void setQaScorecardPresentation();
     void setQaDiceSelectionPresentation();
+    void setQaStationaryCupPresentation();
     void setQaRollPresentation();
 
 private:
@@ -138,7 +139,6 @@ private:
     std::size_t friendlyReactionPoolCursor_{2};
     OutcomePhase outcomePhase_{OutcomePhase::None};
     HostAnimation outcomeAnimation_;
-    const Rect rollButton_{217, 166, 295, 270};
     const Rect newButton_{38, 300, 174, 334};
     const Rect menuButton_{38, 342, 174, 376};
 };

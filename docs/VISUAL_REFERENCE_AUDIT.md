@@ -21,18 +21,29 @@ are used only for local preservation QA.
 
 The comparison uses Gaussian-smoothed regional RGB root-mean-square error after normalizing each
 image to its edition's logical resolution. The eleven stable-layout checks exclude regions with
-random pieces, cards, speech-mouth frames, or the captured mouse cursor. Five additional DOS cases
-compare complete game-intro frames at their independently identified source times. Together they
-cover scorecard, board, status-bar, tiled-background, menu, whole-scene placement, and moving-actor
-registration without treating different random gameplay states as failures.
+random pieces, cards, speech-mouth frames, or the captured mouse cursor. Seven Macintosh and five
+DOS cases compare complete game-intro frames at independently identified source times. Two focused
+Macintosh Yacht regions additionally verify the central gameplay actor and the roll-contact cup.
+Together the 25 cases cover scorecards, boards, status bars, tiled backgrounds, menus, whole-scene
+placement, and moving-actor registration without treating different random gameplay states as
+failures.
 
 | Edition | Reference case | Current RMSE | Maximum |
 | --- | --- | ---: | ---: |
+| Macintosh | Dominoes intro | 13.549 | 15.0 |
+| Macintosh | Checkers intro | 11.196 | 12.5 |
+| Macintosh | Go Fish intro, early | 5.228 | 6.0 |
+| Macintosh | Go Fish intro, late | 3.702 | 5.0 |
+| Macintosh | Yacht intro, early | 11.386 | 13.0 |
+| Macintosh | Yacht intro, middle | 12.710 | 14.0 |
+| Macintosh | Yacht intro, late | 5.212 | 7.0 |
 | Macintosh | Backgammon board | 12.674 | 16.0 |
 | Macintosh | Dominoes table | 2.335 | 4.0 |
 | Macintosh | Checkers chrome | 10.620 | 14.0 |
 | Macintosh | Go Fish table | 12.639 | 16.0 |
 | Macintosh | Yacht scorecards | 6.110 | 10.0 |
+| Macintosh | Yacht center actor | 27.293 | 30.0 |
+| Macintosh | Yacht roll-contact cup | 1.311 | 3.0 |
 | DOS | Main menu | 8.191 | 11.0 |
 | DOS | Backgammon chrome | 30.693 | 34.0 |
 | DOS | Dominoes table | 2.068 | 3.0 |
@@ -47,7 +58,7 @@ registration without treating different random gameplay states as failures.
 
 The release gate writes the machine-readable result to
 `work/audit/visual-reference-verification.json`. Thresholds are deliberately below the measured
-distance to mismatched scenes; the fixed-edge cases also reject small whole-scene shifts. The
-Backgammon and Go Fish intro results are near pixel-identical, while the other intro margins allow
-only the independently captured cursor and source-frame/browser differences. This is a structural
-cross-check, not a claim that browser-scaled captures or different random turns are pixel-identical.
+distance to mismatched scenes; the fixed-edge cases also reject small whole-scene shifts. Several
+intro/cup results are near pixel-identical, while the other intro margins allow only the independently
+captured cursor and source-frame/browser differences. This is a structural cross-check, not a claim
+that browser-scaled captures or different random turns are pixel-identical.

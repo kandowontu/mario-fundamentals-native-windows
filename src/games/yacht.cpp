@@ -29,6 +29,19 @@ constexpr int kHeldDieTop = 284;
 constexpr int kDieWidth = 39;
 constexpr int kDieHeight = 38;
 
+// CODE 18 registers every Macintosh Yacht gameplay actor against the same
+// center-stage origin.  The DOS HostAnimation callbacks below deliberately
+// retain their edition-specific coordinates.
+constexpr Point kMacYachtHostAnchor{15, -1};
+constexpr Point kMacYachtTorsoAnchor{26, 0};
+constexpr Point kMacYachtIdleAnchor{217, 18};
+constexpr Point kMacYachtCupAnchor{218, 129};
+constexpr Point kMacYachtRollMovieAnchor{0, -9};
+constexpr Rect kMacYachtRollButton{218, 129, 296, 228};
+// Preserve the previously source-verified DOS hit rectangle exactly instead
+// of deriving it from the corrected Macintosh registration.
+constexpr Rect kDosYachtRollButton{135, 86, 184, 140};
+
 constexpr std::array<std::array<int, 5>, 4> kYachtIdleJokes{{
     {{11455, 11456, 11459, 11460, 11461}},
     {{11455, 11456, 11709, 11710, 11711}},
@@ -185,7 +198,7 @@ void YachtGame::reset() {
     idleJokePart_ = 0;
     status_ = L"Good luck!";
     // $AD2 speaks index 11, waits five controller ticks, then index 18.
-    host_.play(11411, -11, -1);
+    host_.play(11411, kMacYachtHostAnchor.x, kMacYachtHostAnchor.y);
 }
 
 bool YachtGame::tick() {
@@ -262,7 +275,7 @@ bool YachtGame::tick() {
                 pendingComputerRerollSpeech_ = true;
                 computerRerollStage_ = 2;
                 status_ = sourceYachtMovieText(11434);
-                host_.play(11434, -11, -1);
+                host_.play(11434, kMacYachtHostAnchor.x, kMacYachtHostAnchor.y);
             } else {
                 beginComputerRerollGesture();
             }
@@ -351,7 +364,7 @@ bool YachtGame::tickIntro() {
             return true;
         }
         status_ = L"I go first.";
-        host_.play(11418, -11, -1);
+        host_.play(11418, kMacYachtHostAnchor.x, kMacYachtHostAnchor.y);
         introPhase_ = IntroPhase::IGoFirst;
         return true;
     case IntroPhase::IGoFirst:
@@ -378,7 +391,7 @@ bool YachtGame::tickIntro() {
             return true;
         }
         status_ = L"It's my turn now.";
-        host_.play(11420, -11, -1);
+        host_.play(11420, kMacYachtHostAnchor.x, kMacYachtHostAnchor.y);
         introPhase_ = IntroPhase::OptionalTurnSpeech;
         return true;
     case IntroPhase::OptionalTurnSpeech:
@@ -425,7 +438,7 @@ bool YachtGame::tickSourceIdle(bool eligible) {
             const int movie = rollsRemain ? (first ? 11438 : 11437)
                                           : (first ? 11412 : 11437);
             status_ = sourceYachtMovieText(movie);
-            host_.play(movie, -11, -1);
+            host_.play(movie, kMacYachtHostAnchor.x, kMacYachtHostAnchor.y);
             idlePhase_ = IdlePhase::SingleLine;
         } else {
             idleJokeIndex_ = (idleJokeIndex_ + 1) % 4;
@@ -433,7 +446,7 @@ bool YachtGame::tickSourceIdle(bool eligible) {
             idleGapSourceTicks_ = 5;
             status_ = L"Knock knock...";
             host_.play(kYachtIdleJokes[static_cast<std::size_t>(idleJokeIndex_)][0],
-                       -11, -1);
+                       kMacYachtHostAnchor.x, kMacYachtHostAnchor.y);
             idlePhase_ = IdlePhase::Joke;
         }
         return true;
@@ -456,7 +469,7 @@ bool YachtGame::tickSourceIdle(bool eligible) {
         ++idleJokePart_;
         host_.play(kYachtIdleJokes[static_cast<std::size_t>(idleJokeIndex_)]
                                  [static_cast<std::size_t>(idleJokePart_)],
-                   -11, -1);
+                   kMacYachtHostAnchor.x, kMacYachtHostAnchor.y);
         return true;
     }
     return false;
@@ -470,12 +483,14 @@ void YachtGame::roll() {
         // Player controller $113C calls $227C and rejects a zero-white-die
         // reroll with dialogue index 16. All-five-white rerolls remain legal.
         status_ = sourceYachtMovieText(11416);
-        host_.play(11416, -11, -1);
+        host_.play(11416, kMacYachtHostAnchor.x, kMacYachtHostAnchor.y);
         return;
     }
     // The first roll changes all five.  Later rolls regenerate flag-zero
     // white dice and preserve flag-one red dice; rerolling all five is legal.
-    rollAnimation_.play(6020, -26, 53);
+    rollAnimation_.play(6020,
+                        dosEdition() ? -26 : kMacYachtRollMovieAnchor.x,
+                        dosEdition() ? 53 : kMacYachtRollMovieAnchor.y);
     pendingRollPlayer_ = 1;
     settlingDieIndex_ = 0;
     context_.audio.playEffect(5018);
@@ -794,7 +809,7 @@ void YachtGame::scoreHuman(int category) {
         // The already-filled-line path at $82C uses an equal index 13/14 draw.
         const int movie = context_.random.below(2000) / 1000 == 0 ? 11413 : 11414;
         status_ = sourceYachtMovieText(movie);
-        host_.play(movie, -11, -1);
+        host_.play(movie, kMacYachtHostAnchor.x, kMacYachtHostAnchor.y);
         return;
     }
 
@@ -819,7 +834,7 @@ void YachtGame::scoreHuman(int category) {
         }
     }
     status_ = sourceYachtMovieText(movie);
-    host_.play(movie, -11, -1);
+    host_.play(movie, kMacYachtHostAnchor.x, kMacYachtHostAnchor.y);
     pendingComputerAfterSpeech_ = true;
 }
 
@@ -853,7 +868,7 @@ void YachtGame::beginComputerSelection() {
     if (context_.random.below(3000) / 1000 < 2) {
         const int movie = drawDialoguePool(thinkingPool_, thinkingPoolCursor_);
         status_ = sourceYachtMovieText(movie);
-        host_.play(movie, -11, -1);
+        host_.play(movie, kMacYachtHostAnchor.x, kMacYachtHostAnchor.y);
         computerRerollStage_ = computerReadyCategory_ >= 0 ? 5 : 4;
         return;
     }
@@ -873,7 +888,9 @@ void YachtGame::continueComputerReroll() {
     computerSelectionCursor_ = 0;
     computerSelectionDelaySourceTicks_ = 0;
     showComputerDice_ = false;
-    rollAnimation_.play(6020, -26, 53);
+    rollAnimation_.play(6020,
+                        dosEdition() ? -26 : kMacYachtRollMovieAnchor.x,
+                        dosEdition() ? 53 : kMacYachtRollMovieAnchor.y);
     pendingRollPlayer_ = -1;
     settlingDieIndex_ = 0;
     context_.audio.playEffect(5018);
@@ -888,7 +905,8 @@ void YachtGame::finishComputerTurn(int preferredCategory) {
     computerScoreDelaySourceTicks_ = 0;
     showComputerDice_ = true;
     // CODE 18 alternates the two source lead-ins before speaking the line.
-    host_.play((++computerAnnouncementCount_ & 1) ? 11432 : 11435, -11, -1);
+    host_.play((++computerAnnouncementCount_ & 1) ? 11432 : 11435,
+               kMacYachtHostAnchor.x, kMacYachtHostAnchor.y);
     if (const int movie = categoryMovie(bestCategory); movie >= 0) host_.queue(movie);
     status_ = L"Mario puts " + std::to_wstring(yachtCategoryScore(bestCategory, dice_)) + L" on the " +
               std::wstring(categoryName(bestCategory)) + L" line. Your roll.";
@@ -912,7 +930,8 @@ void YachtGame::beginOutcome() {
     else if (winner_ > 0)
         movie = context_.random.below(2000) / 1000 ? 11445 : 11444;
     else movie = context_.random.below(2000) / 1000 ? 11443 : 11439;
-    if (host_.active()) host_.queue(movie); else host_.play(movie, -11, -1);
+    if (host_.active()) host_.queue(movie);
+    else host_.play(movie, kMacYachtHostAnchor.x, kMacYachtHostAnchor.y);
     outcomePhase_ = OutcomePhase::Announcement;
 }
 
@@ -960,7 +979,7 @@ bool YachtGame::tickOutcome() {
     case OutcomePhase::PreReplayDelay:
         if (outcomeDelayTicks_-- > 0) return true;
         // $1B8C uses index 53 for every result: the replay question.
-        host_.play(11453, -11, -1);
+        host_.play(11453, kMacYachtHostAnchor.x, kMacYachtHostAnchor.y);
         outcomePhase_ = OutcomePhase::ReplayPrompt;
         return true;
     case OutcomePhase::ReplayPrompt:
@@ -1241,7 +1260,7 @@ void YachtGame::setQaDiceSelectionPresentation() {
     status_ = L"Select the dice to roll again.";
 }
 
-void YachtGame::setQaRollPresentation() {
+void YachtGame::setQaStationaryCupPresentation() {
     host_.stop();
     rollAnimation_.stop();
     gestureAnimation_.stop();
@@ -1259,8 +1278,15 @@ void YachtGame::setQaRollPresentation() {
     settlingDieIndex_ = 0;
     computerAttempt_ = 0;
     computerRerollStage_ = 0;
+    outcomePhase_ = OutcomePhase::None;
     held_.fill(false);
     dice_.fill(1);
+    status_.clear();
+    cancelSourceIdle();
+}
+
+void YachtGame::setQaRollPresentation() {
+    setQaStationaryCupPresentation();
     roll();
 }
 
@@ -1283,10 +1309,7 @@ void YachtGame::click(Point point) {
             }
         }
     }
-    const Rect rollButton = dosEdition()
-        ? Rect{dosX(rollButton_.left), dosY(rollButton_.top),
-               dosX(rollButton_.right), dosY(rollButton_.bottom)}
-        : rollButton_;
+    const Rect rollButton = dosEdition() ? kDosYachtRollButton : kMacYachtRollButton;
     if (rollButton.contains(point)) { roll(); return; }
     Point scorePoint = point;
     if (dosEdition()) {
@@ -1308,11 +1331,13 @@ void YachtGame::render(Canvas& canvas) {
         // head covered his jaw and made him appear to talk into his shirt.
         if (host_.active()) {
             canvas.sprite(context_.graphics.sprite(6012),
-                          dosEdition() ? 119 : 0, dosEdition() ? 51 : 0, false);
+                          dosEdition() ? 119 : kMacYachtTorsoAnchor.x,
+                          dosEdition() ? 51 : kMacYachtTorsoAnchor.y, false);
             (void)host_.render(canvas);
         } else {
             canvas.sprite(context_.graphics.sprite(6021),
-                          dosEdition() ? 119 : 191, dosEdition() ? 9 : 18, false);
+                          dosEdition() ? 119 : kMacYachtIdleAnchor.x,
+                          dosEdition() ? 9 : kMacYachtIdleAnchor.y, false);
         }
     } else {
         (void)gestureAnimation_.render(canvas);
@@ -1320,7 +1345,8 @@ void YachtGame::render(Canvas& canvas) {
     (void)rollAnimation_.render(canvas);
     if (shouldDrawStationaryCup())
         canvas.sprite(context_.graphics.sprite(6010, 12),
-                      dosEdition() ? 136 : 217, dosEdition() ? 86 : 166, false);
+                      dosEdition() ? 136 : kMacYachtCupAnchor.x,
+                      dosEdition() ? 86 : kMacYachtCupAnchor.y, false);
     canvas.pakText(context_.graphics,
                    context_.playerName.empty() ? L"PLAYER" : context_.playerName,
                    226, dosEdition() ? Rect{236, 9, 313, 27} : Rect{378, 20, 499, 47},

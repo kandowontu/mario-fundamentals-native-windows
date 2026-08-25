@@ -193,6 +193,8 @@ void App::renderQaFrames(std::wstring_view outputDirectory) {
     if (screen_ != Screen::Menu)
         throw std::runtime_error("Macintosh live-title mouse-down did not finish the intro");
     save(L"09-skip-menu.bmp");
+    const std::uint64_t liveTitleSkipHash =
+        canvas_.pixelHash({0, 0, kLogicalWidth, kLogicalHeight});
 
     screen_ = Screen::Intro;
     introPhase_ = IntroPhase::MenuReveal;
@@ -200,10 +202,14 @@ void App::renderQaFrames(std::wstring_view outputDirectory) {
     introHandMilliseconds_ = introHandMovie_.duration() * 1000U /
                              introHandMovie_.timeScale();
     save(L"09a-board-skip-before.bmp");
-    click({256, 192});
+    // Use a point visibly inside the easel board, matching the user's actual
+    // click route rather than relying on an arbitrary stage coordinate.
+    click({150, 250});
     if (screen_ != Screen::Menu)
         throw std::runtime_error("Macintosh board-reveal mouse-down did not finish the intro");
     save(L"09b-board-skip-menu.bmp");
+    if (canvas_.pixelHash({0, 0, kLogicalWidth, kLogicalHeight}) != liveTitleSkipHash)
+        throw std::runtime_error("Macintosh board-reveal skip did not install the final menu pose");
 
     for (int sourceSelection = 1; sourceSelection <= 5; ++sourceSelection) {
         menuSourceSelection_ = sourceSelection;
@@ -342,6 +348,9 @@ void App::renderQaFrames(std::wstring_view outputDirectory) {
 
     startGame(4);
     if (auto* yacht = dynamic_cast<YachtGame*>(game_.get())) {
+        yacht->setQaStationaryCupPresentation();
+        save(L"36-yacht-stationary-cup.bmp");
+        const std::uint64_t stationaryCupHash = canvas_.pixelHash({218, 129, 296, 228});
         yacht->setQaRollPresentation();
         constexpr std::array<int, 7> rollTicks{0, 4, 8, 16, 32, 48, 56};
         int elapsedTicks = 0;
@@ -353,6 +362,11 @@ void App::renderQaFrames(std::wstring_view outputDirectory) {
             yacht->render(canvas_);
             canvas_.saveBmp((root / (L"30-yacht-roll-" +
                 std::to_wstring(targetTicks) + L".bmp")).wstring());
+            if (targetTicks == 0 &&
+                canvas_.pixelHash({218, 129, 296, 228}) != stationaryCupHash) {
+                throw std::runtime_error(
+                    "Macintosh Yacht cup moved or duplicated on roll contact");
+            }
         }
     }
 }
@@ -1169,8 +1183,14 @@ void App::beginGameIntro(int index) {
     switch (index) {
     case 0: addMovie(4999, -230, 239); break;
     case 1:
-        addMovie(3002, -364, 602);
-        addMovie(3003, -133, 371);
+        // CODE 14's title initializer writes the three actor anchors as one
+        // shared stage registration (the last actor is four pixels right).
+        // MuV 3002/3003 deliberately carry complementary horizontal origins:
+        // their terminal cels join 3004 into the five-domino tableau, followed
+        // by Yoshi at the right edge.  Pre-subtracting those origins scattered
+        // the layers across both axes and left only one partial domino visible.
+        addMovie(3002, 18, 220);
+        addMovie(3003, 18, 220);
         addMovie(3004, 22, 220);
         break;
     case 2:
