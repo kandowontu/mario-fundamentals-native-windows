@@ -636,6 +636,9 @@ int selfTest(HINSTANCE instance) {
         !dominoes->sourceBoneyardHitboxRegressionTest()) {
         throw std::runtime_error("Dominoes source strategy regression");
     }
+    auto dominoesFullMatch = std::make_unique<mf::DominoesGame>(context);
+    if (!dominoesFullMatch->sourceFullMatchRegressionTest())
+        throw std::runtime_error("Dominoes full-match controller regression");
     auto dominoesHumanOutcome = std::make_unique<mf::DominoesGame>(context);
     auto dominoesMarioOutcome = std::make_unique<mf::DominoesGame>(context);
     auto dominoesBlockedHumanOutcome = std::make_unique<mf::DominoesGame>(context);
@@ -937,6 +940,9 @@ int selfTest(HINSTANCE instance) {
         !dosDominoes->sourceOpeningRegressionTest() ||
         !dosDominoes->sourceDealPresentationRegressionTest())
         throw std::runtime_error("DOS Dominoes strategy regression");
+    auto dosDominoesFullMatch = std::make_unique<mf::DominoesGame>(dosContext);
+    if (!dosDominoesFullMatch->sourceFullMatchRegressionTest())
+        throw std::runtime_error("DOS Dominoes full-match controller regression");
     if (!dosDominoes->sourceDragRegressionTest() ||
         !dosDominoes->sourceBoneyardHitboxRegressionTest())
         throw std::runtime_error("DOS Dominoes drag regression");

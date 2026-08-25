@@ -24,11 +24,13 @@ public:
     [[nodiscard]] bool sourceDealPresentationRegressionTest();
     [[nodiscard]] static bool sourceIdleRegressionTest();
     [[nodiscard]] static bool sourceDialogueRegressionTest();
+    [[nodiscard]] bool sourceFullMatchRegressionTest();
     [[nodiscard]] bool sourceOutcomeRegressionTest(int expectedWinner, bool blocked);
     [[nodiscard]] bool sourceReplayRegressionTest();
     [[nodiscard]] bool sourceDragRegressionTest();
     [[nodiscard]] bool sourceBoneyardHitboxRegressionTest();
     void setQaDragPresentation();
+    void setQaDrawnHandPresentation();
     void setQaOutcomePresentation(int expectedWinner, bool blocked);
 
 private:
@@ -84,6 +86,9 @@ private:
     [[nodiscard]] int chooseWeighted(std::span<const int> resources,
                                      std::span<const int> cumulativePercentages);
     [[nodiscard]] static int pips(const std::vector<Tile>& hand);
+    [[nodiscard]] int sourceHumanHandCapacity() const noexcept;
+    [[nodiscard]] Rect humanTileRect(std::size_t index) const noexcept;
+    void forcePlayableNextHumanDraw();
     void drawTile(Canvas& canvas, const Tile& tile, Rect rect, bool selected = false) const;
     [[nodiscard]] Rect chainTileRect(int index, int visible) const;
 

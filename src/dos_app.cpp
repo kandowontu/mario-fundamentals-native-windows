@@ -427,6 +427,8 @@ void DosApp::renderQaFrames(std::wstring_view outputDirectory) {
     if (auto* dominoes = dynamic_cast<DominoesGame*>(game_.get())) {
         dominoes->setQaDragPresentation();
         save(L"32-dominoes-drag.bmp");
+        dominoes->setQaDrawnHandPresentation();
+        save(L"32-dominoes-drawn-hand-limit.bmp");
     }
     constexpr std::array<std::pair<int, std::wstring_view>, 3> dominoOutcomes{{
         {1, L"human"}, {-1, L"mario"}, {2, L"tie"},

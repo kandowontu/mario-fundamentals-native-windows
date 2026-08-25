@@ -544,6 +544,15 @@ implementations remain evidence-backed rather than inferred from modern versions
   Mario, and alternating until both hold seven. `$DCA` and `$2E9A` make the deal and highest-double
   opening speech choices. The native engine reproduces that call order, partition, direction, and
   correction branch, with seed-one and correction-seed deck vectors in the executable self-test.
+- Dominoes' player hand is not a shared seven-tile strip. Macintosh CODE 14 `$5160` initializes
+  fourteen records with rectangles `(6+32*i,289)-(36+32*i,351)`; DOS overlay 12 initializes
+  sixteen at `(3+17*i,154)-(19+17*i,187)`. Rendering and hit testing now consume those same
+  records, so every drawn bone remains visible and draggable. On a draw with thirteen Macintosh
+  or fifteen DOS bones, `$232E/$5744` and DOS `$5367` scan the active boneyard for either chain
+  endpoint and swap the first match with its last record—the next bone drawn. The following
+  14/16-capacity check can therefore never strand an unplayable full hand while the boneyard still
+  contains a legal bone. A 128-seed public-input match sweep per dialect verifies all 28 unique
+  tiles and every chain link after each controller pass.
 - The deal controller's `$DCA` first-round index 2/3 pair resolves to movies 10002/10003; later
   rounds select index 4/54, movies 10004/10065. After `$2E9A` compares the highest doublets,
   Mario-first selects index 68/5 (movies 10084/10005) at 75/25, while player-first selects index

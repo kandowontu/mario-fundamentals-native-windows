@@ -110,7 +110,12 @@ original executable, emulator, installer, DOS driver, or loose asset file at run
   one-time thinking line and delay, repeated-draw RNG consumption, four-way pass comments,
   first/later player-draw behavior, move-comment repeat suppression, and the exact timed idle
   prompts/four-joke cycle. Its complete last-tile and blocked-game result controller uses the
-  source's weighted speech pools, score/tie branches, delays, and two replay questions.
+  source's weighted speech pools, score/tie branches, delays, and two replay questions. Drawn
+  bones remain visible and draggable through all fourteen Macintosh or sixteen DOS hand records;
+  at capacity minus one, the source `$5744`/DOS `$5367` boneyard swap guarantees that the final
+  permitted draw is playable instead of leaving a full-hand softlock. A 128-seed live match sweep
+  per edition drives the actual draw and drag/drop routes while enforcing the complete 28-tile
+  inventory and chain adjacency after every controller pass.
 - Checkers uses CODE 16's recovered full-path move generator and depth-limited minimax scoring,
   including mandatory multi-jumps, optional partial jumps when Forced Jumps is disabled,
   king/crowning weights, source board-scan order, and its 50% equal-score replacement rule. Its
@@ -188,7 +193,7 @@ The release script configures a static C++ runtime build, compiles the resources
 executable's full hidden/silent self-test, verifies the PE architecture and dependency set, proves
 both deterministic asset packs occur exactly once, proves all 1,707 Macintosh and 1,806 DOS ripped
 resources against their extraction manifests when those local audit records are present, reruns the
-self-test from an empty working directory, regenerates 230 Macintosh and 231 DOS no-window
+self-test from an empty working directory, regenerates 231 Macintosh and 232 DOS no-window
 presentation frames at the exact 512×384 and 320×200 logical sizes, inventories all 225 retained
 vanilla captures, compares 52 independent original-output cases (publisher/title states and the
 terminal open-hand cel, pressed-menu feedback, exact pointer traversal/retargeting and selection

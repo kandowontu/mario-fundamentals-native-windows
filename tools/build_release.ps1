@@ -22,6 +22,17 @@ $test = Start-Process -FilePath $executable -ArgumentList "--self-test" -WindowS
 Get-Content $standardOutput, $standardError
 if ($test.ExitCode -ne 0) { throw "Executable self-test failed with exit code $($test.ExitCode)." }
 
+$titleSkipOutput = Join-Path $buildRoot "title-board-skip.out"
+$titleSkipError = Join-Path $buildRoot "title-board-skip.err"
+$titleSkip = Start-Process -FilePath $executable -ArgumentList "--qa-title-board-skip" `
+    -WindowStyle Hidden -RedirectStandardOutput $titleSkipOutput `
+    -RedirectStandardError $titleSkipError -Wait -PassThru
+Get-Content $titleSkipOutput, $titleSkipError
+if ($titleSkip.ExitCode -ne 0) {
+    throw "Macintosh live title/board-click integration test failed with exit code $($titleSkip.ExitCode)."
+}
+Write-Output "PASS macintosh_live_title_board_click_skip"
+
 # Regenerate the static function traceability ledgers whenever the local
 # disassembly/source evidence is available. This prevents a green runtime
 # build from silently relying on stale code-audit CSV/JSON files.
@@ -112,10 +123,10 @@ function Invoke-PresentationQa {
 
 Invoke-PresentationQa -Argument "--render-mac-qa" `
     -OutputDirectory (Join-Path $projectRoot "work/qa/mac") -Label "macintosh" `
-    -ExpectedFrames 230 -ExpectedBytes 786486
+    -ExpectedFrames 231 -ExpectedBytes 786486
 Invoke-PresentationQa -Argument "--render-dos-qa" `
     -OutputDirectory (Join-Path $projectRoot "work/qa/dos") -Label "dos" `
-    -ExpectedFrames 231 -ExpectedBytes 256054
+    -ExpectedFrames 232 -ExpectedBytes 256054
 
 # When the locally retained independent reference sets are available, compare
 # original output with representative native gameplay frames. The captures

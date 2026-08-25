@@ -423,6 +423,8 @@ void App::renderQaFrames(std::wstring_view outputDirectory) {
     if (auto* dominoes = dynamic_cast<DominoesGame*>(game_.get())) {
         dominoes->setQaDragPresentation();
         save(L"32-dominoes-drag.bmp");
+        dominoes->setQaDrawnHandPresentation();
+        save(L"32-dominoes-drawn-hand-limit.bmp");
     }
     constexpr std::array<std::pair<int, std::wstring_view>, 3> dominoOutcomes{{
         {1, L"human"}, {-1, L"mario"}, {2, L"tie"},
@@ -575,7 +577,48 @@ int App::run(int showCommand) {
     // They also bypass persisted preferences, so this does not affect normal launches.
     if (!preferencesEnabled_) audio_.setEnabled(false);
     if (restoreBackgroundHidden_) toggleBackground();
-    if (std::wcsstr(GetCommandLineW(), L"--qa-about")) {
+    if (std::wcsstr(GetCommandLineW(), L"--qa-title-board-skip")) {
+        // A process launched with SW_HIDE receives no initial WM_SIZE on some
+        // Windows versions. Seed the same logical client mapping explicitly
+        // so this integration probe remains invisible and deterministic.
+        if (viewport_.width() <= 0 || viewport_.height() <= 0)
+            viewport_ = {0, 0, kLogicalWidth, kLogicalHeight};
+        const auto sendLogicalMouseDown = [this](Point logical) {
+            if (viewport_.width() <= 0 || viewport_.height() <= 0)
+                throw std::runtime_error("Macintosh title-skip viewport was not initialized");
+            const int clientX = viewport_.left + logical.x * viewport_.width() / kLogicalWidth;
+            const int clientY = viewport_.top + logical.y * viewport_.height() / kLogicalHeight;
+            SendMessageW(window_, WM_LBUTTONDOWN, MK_LBUTTON,
+                         MAKELPARAM(clientX, clientY));
+        };
+
+        // Exercise the packaged HWND route, including client-to-logical
+        // conversion, rather than calling App::click directly. CODE 12's
+        // live-title and board-wipe mouse handlers converge on one completion
+        // post, so both inputs must install the identical final menu pose.
+        screen_ = Screen::Intro;
+        introPhase_ = IntroPhase::TalkingHead;
+        introPhaseMilliseconds_ = 600;
+        sendLogicalMouseDown({150, 250});
+        if (screen_ != Screen::Menu)
+            throw std::runtime_error("Macintosh live title did not skip through WM_LBUTTONDOWN");
+        render();
+        const std::uint64_t liveTitleHash =
+            canvas_.pixelHash({0, 0, kLogicalWidth, kLogicalHeight});
+
+        screen_ = Screen::Intro;
+        introPhase_ = IntroPhase::MenuReveal;
+        introPhaseMilliseconds_ = 300;
+        sendLogicalMouseDown({150, 250});
+        if (screen_ != Screen::Menu)
+            throw std::runtime_error("Macintosh easel board did not skip through WM_LBUTTONDOWN");
+        render();
+        if (canvas_.pixelHash({0, 0, kLogicalWidth, kLogicalHeight}) != liveTitleHash)
+            throw std::runtime_error("Macintosh board click did not install the final menu pose");
+        DestroyWindow(window_);
+        window_ = nullptr;
+        return 0;
+    } else if (std::wcsstr(GetCommandLineW(), L"--qa-about")) {
         screen_ = Screen::About;
         pictureReturnScreen_ = Screen::Menu;
         InvalidateRect(window_, nullptr, FALSE);

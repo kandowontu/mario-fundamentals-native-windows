@@ -13,7 +13,9 @@ media, executable, emulator, installer, sound driver, or loose asset files.
 - Macintosh Escape now shares the title controller's board-click completion route and installs the
   terminal hand/easel pose before the menu, matching CODE 12 `$1E14`/`$217A`.
 - Macintosh title-stage mouse-down now follows CODE 12's completion callback: clicking the live
-  board skips the remaining voice/animation and lands on the fully revealed menu.
+  board skips the remaining voice/animation and lands on the fully revealed menu. A hidden
+  integration probe sends actual `WM_LBUTTONDOWN` input through the packaged window for both the
+  talking title and partial board wipe and requires the identical final-menu raster.
 - The first stable Macintosh title frame now keeps Pak 710 under the source black cast. The easel
   artwork appears only when the greeting begins instead of being exposed during the silhouette hold.
 - CODE 12's title control now pins movie 1111 at `duration-1`, preserving Mario's open right hand
@@ -53,10 +55,15 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   actual piece-selection and destination clicks. The test retains animated movement and Mario's
   delayed multi-step turns while checking playable-square occupancy, captures, crowning, selection
   records, and monotonic piece counts until the real result/replay sequence finishes.
-- The no-window presentation sweeps now emit 230 exact 512×384 Macintosh frames and 231 exact
+- Dominoes now exposes every post-deal hand record: fourteen at Macintosh CODE 14 `$5160`'s exact
+  rectangles and sixteen in DOS overlay 12. Drawn bones no longer disappear or lose their hit
+  targets, DOS uses its own hand cap, and `$5744`/DOS `$5367` forces the final permitted draw to
+  match a chain endpoint. The release test completes 128 matches per dialect through real draw and
+  drag/drop input while preserving all 28 unique bones and every chain link.
+- The no-window presentation sweeps now emit 231 exact 512×384 Macintosh frames and 232 exact
   320×200 DOS frames. They cover both Macintosh title/board mouse-down completion paths, all five
   source-specific selected-game intro input routes, DOS menu/help contexts, all intros/openings,
-  Backgammon setup reveal, Dominoes drag/endings, Checkers endings, Go Fish
+  Backgammon setup reveal, Dominoes full-hand/drag/endings, Checkers endings, Go Fish
   hand/question/transfer/victory, Yacht scoring/computer-dice/selection/victory, both Yacht
   roll/settle timelines, and the complete movie-6021 reroll-gesture cycle in both editions.
 - The DOS source's eight-pixel `File / Options / Help` bar is restored exactly over main-menu and

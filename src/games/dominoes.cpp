@@ -486,6 +486,37 @@ bool DominoesGame::playable(const Tile& tile) const {
            tile.left == chain_.back().right || tile.right == chain_.back().right;
 }
 
+int DominoesGame::sourceHumanHandCapacity() const noexcept {
+    // Macintosh CODE 14 creates fourteen hand controls at $5160. DOS
+    // overlay 12 creates sixteen records in its corresponding initializer.
+    return dosEdition() ? 16 : 14;
+}
+
+Rect DominoesGame::humanTileRect(std::size_t index) const noexcept {
+    const int sourceIndex = static_cast<int>(index);
+    if (dosEdition()) {
+        // DOS overlay 12: left=3+17*i, right=left+16, top=154, bottom=187.
+        const int left = 3 + 17 * sourceIndex;
+        return {left, 154, left + 16, 187};
+    }
+    // Macintosh CODE 14 $5160: left=6+32*i, right=left+30,
+    // top=289, bottom=351.
+    const int left = 6 + 32 * sourceIndex;
+    return {left, 289, left + 30, 351};
+}
+
+void DominoesGame::forcePlayableNextHumanDraw() {
+    if (boneyard_.empty() || chain_.empty()) return;
+    const int leftEnd = chain_.front().left;
+    const int rightEnd = chain_.back().right;
+    const auto match = std::find_if(boneyard_.begin(), boneyard_.end(),
+        [leftEnd, rightEnd](const Tile& tile) {
+            return tile.left == leftEnd || tile.right == leftEnd ||
+                   tile.left == rightEnd || tile.right == rightEnd;
+        });
+    if (match != boneyard_.end()) std::iter_swap(match, boneyard_.end() - 1);
+}
+
 std::size_t DominoesGame::sourcePreferredTile(const std::vector<Tile>& hand,
                                               int leftEnd, int rightEnd) {
     std::size_t selected = hand.size();
@@ -835,6 +866,129 @@ bool DominoesGame::tickOutcome() {
     return false;
 }
 
+bool DominoesGame::sourceFullMatchRegressionTest() {
+    const std::uint32_t savedSeed = context_.random.seed();
+    const auto fail = [&]() {
+        context_.random.setSeed(savedSeed);
+        return false;
+    };
+    bool sawHumanPlay = false;
+    bool sawHumanDraw = false;
+    bool sawMarioPlay = false;
+    bool sawMarioDraw = false;
+    bool sawLastDominoResult = false;
+
+    const auto stateIsValid = [&]() {
+        if (human_.size() + computer_.size() + boneyard_.size() + chain_.size() != 28 ||
+            passes_ < 0 || passes_ > 2 || winner_ < -1 || winner_ > 2) return false;
+        std::array<std::array<bool, 7>, 7> present{};
+        const auto record = [&](std::span<const Tile> tiles) {
+            for (const Tile& tile : tiles) {
+                if (tile.left < 0 || tile.left > 6 || tile.right < 0 || tile.right > 6)
+                    return false;
+                const int low = std::min(tile.left, tile.right);
+                const int high = std::max(tile.left, tile.right);
+                if (present[static_cast<std::size_t>(low)][static_cast<std::size_t>(high)])
+                    return false;
+                present[static_cast<std::size_t>(low)][static_cast<std::size_t>(high)] = true;
+            }
+            return true;
+        };
+        if (!record(human_) || !record(computer_) || !record(boneyard_) || !record(chain_))
+            return false;
+        for (std::size_t index = 1; index < chain_.size(); ++index) {
+            if (chain_[index - 1].right != chain_[index].left) return false;
+        }
+        return selected_ >= -1 && selected_ < static_cast<int>(human_.size()) &&
+               draggedIndex_ >= -1 && draggedIndex_ < static_cast<int>(human_.size());
+    };
+
+    for (std::uint32_t seed = 1; seed <= 128; ++seed) {
+        context_.random.setSeed(seed);
+        reset();
+        bool matchHadHumanPlay = false;
+        bool matchHadMarioPlay = false;
+
+        for (int controllerPass = 0; controllerPass < 20000 && !finished();
+             ++controllerPass) {
+            host_.stop();
+            const std::size_t computerBefore = computer_.size();
+            const std::size_t boneyardBefore = boneyard_.size();
+            const std::size_t chainBefore = chain_.size();
+
+            const bool playerCanAct = !winner_ && dealComplete_ &&
+                pendingComputerOpening_ < 0 && !computerTurnPending_ &&
+                !humanTurnCommentaryPending_ && !host_.active();
+            if (playerCanAct) {
+                std::size_t index = human_.size();
+                if (requiredHumanOpening_ >= 0) {
+                    index = static_cast<std::size_t>(requiredHumanOpening_);
+                } else {
+                    index = static_cast<std::size_t>(std::distance(
+                        human_.begin(), std::find_if(human_.begin(), human_.end(),
+                            [&](const Tile& tile) { return playable(tile); })));
+                }
+
+                if (index < human_.size()) {
+                    Point drop{dosEdition() ? 160 : 256, dosEdition() ? 90 : 180};
+                    if (!chain_.empty()) {
+                        const Tile tile = human_[index];
+                        const int leftEnd = chain_.front().left;
+                        const int rightEnd = chain_.back().right;
+                        const bool fitsLeft = tile.left == leftEnd || tile.right == leftEnd;
+                        const bool fitsRight = tile.left == rightEnd || tile.right == rightEnd;
+                        if (!fitsLeft && !fitsRight) return fail();
+                        const int visible = std::min(30, static_cast<int>(chain_.size()));
+                        const Rect endpoint = chainTileRect(fitsLeft ? 0 : visible - 1, visible);
+                        drop = {(endpoint.left + endpoint.right) / 2,
+                                (endpoint.top + endpoint.bottom) / 2};
+                    }
+                    const Rect handRect = humanTileRect(index);
+                    const Point source{(handRect.left + handRect.right) / 2,
+                                       (handRect.top + handRect.bottom) / 2};
+                    const std::size_t humanBefore = human_.size();
+                    mouseDown(source);
+                    mouseMove(drop);
+                    mouseUp(drop);
+                    if (human_.size() + 1 != humanBefore || chain_.size() != chainBefore + 1)
+                        return fail();
+                    sawHumanPlay = true;
+                    matchHadHumanPlay = true;
+                } else {
+                    const Point draw = dosEdition() ? Point{309, 168} : Point{494, 322};
+                    const std::size_t humanBefore = human_.size();
+                    const int passesBefore = passes_;
+                    click(draw);
+                    if (boneyardBefore != 0) {
+                        if (human_.size() != humanBefore + 1 ||
+                            boneyard_.size() + 1 != boneyardBefore) return fail();
+                        sawHumanDraw = true;
+                    } else if (passes_ != passesBefore + 1 && !winner_) {
+                        return fail();
+                    }
+                }
+            }
+
+            (void)tick();
+            if (computer_.size() + 1 == computerBefore && chain_.size() == chainBefore + 1) {
+                sawMarioPlay = true;
+                matchHadMarioPlay = true;
+            }
+            if (computer_.size() == computerBefore + 1 &&
+                boneyard_.size() + 1 == boneyardBefore) sawMarioDraw = true;
+            if (!stateIsValid()) return fail();
+        }
+
+        sawLastDominoResult |= outcomeKind_ == OutcomeKind::LastDomino;
+        if (!finished() || winner_ == 0 || !matchHadHumanPlay || !matchHadMarioPlay ||
+            !stateIsValid()) return fail();
+    }
+
+    context_.random.setSeed(savedSeed);
+    return sawHumanPlay && sawHumanDraw && sawMarioPlay && sawMarioDraw &&
+           sawLastDominoResult;
+}
+
 bool DominoesGame::sourceOutcomeRegressionTest(int expectedWinner, bool blocked) {
     if (expectedWinner != -1 && expectedWinner != 1 && expectedWinner != 2) return false;
     if (!blocked && expectedWinner == 2) return false;
@@ -1038,8 +1192,17 @@ void DominoesGame::click(Point point) {
         ? Rect{299, 149, 320, 188}
         : drawButton_;
     if (drawButton.contains(point)) {
-        // $2350 reserves 9202 for the source's fourteen-bone hand limit.
-        if (!boneyard_.empty() && human_.size() >= 14) {
+        const std::size_t handCapacity =
+            static_cast<std::size_t>(sourceHumanHandCapacity());
+        // Macintosh CODE 14 $232E/$5744 and DOS overlay 12's equivalent
+        // move a matching boneyard record into the next-draw slot when the
+        // hand is one short of its edition-specific capacity. This prevents
+        // an unplayable full hand from softlocking with bones still present.
+        if (!boneyard_.empty() && human_.size() + 1 == handCapacity)
+            forcePlayableNextHumanDraw();
+        // $2350 reserves 9202 for Macintosh's fourteen-bone limit; the DOS
+        // overlay performs the same check at sixteen records.
+        if (!boneyard_.empty() && human_.size() >= handCapacity) {
             context_.audio.playEffect(9202);
             status_ = L"You can't hold any more dominoes."; return;
         }
@@ -1069,19 +1232,14 @@ void DominoesGame::mouseDown(Point point) {
     idleElapsedSourceTicks_ = 0;
     if (winner_ || !dealComplete_ || pendingComputerOpening_ >= 0 ||
         computerTurnPending_ || host_.active()) return;
-    const int handTop = dosEdition() ? 149 : 286;
-    const int handBottom = dosEdition() ? 187 : 358;
-    const int handLeft = dosEdition() ? 4 : 7;
-    const int handRight = dosEdition() ? 298 : 476;
-    const int handPitch = dosEdition() ? 22 : 35;
-    if (point.y >= handTop && point.y < handBottom &&
-        point.x >= handLeft && point.x < handRight) {
-        const int index = (point.x - handLeft) / handPitch;
-        if (index >= 0 && index < static_cast<int>(human_.size())) {
+    const std::size_t visibleHand = std::min(
+        human_.size(), static_cast<std::size_t>(sourceHumanHandCapacity()));
+    for (std::size_t index = 0; index < visibleHand; ++index) {
+        if (humanTileRect(index).contains(point)) {
             // $276C starts 5043 on mouse-down, then the source tracks the bone
             // until mouse-up and resolves the nearest chain endpoint.
             context_.audio.playEffect(5043);
-            selected_ = draggedIndex_ = index;
+            selected_ = draggedIndex_ = static_cast<int>(index);
             dragPoint_ = point;
             return;
         }
@@ -1201,7 +1359,9 @@ bool DominoesGame::sourceDragRegressionTest() {
         selected_ = draggedIndex_ = -1;
     };
 
-    const Point handPoint = dosEdition() ? Point{20, 166} : Point{20, 315};
+    const Rect firstHandRect = humanTileRect(0);
+    const Point handPoint{(firstHandRect.left + firstHandRect.right) / 2,
+                          (firstHandRect.top + firstHandRect.bottom) / 2};
     const auto endpoints = [this]() {
         const int visible = std::min(30, static_cast<int>(chain_.size()));
         const Rect left = chainTileRect(0, visible);
@@ -1301,14 +1461,59 @@ bool DominoesGame::sourceBoneyardHitboxRegressionTest() {
     computerTurnPending_ = false;
     winner_ = 0;
     requiredHumanOpening_ = -1;
+    chain_ = {{1, 2}};
     human_.assign(1, Tile{0, 0});
     boneyard_.assign(1, Tile{6, 6});
     const std::size_t humanBefore = human_.size();
     const std::size_t boneyardBefore = boneyard_.size();
     const Point button = dosEdition() ? Point{309, 168} : Point{494, 321};
     click(button);
-    return human_.size() == humanBefore + 1 &&
-           boneyard_.size() + 1 == boneyardBefore;
+    const bool ordinaryDraw = human_.size() == humanBefore + 1 &&
+        boneyard_.size() + 1 == boneyardBefore;
+
+    // At capacity minus one, the source scans the boneyard and swaps the
+    // first endpoint match into its final active record (the next draw).
+    host_.stop();
+    const std::size_t capacity = static_cast<std::size_t>(sourceHumanHandCapacity());
+    human_.assign(capacity - 1, Tile{3, 3});
+    chain_ = {{1, 2}};
+    boneyard_ = {{0, 0}, {1, 5}, {4, 4}};
+    click(button);
+    const bool forcedPlayableDraw = human_.size() == capacity &&
+        boneyard_.size() == 2 && playable(human_.back()) &&
+        human_.back().left == 1 && human_.back().right == 5;
+
+    Canvas withFinalRecord(dosEdition() ? kDosLogicalWidth : kLogicalWidth,
+                           dosEdition() ? kDosLogicalHeight : kLogicalHeight);
+    render(withFinalRecord);
+    const Rect finalRect = humanTileRect(capacity - 1);
+    const std::uint64_t visibleFinalHash = withFinalRecord.pixelHash(finalRect);
+    const Tile finalTile = human_.back();
+    human_.pop_back();
+    Canvas withoutFinalRecord(dosEdition() ? kDosLogicalWidth : kLogicalWidth,
+                              dosEdition() ? kDosLogicalHeight : kLogicalHeight);
+    render(withoutFinalRecord);
+    const bool finalRecordRendered =
+        visibleFinalHash != withoutFinalRecord.pixelHash(finalRect);
+    human_.push_back(finalTile);
+
+    // Every source record, including a newly drawn final record, must be
+    // reachable through its edition-specific hit rectangle.
+    host_.stop();
+    mouseDown({(finalRect.left + finalRect.right) / 2,
+               (finalRect.top + finalRect.bottom) / 2});
+    const bool finalRecordHittable =
+        draggedIndex_ == static_cast<int>(capacity - 1);
+    mouseCancel();
+
+    // A further draw is rejected without consuming a boneyard record.
+    host_.stop();
+    const std::size_t fullBoneyard = boneyard_.size();
+    click(button);
+    const bool fullHandRejected = human_.size() == capacity &&
+        boneyard_.size() == fullBoneyard;
+    return ordinaryDraw && forcedPlayableDraw && finalRecordRendered &&
+           finalRecordHittable && fullHandRejected;
 }
 
 void DominoesGame::setQaDragPresentation() {
@@ -1327,6 +1532,39 @@ void DominoesGame::setQaDragPresentation() {
     selected_ = draggedIndex_ = -1;
     dragPoint_ = {};
     status_ = L"Drag the 2-5 domino to the left end of the chain.";
+}
+
+void DominoesGame::setQaDrawnHandPresentation() {
+    host_.stop();
+    dealComplete_ = true;
+    dealDelayMilliseconds_ = 0;
+    dealSoundCount_ = 7;
+    pendingComputerOpening_ = -1;
+    computerTurnPending_ = false;
+    humanTurnCommentaryPending_ = false;
+    winner_ = 0;
+    requiredHumanOpening_ = -1;
+    selected_ = draggedIndex_ = -1;
+    dragPoint_ = {};
+    human_.clear();
+    computer_.clear();
+    boneyard_.clear();
+    chain_.clear();
+
+    std::vector<Tile> deck;
+    for (int left = 0; left <= 6; ++left) {
+        for (int right = left; right <= 6; ++right) deck.push_back({left, right});
+    }
+    const std::size_t capacity = static_cast<std::size_t>(sourceHumanHandCapacity());
+    human_.assign(deck.begin(), deck.begin() + static_cast<std::ptrdiff_t>(capacity));
+    chain_.push_back(deck[capacity]);
+    const auto computerBegin = deck.begin() + static_cast<std::ptrdiff_t>(capacity + 1);
+    const auto computerEnd = computerBegin + 7;
+    computer_.assign(computerBegin, computerEnd);
+    boneyard_.assign(computerEnd, deck.end());
+    status_ = dosEdition()
+        ? L"The DOS hand exposes all sixteen source records."
+        : L"The Macintosh hand exposes all fourteen source records.";
 }
 
 bool DominoesGame::sourceIdleRegressionTest() {
@@ -1451,11 +1689,12 @@ void DominoesGame::render(Canvas& canvas) {
         canvas.sprite(context_.graphics.sprite(10000),
                       dosEdition() ? 17 : 27, dosEdition() ? 19 : 19, false);
     }
-    const int visibleDealCount = dealComplete_ ? 7 : std::clamp(dealSoundCount_, 0, 7);
+    const int visibleDealCount = std::clamp(dealSoundCount_, 0, 7);
+    const int visibleComputerCount = dealComplete_
+        ? static_cast<int>(computer_.size())
+        : std::min(visibleDealCount, static_cast<int>(computer_.size()));
     if (!characterChooser_ && computer_.size() <= 28) {
-        canvas.sprite(context_.graphics.sprite(3701,
-                                                std::min(visibleDealCount,
-                                                    static_cast<int>(computer_.size()))),
+        canvas.sprite(context_.graphics.sprite(3701, visibleComputerCount),
                       dosEdition() ? 31 : 50, dosEdition() ? 40 : 77, false);
     }
     const int visible = characterChooser_ || !dealComplete_
@@ -1464,14 +1703,13 @@ void DominoesGame::render(Canvas& canvas) {
     for (int index = 0; index < visible; ++index) {
         drawTile(canvas, chain_[start + index], chainTileRect(index, visible));
     }
+    const std::size_t visibleHumanCount = dealComplete_
+        ? std::min(human_.size(), static_cast<std::size_t>(sourceHumanHandCapacity()))
+        : std::min(human_.size(), static_cast<std::size_t>(visibleDealCount));
     if (!characterChooser_) for (std::size_t index = 0;
-         index < human_.size() && index < static_cast<std::size_t>(visibleDealCount); ++index) {
+         index < visibleHumanCount; ++index) {
         if (static_cast<int>(index) == draggedIndex_) continue;
-        const int x = (dosEdition() ? 4 : 7) + static_cast<int>(index) *
-                      (dosEdition() ? 22 : 35);
-        drawTile(canvas, human_[index],
-                 {x, dosEdition() ? 151 : 289,
-                  x + (dosEdition() ? 17 : 28), dosEdition() ? 185 : 345},
+        drawTile(canvas, human_[index], humanTileRect(index),
                  selected_ == static_cast<int>(index));
     }
     if (!characterChooser_ && draggedIndex_ >= 0 &&

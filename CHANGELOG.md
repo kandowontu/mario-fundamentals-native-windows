@@ -19,7 +19,7 @@ All notable native-port changes are documented here.
 - Silent, no-window Macintosh presentation output covering startup, title skip, four board-flip
   positions, every menu pose, 21 points across each game intro, eight opening states per game, and
   stationary/contact cup plus seven Yacht roll/settle states. The release gate regenerates and
-  validates all 230 Macintosh and 231 DOS frames at each edition's exact logical dimensions.
+  validates all 231 Macintosh and 232 DOS frames at each edition's exact logical dimensions.
 - A fail-closed 225-file vanilla-capture inventory and 52 independent pixel/edge comparisons,
   including the title silhouette/open hand, four menu selections, Go Fish question/transfer, and
   Yacht dice/marker/composed-hand states.
@@ -41,6 +41,13 @@ All notable native-port changes are documented here.
 - Replaced Dominoes' fixed aggregate opening delay with CODE 14's seven channel-gated 5044 deal
   passes and two-pass inter-pair cadence, revealing exactly one player/computer pair at a time in
   both editions.
+- Restored Dominoes' complete drawn-hand controller: all fourteen Macintosh and sixteen DOS source
+  records now render and accept drag input, DOS no longer inherits the Macintosh hand cap, and
+  CODE 14 `$5744`/DOS overlay `$5367` moves an endpoint-matching bone into the last legal draw slot
+  so a full hand cannot softlock. The release test now completes 128 real-input matches per edition
+  with exact 28-tile and chain-adjacency invariants.
+- Added a hidden packaged-window regression that sends `WM_LBUTTONDOWN` at the Macintosh easel
+  during both the live title and board wipe and requires the identical completed-menu pose.
 - Replaced Go Fish's guessed standalone-26015 timer with CODE 17 `$139A`'s real direct-channel
   completion gate.
 - Ported CODE 12's complete Macintosh menu-selection controller: immediate pressed feedback,
