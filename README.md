@@ -186,10 +186,11 @@ The release script configures a static C++ runtime build, compiles the resources
 executable's full hidden/silent self-test, verifies the PE architecture and dependency set, proves
 both deterministic asset packs occur exactly once, proves all 1,707 Macintosh and 1,806 DOS ripped
 resources against their extraction manifests when those local audit records are present, reruns the
-self-test from an empty working directory, regenerates 226 Macintosh and 231 DOS no-window
+self-test from an empty working directory, regenerates 230 Macintosh and 231 DOS no-window
 presentation frames at the exact 512×384 and 320×200 logical sizes, inventories all 225 retained
 vanilla captures, compares 52 independent original-output cases (publisher/title states and the
-terminal open-hand cel, menu transitions and exact selection holds, stable layouts, source-timed game intros, first-use panels,
+terminal open-hand cel, pressed-menu feedback, exact pointer traversal/retargeting and selection
+holds, stable layouts, source-timed game intros, first-use panels,
 Backgammon setup, Go Fish scoreboard captions/questions/transfers, exact Dominoes portrait
 registration, and focused Macintosh Yacht actor/hand/dice/marker/gesture/cup checks) when those
 unshipped local captures are present, and copies the result to `dist`.

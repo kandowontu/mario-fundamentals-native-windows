@@ -23,9 +23,11 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   the completed title hand is no longer composited beneath it as a second glove/object.
 - CODE 12's menu controller now uses the five disassembled selection hold times
   `(600,780,600,600,480)` and plays each outgoing actor from its hold to the terminal neutral hand
-  before advancing the incoming actor from zero to its own hold. This replaces the former universal
-  180-tick shortcut and restores the original click/hover transition composition.
-- The no-window presentation sweeps now emit 226 exact 512×384 Macintosh frames and 231 exact
+  before advancing the incoming actor from zero to its own hold. `$E8E/$F3E` retargeting, one-row
+  C/G/D/B/Y pointer traversal, the hidden-label interval, three-pass target delay, and immediate
+  pressed-control feedback are preserved as well. This replaces the former universal 180-tick
+  shortcut and direct actor swap.
+- The no-window presentation sweeps now emit 230 exact 512×384 Macintosh frames and 231 exact
   320×200 DOS frames. They cover both Macintosh title/board mouse-down completion paths, all five
   source-specific selected-game intro input routes, DOS menu/help contexts, all intros/openings,
   Backgammon setup reveal, Dominoes drag/endings, Checkers endings, Go Fish

@@ -41,11 +41,8 @@ public:
         start(resourceId);
     }
 
-    void playTransition(int outgoingResourceId,
-                        std::uint32_t outgoingSourceTime,
-                        int incomingResourceId,
-                        std::uint32_t incomingHoldSourceTime,
-                        int x, int y, bool playAudio = true) {
+    void playFrom(int resourceId, int x, int y,
+                  std::uint32_t sourceTime, bool playAudio = true) {
         queuedMovies_.clear();
         if (scaleDosCoordinates_ && assets_.dialect() == AssetDialect::Dos) {
             x = x * kDosLogicalWidth / kLogicalWidth;
@@ -54,15 +51,12 @@ public:
         requestedX_ = x;
         requestedY_ = y;
         audioEnabled_ = playAudio;
-        holdSourceTime_ = incomingHoldSourceTime;
-
-        // CODE 12 advances the old selected actor from its resting time to its
-        // terminal neutral hand, then advances the new actor from zero only as
-        // far as that selection's resting time.  Do not replay old time-zero
-        // cues when resuming the outgoing movie halfway through its timeline.
-        start(outgoingResourceId, false);
-        elapsedMilliseconds_ = outgoingSourceTime * 1000U / movie_->timeScale();
-        queuedMovies_.push_back(incomingResourceId);
+        holdSourceTime_.reset();
+        // Resuming an already displayed source movie must not replay its
+        // time-zero cue. Delayed cues after sourceTime still fire normally.
+        start(resourceId, false);
+        const std::uint32_t target = std::min(sourceTime, movie_->duration() - 1U);
+        elapsedMilliseconds_ = target * 1000U / movie_->timeScale();
     }
 
     void showFrame(int resourceId, int x, int y, std::uint32_t sourceTime) {

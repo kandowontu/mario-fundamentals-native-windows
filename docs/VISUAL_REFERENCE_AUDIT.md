@@ -71,7 +71,7 @@ back buffer so the source/browser's black flicker cannot become a port feature.
 | Macintosh | Backgammon character choice | 11.069 | 13.0 |
 | Macintosh | Backgammon setup reveal | 13.142 | 15.0 |
 | Macintosh | Dominoes table | 2.335 | 4.0 |
-| Macintosh | Dominoes score/portrait registration (edge) | 37.255 | 38.0 |
+| Macintosh | Dominoes score/portrait registration (edge) | 37.429 | 38.0 |
 | Macintosh | Checkers chrome | 10.620 | 14.0 |
 | Macintosh | Checkers character choice | 10.073 | 12.0 |
 | Macintosh | Checkers name prompt | 13.793 | 16.0 |

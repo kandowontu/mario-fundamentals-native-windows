@@ -19,7 +19,7 @@ Both historical release entries remain withdrawn until the replacement artifact 
 | Clicking the DOS board cannot rewind the reveal | `DosApp::introSkipTarget` advances DimTitle/TalkingTitle to MenuReveal and MenuReveal to the completed menu; `03g/03h` captures exercise the live skip route. | Automated pass |
 | Macintosh title/easel click skips like vanilla | CODE 12 `$1DDC`, `$1E14`, and `$217A` converge on the same completion post. `08/09` and `09a/09b` exercise live and board-flip mouse routes. | Automated pass |
 | Macintosh selected-game intro input matches vanilla | CODE 11/14/16/17/18 prove two immediate finishes, one Dominoes single-tick advance, and two ignored mouse inputs; key routing is separately exercised without leaking a Windows `WM_CHAR`. | Automated pass |
-| No duplicate/missing title hand or menu actor | Title and selected-game right-hand layers are mutually exclusive; all five exact selection-hold hashes plus outgoing, neutral, incoming, and settled transition frames are enforced in the Mac sweep. | Automated pass |
+| No duplicate/missing title hand or menu actor | Title and selected-game right-hand layers are mutually exclusive; all five exact selection-hold hashes plus pressed, outgoing, neutral, one-row pointer traversal, retarget, incoming, and settled transition frames are enforced in the Mac sweep. | Automated pass |
 | Mario head/torso compositing is solid during speech | The fixed torso renders before the live head and the complete neutral actor is used only between lines. Go Fish additionally uses complete Pak 11000 rather than movie 5090's transparent base layer. Game intros/openings and outcome captures exercise these layers in both editions. | Automated pass |
 | Yacht cup does not duplicate | CODE 18's edition-neutral stationary-cup guard is ported through the roll movie and all five settle passes. Every movie tick is asserted to contain at most one large-cup cel, and seven roll/settle frames are generated for both editions. The two small cup-shaped objects in vanilla are intentional remaining-roll markers, not duplicated roll cups. | Automated pass |
 | Macintosh Yacht reroll actor stays registered | Both CODE 18 pre-roll paths use the source `(15,-1)` movie-6021 registration; its wide frame has exact `(99,18)-(337,212)` bounds and an independent edge comparison covers the full-body gesture. | Automated pass |
@@ -38,7 +38,7 @@ Both historical release entries remain withdrawn until the replacement artifact 
 
 `tools/build_release.ps1` must pass all semantic, asset, audiovisual, presentation, independent
 visual-reference inventory/comparison, fullscreen, function-traceability, preservation,
-PE/dependency, and isolated-runtime checks. It now requires exactly 226 fresh
+PE/dependency, and isolated-runtime checks. It now requires exactly 230 fresh
 Macintosh frames and 231 fresh DOS frames at their native logical dimensions. Any missing, stale,
 wrong-sized, or corrupt frame fails the build.
 

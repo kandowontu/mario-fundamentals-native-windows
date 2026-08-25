@@ -232,37 +232,98 @@ void App::renderQaFrames(std::wstring_view outputDirectory) {
     const auto beginMenuTransition = [this, &save](
             int outgoing, int incoming, std::wstring_view name) {
         menuSourceSelection_ = outgoing;
-        menuSelectionHost_.showFrame(menu_catalog::movie(outgoing), 397, 127,
-                                     menu_catalog::holdSourceTime(outgoing));
+        showSelectedMenuPose();
         render();
         const std::uint64_t outgoingActorHash =
             canvas_.pixelHash({397, 127, 497, 227});
-        if (!selectMenuSource(incoming))
+        if (!selectMenuSource(incoming, true, true))
             throw std::runtime_error("Macintosh menu transition did not start");
         save(name);
-        if (canvas_.pixelHash({397, 127, 497, 227}) != outgoingActorHash)
+        if (canvas_.pixelHash({397, 127, 497, 227}) != outgoingActorHash ||
+            menuSelectionPhase_ != MenuSelectionPhase::RetractOutgoing ||
+            menuPointerSourceSelection_ != outgoing ||
+            menuSelectedLabelSourceSelection_ != 0 ||
+            menuPressedSourceSelection_ != incoming) {
             throw std::runtime_error("Macintosh menu transition skipped the outgoing pose");
+        }
     };
 
     // Independent vanilla captures land on these exact click/hover instants:
-    // the new red label is visible while the prior hand/object actor begins its
-    // 300 ms retraction.  The middle case also exercises the full two-stage
-    // $DBC-$100C transition through neutral into the new selected pose.
+    // the mouse-down control is red while the prior hand/object actor begins
+    // its 300 ms retraction. The controller then hides the selected label,
+    // steps the pointer one C/G/D/B/Y row per pass, holds three passes, reveals
+    // the new label, and advances the incoming actor to its exact resting time.
     beginMenuTransition(4, 3, L"10a-transition-backgammon-to-dominoes.bmp");
     menuSelectionHost_.stop();
     beginMenuTransition(3, 2, L"10b-transition-dominoes-to-go-fish-outgoing.bmp");
-    menuSelectionHost_.tick(300U);
+    tickMenuSelectionController(300U);
     save(L"10c-transition-dominoes-to-go-fish-neutral.bmp");
-    if (!menuSelectionHost_.playing())
-        throw std::runtime_error("Macintosh menu transition stopped before its incoming pose");
-    menuSelectionHost_.tick(1300U);
+    if (menuSelectionPhase_ != MenuSelectionPhase::PreIncomingDelay ||
+        menuPointerSourceSelection_ != 2 ||
+        menuSelectedLabelSourceSelection_ != 0 || menuSelectionHost_.playing()) {
+        throw std::runtime_error("Macintosh menu transition did not reach its neutral delay");
+    }
+    tickMenuSelectionController();
+    tickMenuSelectionController();
+    tickMenuSelectionController();
+    if (menuSelectionPhase_ != MenuSelectionPhase::ShowSelectedLabel)
+        throw std::runtime_error("Macintosh menu transition changed its three-pass delay");
+    tickMenuSelectionController();
+    if (menuSelectedLabelSourceSelection_ != 2 ||
+        menuSelectionPhase_ != MenuSelectionPhase::StartIncoming) {
+        throw std::runtime_error("Macintosh menu transition did not reveal its selected label");
+    }
+    tickMenuSelectionController();
+    tickMenuSelectionController(1300U);
     save(L"10d-transition-dominoes-to-go-fish-settled.bmp");
-    if (menuSelectionHost_.playing() ||
+    if (menuSelectionTransitionActive() ||
         canvas_.pixelHash({0, 0, kLogicalWidth, kLogicalHeight}) != menuPoseHashes[1]) {
         throw std::runtime_error("Macintosh menu transition did not hold its source pose");
     }
+
     beginMenuTransition(2, 5, L"10e-transition-go-fish-to-yacht.bmp");
+    tickMenuSelectionController(300U);
+    save(L"10f-transition-pointer-dominoes.bmp");
+    if (menuPointerSourceSelection_ != 3 ||
+        menuSelectionPhase_ != MenuSelectionPhase::StepPointer ||
+        menuSelectedLabelSourceSelection_ != 0) {
+        throw std::runtime_error("Macintosh menu transition skipped its first intermediate row");
+    }
+    tickMenuSelectionController();
+    save(L"10g-transition-pointer-backgammon.bmp");
+    if (menuPointerSourceSelection_ != 4 ||
+        menuSelectionPhase_ != MenuSelectionPhase::StepPointer) {
+        throw std::runtime_error("Macintosh menu transition skipped its second intermediate row");
+    }
+    tickMenuSelectionController();
+    save(L"10h-transition-pointer-yacht.bmp");
+    if (menuPointerSourceSelection_ != 5 ||
+        menuSelectionPhase_ != MenuSelectionPhase::PreIncomingDelay) {
+        throw std::runtime_error("Macintosh menu transition did not reach its target row");
+    }
+
+    // $E8E/$F3E samples a changed target at the two pre-incoming boundaries.
+    // Retargeting during retraction must not jump to the new actor immediately;
+    // it restarts from the controller's actual working selection after the old
+    // retraction completes.
+    menuSourceSelection_ = 2;
+    showSelectedMenuPose();
+    selectMenuSource(5);
+    tickMenuSelectionController(100U);
+    selectMenuSource(1);
+    if (menuTransitionTargetSelection_ != 5 ||
+        menuSelectionPhase_ != MenuSelectionPhase::RetractOutgoing) {
+        throw std::runtime_error("Macintosh menu retarget replaced the live outgoing actor");
+    }
+    tickMenuSelectionController(200U);
+    save(L"10i-transition-retarget-restarted.bmp");
+    if (menuTransitionTargetSelection_ != 1 || menuTransitionWorkingSelection_ != 2 ||
+        menuTransitionDirection_ != -1 ||
+        menuSelectionPhase_ != MenuSelectionPhase::RetractOutgoing) {
+        throw std::runtime_error("Macintosh menu retarget did not restart from its working row");
+    }
     menuSelectionHost_.stop();
+    menuSelectionPhase_ = MenuSelectionPhase::Idle;
 
     for (int gameIndex = 0; gameIndex < 5; ++gameIndex) {
         beginGameIntro(gameIndex);
@@ -858,7 +919,7 @@ LRESULT App::handleMessage(HWND window, UINT message, WPARAM wParam, LPARAM lPar
             introPhaseMilliseconds_ += 33;
             InvalidateRect(window, nullptr, FALSE);
         } else if (screen_ == Screen::Menu) {
-            bool repaint = menuSelectionHost_.tick();
+            bool repaint = tickMenuSelectionController();
             repaint = menuBowTieHost_.tick() || repaint;
             repaint = tickMenuIdleControllers() || repaint;
             repaint = tryStartPendingMenuGame() || repaint;
@@ -936,8 +997,10 @@ void App::drawMario(bool talking) {
         canvas_.sprite(graphics_.sprite(1014, 1), 283, 79, false);
     if (screen_ != Screen::Menu || menuBowTieVisible_)
         canvas_.sprite(graphics_.sprite(1100), 270, 174, false);
+    const int visiblePointer = menuPressedSourceSelection_ != 0
+        ? menuPressedSourceSelection_ : menuPointerSourceSelection_;
     const int pointerFrame = screen_ == Screen::Menu
-        ? std::clamp(menuSourceSelection_ - 1, 0, 4) : 0;
+        ? std::clamp(visiblePointer - 1, 0, 4) : 0;
     canvas_.sprite(graphics_.sprite(1020, pointerFrame), 150, 142, false);
 
     // CODE 12 $23C8 loads movie 1111, stores duration-1 in its time field,
@@ -1055,7 +1118,9 @@ void App::renderGameName() {
 void App::renderMenu() {
     canvas_.clear(rgb(0, 0, 0));
     drawTiledBackground(1001);
-    const int selectedGame = menu_catalog::gameIndex(menuSourceSelection_);
+    const int visibleLabel = menuPressedSourceSelection_ != 0
+        ? menuPressedSourceSelection_ : menuSelectedLabelSourceSelection_;
+    const int selectedGame = menu_catalog::gameIndex(visibleLabel);
     if (selectedGame >= 0) {
         const Rect button = gameButtons_[static_cast<std::size_t>(selectedGame)];
         // The source cast swaps the authored yellow/red palette pair for the
@@ -1574,43 +1639,167 @@ void App::click(Point logical) {
     if (screen_ != Screen::Menu || menuLaunchGameIndex_ >= 0) return;
     for (std::size_t index = 0; index < gameButtons_.size(); ++index)
         if (gameButtons_[index].contains(logical)) {
-            // Source mouse-down posts the clicked destination, lets D36 run
-            // that label's complete 1111-1115 movie, and only then lets $1400
-            // leave the menu.
-            selectMenuSource(menu_catalog::sourceSelection(static_cast<int>(index)));
+            // Source mouse-down posts the clicked destination, lets D36 finish
+            // its pressed-control/pointer/1111-1115 transition, and only then
+            // lets $1400 leave the menu.
+            selectMenuSource(menu_catalog::sourceSelection(static_cast<int>(index)),
+                             true, true);
             requestMenuGame(static_cast<int>(index));
             return;
         }
 }
 
-bool App::selectMenuSource(int sourceSelection, bool animate) {
-    if (sourceSelection < 1 || sourceSelection > 5 ||
-        sourceSelection == menuSourceSelection_) {
-        return false;
-    }
-    const int previousSourceSelection = menuSourceSelection_;
+bool App::selectMenuSource(int sourceSelection, bool animate, bool pressedVisual) {
+    if (sourceSelection < 1 || sourceSelection > 5) return false;
+    if (pressedVisual) menuPressedSourceSelection_ = sourceSelection;
+    if (sourceSelection == menuSourceSelection_) return false;
     menuSourceSelection_ = sourceSelection;
     if (!menuIdleRunning_) menuIdleElapsedTicks_ = 0;
     if (animate && screen_ == Screen::Menu) {
-        // CODE 12 $D36 emits snd 5003 when the active cast label changes. Its
-        // $DBC-$100C state machine first advances the outgoing 1111-1115 actor
-        // from its $C34 resting time to neutral, then advances the incoming
-        // actor from zero to that selection's own resting time.
-        audio_.playEffect(audio_catalog::kMenuSelectionSound);
-        menuSelectionHost_.playTransition(
-            menu_catalog::movie(previousSourceSelection),
-            menu_catalog::holdSourceTime(previousSourceSelection),
-            menu_catalog::movie(sourceSelection),
-            menu_catalog::holdSourceTime(sourceSelection), 397, 127, true);
+        // D36 accepts a new desired selection while its controller is active.
+        // The running phase observes that target at the same two boundaries as
+        // the original; it must not replace the visible actor immediately.
+        if (!menuSelectionTransitionActive()) beginMenuSelectionTransition();
+    } else if (!animate) {
+        showSelectedMenuPose();
     }
     return true;
 }
 
 void App::showSelectedMenuPose() {
+    menuPointerSourceSelection_ = menuSourceSelection_;
+    menuSelectedLabelSourceSelection_ = menuSourceSelection_;
+    menuPressedSourceSelection_ = 0;
+    menuTransitionWorkingSelection_ = menuSourceSelection_;
+    menuTransitionTargetSelection_ = menuSourceSelection_;
+    menuTransitionDirection_ = 0;
+    menuTransitionDelayTicks_ = 0;
+    menuSelectionPhase_ = MenuSelectionPhase::Idle;
     menuSelectionHost_.showFrame(menu_catalog::movie(menuSourceSelection_),
                                  397, 127,
                                  menu_catalog::holdSourceTime(menuSourceSelection_));
     resetMenuIdleControllers();
+}
+
+void App::beginMenuSelectionTransition() {
+    if (screen_ != Screen::Menu ||
+        menuSourceSelection_ == menuPointerSourceSelection_) {
+        return;
+    }
+    menuTransitionWorkingSelection_ = menuPointerSourceSelection_;
+    menuTransitionTargetSelection_ = menuSourceSelection_;
+    menuTransitionDirection_ = menu_catalog::transitionDirection(
+        menuTransitionWorkingSelection_, menuTransitionTargetSelection_);
+    menuTransitionDelayTicks_ = 0;
+
+    // D36 state 0 hides the old selected-label control but leaves the old
+    // pointer in place while the held actor retracts to its common time-zero
+    // neutral hand. Mouse-down's pressed control is kept for the immediate
+    // feedback frame and cleared by the first controller pass.
+    menuSelectedLabelSourceSelection_ = 0;
+    menuSelectionHost_.playFrom(
+        menu_catalog::movie(menuTransitionWorkingSelection_), 397, 127,
+        menu_catalog::holdSourceTime(menuTransitionWorkingSelection_), true);
+    menuSelectionPhase_ = MenuSelectionPhase::RetractOutgoing;
+}
+
+bool App::menuSelectionTransitionActive() const noexcept {
+    return menuSelectionPhase_ != MenuSelectionPhase::Idle;
+}
+
+bool App::tickMenuSelectionController(unsigned milliseconds) {
+    bool repaint = false;
+    if (menuPressedSourceSelection_ != 0) {
+        menuPressedSourceSelection_ = 0;
+        repaint = true;
+    }
+
+    const auto restartForRetarget = [this]() {
+        menuPointerSourceSelection_ = menuTransitionWorkingSelection_;
+        beginMenuSelectionTransition();
+    };
+    const auto stepPointer = [this]() {
+        menuTransitionWorkingSelection_ = menu_catalog::stepSelection(
+            menuTransitionWorkingSelection_, menuTransitionDirection_);
+        menuPointerSourceSelection_ = menuTransitionWorkingSelection_;
+        // $EE4-$F00 emits direct snd 5003 only while no tracked line owns the
+        // source sound channel. Non-adjacent targets therefore retain the
+        // controller's one-row-per-pass feedback without interrupting speech.
+        if (!audio_.soundPlaying())
+            audio_.playEffect(audio_catalog::kMenuSelectionSound);
+        if (menuTransitionWorkingSelection_ == menuTransitionTargetSelection_) {
+            menuTransitionDelayTicks_ = 0;
+            menuSelectionPhase_ = MenuSelectionPhase::PreIncomingDelay;
+        } else {
+            menuSelectionPhase_ = MenuSelectionPhase::StepPointer;
+        }
+    };
+
+    switch (menuSelectionPhase_) {
+    case MenuSelectionPhase::Idle:
+        if (menuSourceSelection_ != menuPointerSourceSelection_) {
+            beginMenuSelectionTransition();
+            return true;
+        }
+        return repaint;
+
+    case MenuSelectionPhase::RetractOutgoing:
+        repaint = menuSelectionHost_.tick(milliseconds) || repaint;
+        if (menuSelectionHost_.playing()) return repaint;
+
+        // All five movies carry the same authored neutral hand in time-zero
+        // frame 0. The original rewinds the outgoing movie here and keeps it
+        // displayed while the pointer and selected-label controls change.
+        menuSelectionHost_.showFrame(
+            menu_catalog::movie(menuTransitionWorkingSelection_), 397, 127, 0U);
+        if (menuSourceSelection_ != menuTransitionTargetSelection_) {
+            restartForRetarget();
+            return true;
+        }
+        stepPointer();
+        return true;
+
+    case MenuSelectionPhase::StepPointer:
+        if (menuSourceSelection_ != menuTransitionTargetSelection_) {
+            restartForRetarget();
+            return true;
+        }
+        stepPointer();
+        return true;
+
+    case MenuSelectionPhase::PreIncomingDelay:
+        if (menuSourceSelection_ != menuTransitionTargetSelection_) {
+            restartForRetarget();
+            return true;
+        }
+        // $F5E uses the old value of its post-incremented counter, so values
+        // 0, 1, and 2 occupy three complete controller passes.
+        if (menuTransitionDelayTicks_++ == 2)
+            menuSelectionPhase_ = MenuSelectionPhase::ShowSelectedLabel;
+        return repaint;
+
+    case MenuSelectionPhase::ShowSelectedLabel:
+        menuSelectedLabelSourceSelection_ = menuTransitionWorkingSelection_;
+        menuSelectionPhase_ = MenuSelectionPhase::StartIncoming;
+        return true;
+
+    case MenuSelectionPhase::StartIncoming:
+        menuSelectionHost_.play(
+            menu_catalog::movie(menuTransitionWorkingSelection_), 397, 127,
+            true, menu_catalog::holdSourceTime(menuTransitionWorkingSelection_));
+        menuSelectionPhase_ = MenuSelectionPhase::RevealIncoming;
+        return true;
+
+    case MenuSelectionPhase::RevealIncoming:
+        repaint = menuSelectionHost_.tick(milliseconds) || repaint;
+        if (!menuSelectionHost_.playing()) {
+            menuPointerSourceSelection_ = menuTransitionWorkingSelection_;
+            menuSelectedLabelSourceSelection_ = menuTransitionWorkingSelection_;
+            menuSelectionPhase_ = MenuSelectionPhase::Idle;
+        }
+        return repaint;
+    }
+    return repaint;
 }
 
 void App::resetMenuIdleControllers() {
@@ -1685,7 +1874,7 @@ bool App::tickMenuIdleControllers() {
         if (menuBlinkElapsedTicks_ >= menuBlinkWaitTicks_) {
             if (menuIdleRunning_) {
                 resetMenuBlinkDelay();
-            } else if (!menuSelectionHost_.playing()) {
+            } else if (!menuSelectionTransitionActive()) {
                 menuBlinkRunning_ = true;
                 menuBlinkVisible_ = true;
                 menuBlinkHoldTicks_ = 2;
@@ -1705,7 +1894,7 @@ bool App::tickMenuIdleControllers() {
     if (!menuIdleRunning_) {
         ++menuIdleElapsedTicks_;
         if (menuIdleElapsedTicks_ < menuIdleWaitTicks_ || menuBlinkRunning_ ||
-            menuSelectionHost_.playing()) {
+            menuSelectionTransitionActive()) {
             return repaint;
         }
         menuIdleRunning_ = true;
@@ -1796,7 +1985,7 @@ void App::requestMenuGame(int index) {
 
 bool App::tryStartPendingMenuGame() {
     if (screen_ != Screen::Menu || menuLaunchGameIndex_ < 0) return false;
-    if (menuSelectionHost_.playing() || menuIdleRunning_ || menuBlinkRunning_) return false;
+    if (menuSelectionTransitionActive() || menuIdleRunning_ || menuBlinkRunning_) return false;
     const int index = menuLaunchGameIndex_;
     menuLaunchGameIndex_ = -1;
     beginGameIntro(index);

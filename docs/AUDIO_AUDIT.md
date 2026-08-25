@@ -110,7 +110,7 @@ Stepping Stone voice cue; a timed executable regression guards both foreground c
 | Title speech sequence | tracked sounds 5012, 5000, 5001, 8056, and 5011 |
 | Checkers menu-selection hand animation | all seven authored cues in movie 1111 at times 120, 180, 420, 480, 540, 600, and 660; CODE 12 pins the spoken title hand to `duration-1`, so these do not fire during the title voice |
 | C/G/D/B/Y menu-selection movies | exact authored cue streams from movies 1111-1115: common 5009/5013 gesture cues plus 5017 motion, 5014, or 5028 dice cues as authored |
-| Change menu selection | direct effect 5003 from the CODE 12 cast transition, in addition to the selected movie's authored cues |
+| Change menu selection | direct effect 5003 at `$EE4-$F00` for each one-row pointer step while the tracked channel is free, in addition to the outgoing/incoming movies' authored cues |
 | Start selected game | tracked sound 5010 after the current selection or idle actor finishes |
 | PICT 128 title/about presentation | tracked sound 5057 from CODE 5 `$2E` |
 | PICT 129 credits presentation | tracked sound 5072 from CODE 5 `$324` |

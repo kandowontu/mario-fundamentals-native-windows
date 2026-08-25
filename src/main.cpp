@@ -332,7 +332,14 @@ int selfTest(HINSTANCE instance) {
         mf::menu_catalog::kSelectionMovies !=
             std::array<int, 5>{1111, 1112, 1113, 1114, 1115} ||
         mf::menu_catalog::kSelectionHoldSourceTimes !=
-            std::array<std::uint32_t, 5>{600U, 780U, 600U, 600U, 480U}) {
+            std::array<std::uint32_t, 5>{600U, 780U, 600U, 600U, 480U} ||
+        mf::menu_catalog::transitionDirection(2, 5) != 1 ||
+        mf::menu_catalog::transitionDirection(5, 1) != -1 ||
+        mf::menu_catalog::transitionDirection(3, 3) != 0 ||
+        mf::menu_catalog::stepSelection(2, 1) != 3 ||
+        mf::menu_catalog::stepSelection(5, 1) != 1 ||
+        mf::menu_catalog::stepSelection(1, -1) != 5 ||
+        mf::menu_catalog::stepSelection(3, 0) != 3) {
         throw std::runtime_error("CODE 12 C/G/D/B/Y menu-selection mapping changed");
     }
     if (mf::menu_catalog::fileQuitAction(-1, -1) !=

@@ -23,6 +23,15 @@ private:
         Intro, Name, Character, Menu, GameIntro, GameCharacter, GameName, Game, About, Credits, Help
     };
     enum class Dialog { None, ConfirmReset, PlayAgain };
+    enum class MenuSelectionPhase {
+        Idle,
+        RetractOutgoing,
+        StepPointer,
+        PreIncomingDelay,
+        ShowSelectedLabel,
+        StartIncoming,
+        RevealIncoming,
+    };
     enum class IntroPhase {
         StartupBlack,
         Brainstorm,
@@ -70,8 +79,12 @@ private:
     void finishGameIntro(bool skippedByInput = false);
     void drawTiledBackground(int resourceId);
     void drawMario(bool talking = false);
-    bool selectMenuSource(int sourceSelection, bool animate = true);
+    bool selectMenuSource(int sourceSelection, bool animate = true,
+                          bool pressedVisual = false);
     void showSelectedMenuPose();
+    void beginMenuSelectionTransition();
+    bool tickMenuSelectionController(unsigned milliseconds = 33);
+    [[nodiscard]] bool menuSelectionTransitionActive() const noexcept;
     void resetMenuIdleControllers();
     bool tickMenuIdleControllers();
     void finishMenuIdleCycle();
@@ -136,6 +149,14 @@ private:
     std::uint32_t gameIntroMilliseconds_{};
     std::uint32_t gameIntroDurationMilliseconds_{};
     int menuSourceSelection_{1};
+    int menuPointerSourceSelection_{1};
+    int menuSelectedLabelSourceSelection_{1};
+    int menuPressedSourceSelection_{};
+    int menuTransitionWorkingSelection_{1};
+    int menuTransitionTargetSelection_{1};
+    int menuTransitionDirection_{};
+    int menuTransitionDelayTicks_{};
+    MenuSelectionPhase menuSelectionPhase_{MenuSelectionPhase::Idle};
     int menuIdleWaitTicks_{};
     int menuIdleElapsedTicks_{};
     int menuIdleMode_{1};

@@ -287,10 +287,16 @@ the destination, while further hover and keyboard selection changes are ignored 
 The selected actor's resting point is not a shared early frame. CODE 12 `$ABC` assigns multipliers
 10, 13, 10, 10, and 8 to movies 1111–1115; `$C34` multiplies each by the movie tick duration 60,
 giving exact Checkers/Go Fish/Dominoes/Backgammon/Yacht source times of
-`600/780/600/600/480`. Controller `$DBC-$100C` advances the outgoing movie from that hold to its
-terminal neutral hand before playing the incoming movie from zero to its own hold. Native menu QA
-therefore covers both the settled hashes and the authored overlap during the two-part transition;
-freezing every actor at an arbitrary universal time would produce the wrong held object and hand.
+`600/780/600/600/480`. Controller `$D36-$100C` hides the old selected-label control, advances the
+outgoing movie from that hold to its common time-zero neutral hand, then moves the pointer one row
+per pass in the signed target direction; it does not choose a shorter circular route. After the
+target pointer holds for three post-incremented passes, the target label becomes visible and the
+incoming movie advances from zero to its own hold. `$E8E` and `$F3E` resample a changed desired row
+at the two pre-incoming boundaries and restart from the actual working selection, while state 5
+finishes an already-started incoming actor before accepting another transition. Native menu QA
+covers the immediate pressed-control composition, every intermediate pointer row, both retarget
+boundaries, neutral interval, settled hashes, and exact actor holds; freezing every actor at an
+arbitrary universal time or replacing a running actor on each hover would contradict the source.
 
 Movies at IDs 10000 and above select the image sheet at the containing 1000 boundary. The catalog
 contains 467 movies, 125 image sheets, 1,380 image records, and 8,586 commands. The native `Movie`

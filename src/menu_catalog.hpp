@@ -46,6 +46,21 @@ enum class FileQuitAction {
         ? kSelectionHoldSourceTimes[static_cast<std::size_t>(sourceSelection - 1)] : 0U;
 }
 
+// CODE 12 $DF2-$E04 chooses a signed direction from the target/current
+// difference.  $EB0-$ED8 then advances exactly one C/G/D/B/Y control per
+// controller pass, wrapping only after crossing an endpoint.  It does not
+// choose the shorter circular route.
+[[nodiscard]] constexpr int transitionDirection(int current,
+                                                 int target) noexcept {
+    return target == current ? 0 : target > current ? 1 : -1;
+}
+
+[[nodiscard]] constexpr int stepSelection(int current, int direction) noexcept {
+    if (direction == 0) return current;
+    const int stepped = current + (direction < 0 ? -1 : 1);
+    return stepped < 1 ? 5 : stepped > 5 ? 1 : stepped;
+}
+
 [[nodiscard]] constexpr int gameContextIndex(int activeGameIndex,
                                              int pendingGameIndex) noexcept {
     return activeGameIndex >= 0 ? activeGameIndex : pendingGameIndex;
