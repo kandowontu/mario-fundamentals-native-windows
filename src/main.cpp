@@ -776,8 +776,20 @@ int selfTest(HINSTANCE instance) {
         throw std::runtime_error("DOS movie sound-cue inventory changed");
     }
     const mf::Movie dosCharacterQuestion(dosAssets, 11093);
+    const mf::Rect dosCentredCharacterQuestion =
+        dosCharacterQuestion.activeVisualBounds(600, 116, 1);
+    const mf::Rect dosPortraitCharacterQuestion =
+        dosCharacterQuestion.activeVisualBounds(600, 7, 3);
     if (dosCharacterQuestion.soundsAtStart() != std::vector<int>{8046} ||
-        !dosAssets.contains("SND ", 8046)) {
+        !dosAssets.contains("SND ", 8046) ||
+        dosCentredCharacterQuestion.left != 121 ||
+        dosCentredCharacterQuestion.top != 9 ||
+        dosCentredCharacterQuestion.right != 176 ||
+        dosCentredCharacterQuestion.bottom != 61 ||
+        dosPortraitCharacterQuestion.left != 12 ||
+        dosPortraitCharacterQuestion.top != 11 ||
+        dosPortraitCharacterQuestion.right != 67 ||
+        dosPortraitCharacterQuestion.bottom != 63) {
         throw std::runtime_error("DOS character question lost its authored voice cue");
     }
     // DOS MuV/Img records are conventional x/y structures, not QuickDraw's

@@ -580,6 +580,14 @@ implementations remain evidence-backed rather than inferred from modern versions
   index 58 at `$0C45` for the first character chooser and separately calls index 18, movie 11618, at
   `$2BC9` during the opening-roll controller. `tools/verify_dos_dialogue_tables.py` pins the complete
   table bytes and both call sites so the two edition-specific indices cannot be conflated.
+
+  The DOS first-use controller constructs the selected game before this call. The question therefore
+  runs over the live game's Mario/scoreboard/status composition, not a bare tiled page, and the Pak
+  101 choice panel is revealed only after movie 11093 ends. Backgammon and Checkers use the centred
+  host registration `(116,1)` in native DOS coordinates; Dominoes uses its score-portrait registration
+  `(7,3)`. The subsequent name panel remains over the same preview for all five games. Native preview
+  construction records and restores the shared random seed before creating the playable instance,
+  preventing the first deal, board, or lazy dialogue selector from being consumed twice.
 - Backgammon's initial board is not painted in one pass. `$F78` scans the eight nonzero six-byte
   records at A5-`$3ACE` in source-point order: `(1000,0,2)`, `(2000,5,5)`, `(2000,7,3)`,
   `(1000,11,5)`, `(2000,12,5)`, `(1000,16,3)`, `(1000,18,5)`, and `(2000,23,2)`.

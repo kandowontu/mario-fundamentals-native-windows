@@ -39,7 +39,8 @@ asserts that the dangling-cue set is exactly `{23019, 23020, 23021, 23022, 23023
   publisher/title/menu/gameplay IDs used by the native DOS shell and shared game controllers.
 - The recovered Backgammon and Checkers host tables route the first DOS Yoshi/Koopa chooser through
   movie 11093, whose time-zero SND 8046 asks the authored question. The DOS native chooser now
-  advances that host timeline, and both the table call sites and valid cue are release-gated.
+  renders and advances that host timeline over the live game preview before revealing the choice
+  panel; the table call sites, visual registrations, and valid cue are release-gated.
 
 Miles XMIDI advances its delta units at a fixed 120 Hz. The native parser therefore models 60 PPQN
 at a forced 500,000 microseconds per quarter note and ignores the SMF-like tempo meta values stored

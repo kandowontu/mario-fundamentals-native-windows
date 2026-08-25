@@ -39,7 +39,7 @@ The `v2.0.0` release remains withdrawn until the replacement artifact is visuall
 `tools/build_release.ps1` must pass all semantic, asset, audiovisual, presentation, independent
 visual-reference inventory/comparison, fullscreen, function-traceability, preservation,
 PE/dependency, and isolated-runtime checks. It now requires exactly 221 fresh
-Macintosh frames and 222 fresh DOS frames at their native logical dimensions. Any missing, stale,
+Macintosh frames and 231 fresh DOS frames at their native logical dimensions. Any missing, stale,
 wrong-sized, or corrupt frame fails the build.
 
 The remaining publication condition is explicit visual acceptance of the corrected candidate. Until

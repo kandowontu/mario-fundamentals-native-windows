@@ -115,7 +115,7 @@ Invoke-PresentationQa -Argument "--render-mac-qa" `
     -ExpectedFrames 221 -ExpectedBytes 786486
 Invoke-PresentationQa -Argument "--render-dos-qa" `
     -OutputDirectory (Join-Path $projectRoot "work/qa/dos") -Label "dos" `
-    -ExpectedFrames 222 -ExpectedBytes 256054
+    -ExpectedFrames 231 -ExpectedBytes 256054
 
 # When the locally retained independent reference sets are available, compare
 # original output with representative native gameplay frames. The captures

@@ -18,7 +18,7 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   artwork appears only when the greeting begins instead of being exposed during the silhouette hold.
 - The live Macintosh menu now gives its right-hand layer exclusively to the selected-game actor;
   the completed title hand is no longer composited beneath it as a second glove/object.
-- The no-window presentation sweeps now emit 221 exact 512×384 Macintosh frames and 222 exact
+- The no-window presentation sweeps now emit 221 exact 512×384 Macintosh frames and 231 exact
   320×200 DOS frames. They cover both Macintosh title/board mouse-down completion paths, all five
   source-specific selected-game intro input routes, DOS menu/help contexts, all intros/openings,
   Backgammon setup reveal, Dominoes drag/endings, Checkers endings, Go Fish

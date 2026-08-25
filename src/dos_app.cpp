@@ -86,6 +86,20 @@ constexpr bool dosGameIntroComplete(std::uint32_t elapsedMilliseconds,
     return elapsedMilliseconds >= durationMilliseconds;
 }
 
+constexpr Point dosCharacterQuestionPoint(int gameIndex) {
+    // Backgammon and Checkers share the centred host actor registration.
+    // Dominoes animates the small Mario portrait in its upper-left scorecard.
+    return gameIndex == 1 ? Point{7, 3} : Point{116, 1};
+}
+
+constexpr std::array<std::uint64_t, 3> kDosCharacterQuestionQaHashes{
+    0xC52CEFC40E134C64ULL, 0xD4A8DF111A71BA1FULL, 0x753AF8B08643B4DDULL};
+constexpr std::array<std::uint64_t, 3> kDosCharacterChoiceQaHashes{
+    0x5ECB5FF01CC23392ULL, 0xBB7CCF36B37D9131ULL, 0xFC049B8CCAD7E8E8ULL};
+constexpr std::array<std::uint64_t, 5> kDosNamePromptQaHashes{
+    0x92F8BACD0F4D7E58ULL, 0x0665714D87179076ULL, 0x44524397F669CCE0ULL,
+    0xDC354E6EBDAF97E3ULL, 0xDB68C1B280DB61A1ULL};
+
 }  // namespace
 
 DosApp::DosApp(HINSTANCE instance)
@@ -186,6 +200,10 @@ bool DosApp::sourceGameIntroCompletionRegressionTest() {
 
 void DosApp::renderQaFrames(std::wstring_view outputDirectory) {
     audio_.setEnabled(false);
+    // QA must not inherit the constructor's boot-time source seed. Stable
+    // first-use game previews and later interaction frames need identical
+    // decks/dice/selectors on every release build.
+    random_.setSeed(0x4d474731U);
     const std::filesystem::path root(outputDirectory);
     std::filesystem::create_directories(root);
     const auto save = [this, &root](std::wstring_view name) {
@@ -260,11 +278,90 @@ void DosApp::renderQaFrames(std::wstring_view outputDirectory) {
     }
     menuSelection_.stop();
 
+    // Exercise the real first-use input controller, including its locked
+    // talking phase and preview-RNG rollback. A click on the still-hidden
+    // panel must do nothing; the same click after movie 11093 ends must enter
+    // the name prompt, whose confirmation creates exactly one source-random
+    // game instance rather than retaining the preview's consumed state.
+    const std::uint32_t firstUseSourceSeed = random_.seed();
+    characterConfirmed_ = false;
+    nameConfirmed_ = false;
     pendingGameIndex_ = 0;
-    screen_ = Screen::Character;
-    save(L"05-character.bmp");
-    screen_ = Screen::Name;
-    save(L"06-name.bmp");
+    beginFirstUsePreview(0, true);
+    click({130, 118});
+    if (screen_ != Screen::Character || characterConfirmed_ || !previewRandomSeed_)
+        throw std::runtime_error("DOS first-use question accepted input before completion");
+    for (int tick = 0; tick < 100 && characterQuestion_.active(); ++tick)
+        (void)characterQuestion_.tick();
+    if (characterQuestion_.active())
+        throw std::runtime_error("DOS first-use question did not reach its authored end");
+    click({130, 118});
+    if (screen_ != Screen::Name || !characterConfirmed_ || !previewRandomSeed_ || !game_)
+        throw std::runtime_error("DOS first-use character choice did not retain its preview");
+    click({100, 120});
+    if (screen_ != Screen::Game || !nameConfirmed_ || previewRandomSeed_ || !game_ ||
+        pendingGameIndex_ != -1) {
+        throw std::runtime_error("DOS first-use name confirmation did not start the game");
+    }
+    const std::uint32_t firstUseActualSeed = random_.seed();
+    random_.setSeed(firstUseSourceSeed);
+    startGame(0);
+    if (random_.seed() != firstUseActualSeed)
+        throw std::runtime_error("DOS first-use preview consumed the playable RNG sequence twice");
+    game_.reset();
+    random_.setSeed(firstUseSourceSeed);
+
+    // First-use prompts are live game states, not panels over bare tiled
+    // pages. Capture the talking question and terminal choice panel for all
+    // three character-bearing games, then the name panel over all five games.
+    characterConfirmed_ = false;
+    nameConfirmed_ = false;
+    for (int gameIndex = 0; gameIndex <= 2; ++gameIndex) {
+        pendingGameIndex_ = gameIndex;
+        beginFirstUsePreview(gameIndex, true);
+        const Point point = dosCharacterQuestionPoint(gameIndex);
+        characterQuestion_.showFrame(11093, point.x, point.y, 600);
+        save(L"05-character-question-" + std::to_wstring(gameIndex) + L".bmp");
+        const std::uint64_t questionHash =
+            canvas_.pixelHash({0, 0, kDosLogicalWidth, kDosLogicalHeight});
+        if (questionHash !=
+            kDosCharacterQuestionQaHashes[static_cast<std::size_t>(gameIndex)]) {
+            throw std::runtime_error("DOS first-use question composition changed: " +
+                                     std::to_string(questionHash));
+        }
+        characterQuestion_.stop();
+        save(gameIndex == 0 ? L"05-character.bmp" :
+             L"05-character-" + std::to_wstring(gameIndex) + L".bmp");
+        const std::uint64_t choiceHash =
+            canvas_.pixelHash({0, 0, kDosLogicalWidth, kDosLogicalHeight});
+        if (choiceHash != kDosCharacterChoiceQaHashes[static_cast<std::size_t>(gameIndex)]) {
+            throw std::runtime_error("DOS first-use character panel composition changed: " +
+                                     std::to_string(choiceHash));
+        }
+        game_.reset();
+        if (previewRandomSeed_) random_.setSeed(*previewRandomSeed_);
+        previewRandomSeed_.reset();
+    }
+    characterConfirmed_ = true;
+    for (int gameIndex = 0; gameIndex < 5; ++gameIndex) {
+        pendingGameIndex_ = gameIndex;
+        beginFirstUsePreview(gameIndex, false);
+        save(gameIndex == 0 ? L"06-name.bmp" :
+             L"06-name-" + std::to_wstring(gameIndex) + L".bmp");
+        const std::uint64_t nameHash =
+            canvas_.pixelHash({0, 0, kDosLogicalWidth, kDosLogicalHeight});
+        if (nameHash != kDosNamePromptQaHashes[static_cast<std::size_t>(gameIndex)]) {
+            throw std::runtime_error("DOS first-use name panel composition changed: " +
+                                     std::to_string(gameIndex) + ":" +
+                                     std::to_string(nameHash));
+        }
+        game_.reset();
+        if (previewRandomSeed_) random_.setSeed(*previewRandomSeed_);
+        previewRandomSeed_.reset();
+    }
+    nameConfirmed_ = true;
+    pendingGameIndex_ = -1;
+    activeGameIndex_ = -1;
 
     for (int gameIndex = 0; gameIndex < 5; ++gameIndex) {
         helpGameIndex_ = gameIndex;
@@ -617,7 +714,10 @@ void DosApp::renderGameIntro() {
 }
 
 void DosApp::renderCharacter() {
-    if (pendingGameIndex_ >= 0) drawTiledPage(kGameBackgrounds[static_cast<std::size_t>(pendingGameIndex_)]);
+    if (game_) game_->render(canvas_);
+    else if (pendingGameIndex_ >= 0)
+        drawTiledPage(kGameBackgrounds[static_cast<std::size_t>(pendingGameIndex_)]);
+    if (characterQuestion_.render(canvas_)) return;
     canvas_.sprite(graphics_.sprite(101), 83, 60, false);
     canvas_.sprite(graphics_.sprite(101, playerIsYoshi_ ? 3 : 4),
                    playerIsYoshi_ ? 115 : 160, 113, false);
@@ -625,6 +725,8 @@ void DosApp::renderCharacter() {
 
 void DosApp::renderName() {
     if (changingName_ && nameReturnScreen_ == Screen::Game && game_)
+        game_->render(canvas_);
+    else if (!changingName_ && pendingGameIndex_ >= 0 && game_)
         game_->render(canvas_);
     else if (pendingGameIndex_ >= 0)
         drawTiledPage(kGameBackgrounds[static_cast<std::size_t>(pendingGameIndex_)]);
@@ -781,6 +883,8 @@ void DosApp::selectMenu(int sourceSelection, bool animate) {
 
 void DosApp::beginGameIntro(int gameIndex) {
     if (gameIndex < 0 || gameIndex >= 5) return;
+    characterQuestion_.stop();
+    previewRandomSeed_.reset();
     audio_.stop();
     audio_.stopMusic();
     audio_.playSound(5010);
@@ -837,20 +941,39 @@ void DosApp::beginGameIntro(int gameIndex) {
 
 void DosApp::finishGameIntro() {
     gameIntroMovies_.clear();
-    if (pendingGameIndex_ <= 2 && !characterConfirmed_) {
-        // Overlay 0 and the Checkers controller pass host-table entry 11093
-        // before the first Yoshi/Koopa choice. Its time-zero SND 8046 is the
-        // authored question. The DOS chooser is a Pak panel over the game
-        // page, so advance the movie host for its audio timeline without
-        // painting its Macintosh-sized head cel over that complete panel.
-        characterQuestion_.play(11093, 0, 0);
-        screen_ = Screen::Character;
+    const int gameIndex = pendingGameIndex_;
+    if (gameIndex < 0 || gameIndex >= 5) return;
+    if (gameIndex <= 2 && !characterConfirmed_) {
+        beginFirstUsePreview(gameIndex, true);
     } else if (!nameConfirmed_) {
-        screen_ = Screen::Name;
+        beginFirstUsePreview(gameIndex, false);
     } else {
-        startGame(pendingGameIndex_);
+        startGame(gameIndex);
     }
     if (window_) InvalidateRect(window_, nullptr, FALSE);
+}
+
+void DosApp::beginFirstUsePreview(int gameIndex, bool askCharacter) {
+    if (gameIndex < 0 || gameIndex >= 5) return;
+    const std::uint32_t sourceSeed = random_.seed();
+    startGame(gameIndex);
+    if (!game_) return;
+    // Construct the authentic game presentation underneath the modal, then
+    // roll the shared source RNG back before the actual playable instance is
+    // created. Otherwise the first deck/board/dialogue selectors are consumed
+    // twice merely because this is the first game of the session.
+    previewRandomSeed_ = sourceSeed;
+    pendingGameIndex_ = gameIndex;
+    game_->setCharacterChooser(gameIndex <= 2);
+    audio_.stop();
+    if (askCharacter) {
+        const Point point = dosCharacterQuestionPoint(gameIndex);
+        characterQuestion_.play(11093, point.x, point.y);
+        screen_ = Screen::Character;
+    } else {
+        characterQuestion_.stop();
+        screen_ = Screen::Name;
+    }
 }
 
 void DosApp::startGame(int gameIndex) {
@@ -874,8 +997,17 @@ void DosApp::startGame(int gameIndex) {
     if (window_) InvalidateRect(window_, nullptr, FALSE);
 }
 
+void DosApp::startPreviewedGame(int gameIndex) {
+    if (previewRandomSeed_) {
+        random_.setSeed(*previewRandomSeed_);
+        previewRandomSeed_.reset();
+    }
+    startGame(gameIndex);
+}
+
 void DosApp::returnToMenu() {
     characterQuestion_.stop();
+    previewRandomSeed_.reset();
     audio_.stop();
     game_.reset();
     activeGameIndex_ = -1;
@@ -1007,6 +1139,7 @@ void DosApp::click(Point point) {
             return;
         }
     } else if (screen_ == Screen::Character) {
+        if (characterQuestion_.active()) return;
         if (Rect{115, 113, 157, 125}.contains(point)) {
             playerIsYoshi_ = true;
             characterConfirmed_ = true;
@@ -1020,7 +1153,7 @@ void DosApp::click(Point point) {
             characterQuestion_.stop();
             audio_.stop();
             audio_.playEffect(9204);
-            if (nameConfirmed_) startGame(pendingGameIndex_);
+            if (nameConfirmed_) startPreviewedGame(pendingGameIndex_);
             else if (window_) InvalidateRect(window_, nullptr, FALSE);
         }
     } else if (screen_ == Screen::Name) {
@@ -1033,7 +1166,7 @@ void DosApp::click(Point point) {
                 if (game_) game_->setPlayerName(playerName_);
                 screen_ = nameReturnScreen_;
             } else {
-                startGame(pendingGameIndex_);
+                startPreviewedGame(pendingGameIndex_);
             }
         } else if (Rect{191, 113, 240, 127}.contains(point)) {
             if (changingName_) {
@@ -1142,6 +1275,7 @@ void DosApp::key(unsigned virtualKey) {
         else if (virtualKey == VK_RETURN || virtualKey == VK_SPACE)
             beginGameIntro(menu_catalog::gameIndex(menuSourceSelection_));
     } else if (screen_ == Screen::Character) {
+        if (characterQuestion_.active()) return;
         if (virtualKey == VK_LEFT || virtualKey == VK_RIGHT) {
             playerIsYoshi_ = !playerIsYoshi_;
             if (window_) InvalidateRect(window_, nullptr, FALSE);
@@ -1151,7 +1285,7 @@ void DosApp::key(unsigned virtualKey) {
             audio_.stop();
             audio_.playEffect(9204);
             screen_ = nameConfirmed_ ? Screen::Game : Screen::Name;
-            if (nameConfirmed_) startGame(pendingGameIndex_);
+            if (nameConfirmed_) startPreviewedGame(pendingGameIndex_);
             else if (window_) InvalidateRect(window_, nullptr, FALSE);
         }
     } else if (screen_ == Screen::Name && virtualKey == VK_RETURN && !playerName_.empty()) {
@@ -1161,7 +1295,8 @@ void DosApp::key(unsigned virtualKey) {
             if (game_) game_->setPlayerName(playerName_);
             screen_ = nameReturnScreen_;
         } else {
-            startGame(pendingGameIndex_);
+            audio_.playEffect(9204);
+            startPreviewedGame(pendingGameIndex_);
         }
     } else if (screen_ == Screen::Game && game_ && dialog_ == Dialog::None) {
         game_->key(virtualKey);
@@ -1225,9 +1360,7 @@ void DosApp::tick() {
     } else if (screen_ == Screen::Menu) {
         repaint |= menuSelection_.tick();
     } else if (screen_ == Screen::Character) {
-        // Movie 11093 owns the chooser voice timing even though its visual cel
-        // is not part of the DOS Pak-backed chooser composition.
-        (void)characterQuestion_.tick();
+        repaint |= characterQuestion_.tick();
     } else if (screen_ == Screen::GameIntro) {
         const std::uint32_t previousMilliseconds = gameIntroMilliseconds_;
         gameIntroMilliseconds_ += 33;

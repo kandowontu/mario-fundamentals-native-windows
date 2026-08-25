@@ -73,7 +73,9 @@ private:
     void selectMenu(int sourceSelection, bool animate);
     void beginGameIntro(int gameIndex);
     void finishGameIntro();
+    void beginFirstUsePreview(int gameIndex, bool askCharacter);
     void startGame(int gameIndex);
+    void startPreviewedGame(int gameIndex);
     void returnToMenu();
 
     HINSTANCE instance_{};
@@ -103,6 +105,7 @@ private:
     bool playerIsYoshi_{true};
     bool characterConfirmed_{};
     bool nameConfirmed_{};
+    std::optional<std::uint32_t> previewRandomSeed_;
     std::wstring playerName_{L"My Friend"};
     std::wstring nameBeforeEdit_;
     Screen nameReturnScreen_{Screen::Menu};
