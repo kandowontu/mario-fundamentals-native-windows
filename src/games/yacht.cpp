@@ -34,7 +34,12 @@ constexpr int kDieHeight = 38;
 // retain their edition-specific coordinates.
 constexpr Point kMacYachtHostAnchor{15, -1};
 constexpr Point kMacYachtTorsoAnchor{26, 0};
-constexpr Point kMacYachtIdleAnchor{217, 18};
+// Movie 6021's time-zero base/overlay records share a destination. These
+// inputs place that destination at the source idle-control origins: (217,18)
+// on Macintosh and (119,9) on DOS. The animated gesture has a separate
+// controller registration and continues to use kMacYachtHostAnchor.
+constexpr Point kMacYachtIdleMovieAnchor{24, 2};
+constexpr Point kDosYachtIdleMovieAnchor{-281, -94};
 constexpr Point kMacYachtCupAnchor{218, 129};
 constexpr Point kMacYachtRollMovieAnchor{0, -9};
 constexpr Rect kMacYachtRollButton{218, 129, 296, 228};
@@ -144,6 +149,7 @@ YachtGame::YachtGame(GameContext context)
               if (resourceId == 6021) return Point{-258, -90};
               return scaled;
           }),
+      idleActorMovie_(context.assets, 6021),
       outcomeAnimation_(context.assets, context.graphics, context.audio) {
     // CODE 18 $318C initializes the four-joke cursor once when the Yacht
     // module is loaded.  $142E increments it before every joke.
@@ -1354,20 +1360,22 @@ void YachtGame::render(Canvas& canvas) {
     canvas.clear(rgb(0, 0, 0));
     drawBackground(canvas, 6001);
     if (!gestureAnimation_.active()) {
-        // Dialogue movies contain the head only. Pak 6012 is their fixed
-        // torso/hand underlay, while Pak 6021 frame zero is the complete idle
-        // Mario used only when no dialogue actor is present. Drawing all
-        // three layers at once duplicated Mario; drawing 6012 after the live
-        // head covered his jaw and made him appear to talk into his shirt.
+        // Dialogue movies contain the head only, so Pak 6012 is their fixed
+        // torso/hand underlay. The neutral actor is movie 6021 at source time
+        // zero, not raw Pak frame zero: its simultaneous overlay cel restores
+        // Mario's left glove. Drawing all actor paths at once duplicates him;
+        // drawing 6012 after the live head covers his jaw.
         if (host_.active()) {
             canvas.sprite(context_.graphics.sprite(6012),
                           dosEdition() ? 119 : kMacYachtTorsoAnchor.x,
                           dosEdition() ? 51 : kMacYachtTorsoAnchor.y, false);
             (void)host_.render(canvas);
         } else {
-            canvas.sprite(context_.graphics.sprite(6021),
-                          dosEdition() ? 119 : kMacYachtIdleAnchor.x,
-                          dosEdition() ? 9 : kMacYachtIdleAnchor.y, false);
+            idleActorMovie_.render(canvas, context_.graphics, 0,
+                                   dosEdition() ? kDosYachtIdleMovieAnchor.x
+                                                : kMacYachtIdleMovieAnchor.x,
+                                   dosEdition() ? kDosYachtIdleMovieAnchor.y
+                                                : kMacYachtIdleMovieAnchor.y);
         }
     } else {
         (void)gestureAnimation_.render(canvas);

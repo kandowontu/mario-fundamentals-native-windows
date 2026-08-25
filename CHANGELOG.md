@@ -19,10 +19,10 @@ All notable native-port changes are documented here.
 - Silent, no-window Macintosh presentation output covering startup, title skip, four board-flip
   positions, every menu pose, 21 points across each game intro, eight opening states per game, and
   stationary/contact cup plus seven Yacht roll/settle states. The release gate regenerates and
-  validates all 221 Macintosh and 222 DOS frames at each edition's exact logical dimensions.
-- A fail-closed 219-file vanilla-capture inventory and 47 independent pixel/edge comparisons,
-  including title silhouette, four menu selections, Go Fish question/transfer, and Yacht
-  dice/marker states.
+  validates all 221 Macintosh and 231 DOS frames at each edition's exact logical dimensions.
+- A fail-closed 219-file vanilla-capture inventory and 50 independent pixel/edge comparisons,
+  including the title silhouette/open hand, four menu selections, Go Fish question/transfer, and
+  Yacht dice/marker/composed-hand states.
 
 ### Changed
 
@@ -33,6 +33,13 @@ All notable native-port changes are documented here.
 
 ### Fixed
 
+- Pinned Macintosh title movie 1111 to CODE 12's `duration-1` open-hand cel while Mario speaks;
+  checker-stack frames and their effects now run only under the live menu-selection controller.
+- Composed both time-zero cels of Yacht movie 6021 for idle Mario in both editions, restoring his
+  left glove without reintroducing the separate dialogue torso/head or duplicate-cup layers.
+- Restored the DOS Go Fish scoreboards' runtime `MARIO`, player-name, `BOOKS`, and `CARDS`
+  captions and corrected both value columns to their source pixels. A narrow independent-source
+  comparison and two native regional hashes now prevent the blank-caption regression.
 - Kept the Macintosh easel under its source black cast during the initial title silhouette hold;
   the finished board artwork is no longer revealed before Mario's greeting.
 - Corrected Go Fish's post-transfer QA actor from the Luigi question card to the source Yoshi card,

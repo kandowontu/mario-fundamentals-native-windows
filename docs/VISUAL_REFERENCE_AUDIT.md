@@ -27,7 +27,9 @@ Macintosh frames. Seven Macintosh and five DOS cases compare complete game-intro
 independently identified source times. Complete frames also cover the Backgammon setup reveal,
 Backgammon/Checkers first-use panels, three Go Fish grouped/question/transfer states, and Yacht's
 post-roll dice/marker state. Edge-only cases pin both Dominoes score portraits and the Macintosh
-Yacht reroll gesture to their source registrations. Together the 47 cases cover startup colors,
+Yacht reroll gesture to their source registrations. Focused cases pin the title's terminal open
+hand, Yacht's two-cel-composed idle hands, and the DOS Go Fish captions/value columns absent from
+Pak 5001. Together the 50 cases cover startup colors,
 title reveal order, title composition, scorecards, boards, status bars, tiled backgrounds, menus,
 prompt ordering, hand transfers, and moving-actor registration without treating different random
 gameplay states as failures.
@@ -47,8 +49,9 @@ back buffer so the source/browser's black flicker cannot become a port feature.
 | Macintosh | Stepping Stone | 1.330 | 2.0 |
 | Macintosh | Stepping Stone fade | 1.014 | 2.0 |
 | Macintosh | Title silhouette | 3.588 | 5.0 |
-| Macintosh | Title greeting | 8.268 | 10.0 |
-| Macintosh | Title talking | 8.482 | 10.0 |
+| Macintosh | Title greeting | 7.164 | 10.0 |
+| Macintosh | Title talking | 7.409 | 10.0 |
+| Macintosh | Title open right hand | 27.910 | 32.0 |
 | Macintosh | Menu, Backgammon selected | 8.303 | 10.0 |
 | Macintosh | Menu, Dominoes selected | 8.240 | 10.0 |
 | Macintosh | Menu, Go Fish selected | 8.599 | 10.0 |
@@ -74,15 +77,17 @@ back buffer so the source/browser's black flicker cannot become a port feature.
 | Macintosh | Go Fish question-card transfer | 12.649 | 15.0 |
 | Macintosh | Yacht scorecards | 6.110 | 10.0 |
 | Macintosh | Yacht center actor | 27.293 | 30.0 |
-| Macintosh | Yacht computer dice/markers | 9.712 | 12.0 |
+| Macintosh | Yacht computer dice/markers | 5.847 | 12.0 |
+| Macintosh | Yacht idle actor hands | 34.004 | 40.0 |
 | Macintosh | Yacht reroll gesture registration (edge) | 14.250 | 16.0 |
 | Macintosh | Yacht roll-contact cup | 1.311 | 3.0 |
 | DOS | Main menu | 8.191 | 11.0 |
 | DOS | Backgammon chrome | 30.693 | 34.0 |
 | DOS | Dominoes table | 2.068 | 3.0 |
-| DOS | Dominoes score/portrait registration (edge) | 53.172 | 60.0 |
+| DOS | Dominoes score/portrait registration (edge) | 44.171 | 60.0 |
 | DOS | Checkers chrome | 22.418 | 27.0 |
-| DOS | Go Fish table | 24.395 | 28.0 |
+| DOS | Go Fish table | 19.890 | 28.0 |
+| DOS | Go Fish scoreboard captions | 1.900 | 3.0 |
 | DOS | Yacht scorecards | 8.509 | 12.0 |
 | DOS | Backgammon intro | 0.967 | 2.0 |
 | DOS | Dominoes intro | 4.044 | 5.5 |

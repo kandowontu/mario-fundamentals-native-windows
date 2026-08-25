@@ -133,7 +133,6 @@ private:
     Screen nameReturnScreen_{Screen::Menu};
     IntroPhase introPhase_{IntroPhase::StartupBlack};
     std::uint32_t introPhaseMilliseconds_{};
-    std::uint32_t introHandMilliseconds_{};
     std::uint32_t gameIntroMilliseconds_{};
     std::uint32_t gameIntroDurationMilliseconds_{};
     int menuSourceSelection_{1};

@@ -159,17 +159,20 @@ void App::renderQaFrames(std::wstring_view outputDirectory) {
         {IntroPhase::MenuReveal, L"07-menu-reveal-start.bmp"},
     }};
     screen_ = Screen::Intro;
-    introHandMilliseconds_ = 0;
     for (const auto& [phase, name] : startupFrames) {
         introPhase_ = phase;
         introPhaseMilliseconds_ = phase == IntroPhase::TalkingHead ? 600U : 0U;
-        if (phase >= IntroPhase::Greeting) introHandMilliseconds_ = 600U;
         save(name);
         if (phase == IntroPhase::Silhouette &&
             canvas_.pixelHash({0, 0, kLogicalWidth, kLogicalHeight}) !=
                 0x1CAA563B9984B116ULL) {
             throw std::runtime_error(
                 "Macintosh title board artwork appeared before the source reveal");
+        }
+        if (phase == IntroPhase::Greeting &&
+            canvas_.pixelHash({400, 135, 485, 220}) != 0xA24FE4462B4A17E7ULL) {
+            throw std::runtime_error(
+                "Macintosh title hand is not the source terminal open-hand cel");
         }
     }
 
@@ -180,8 +183,6 @@ void App::renderQaFrames(std::wstring_view outputDirectory) {
         {1499, L"07d-menu-reveal-final.bmp"},
     }};
     introPhase_ = IntroPhase::MenuReveal;
-    introHandMilliseconds_ = introHandMovie_.duration() * 1000U /
-                             introHandMovie_.timeScale();
     for (const auto& [milliseconds, name] : revealFrames) {
         introPhaseMilliseconds_ = milliseconds;
         save(name);
@@ -193,7 +194,6 @@ void App::renderQaFrames(std::wstring_view outputDirectory) {
     screen_ = Screen::Intro;
     introPhase_ = IntroPhase::TalkingHead;
     introPhaseMilliseconds_ = 600U;
-    introHandMilliseconds_ = 600U;
     save(L"08-skip-before.bmp");
     click({256, 192});
     if (screen_ != Screen::Menu)
@@ -205,8 +205,6 @@ void App::renderQaFrames(std::wstring_view outputDirectory) {
     screen_ = Screen::Intro;
     introPhase_ = IntroPhase::MenuReveal;
     introPhaseMilliseconds_ = 300U;
-    introHandMilliseconds_ = introHandMovie_.duration() * 1000U /
-                             introHandMovie_.timeScale();
     save(L"09a-board-skip-before.bmp");
     // Use a point visibly inside the easel board, matching the user's actual
     // click route rather than relying on an arbitrary stage coordinate.
@@ -377,6 +375,8 @@ void App::renderQaFrames(std::wstring_view outputDirectory) {
         save(L"36-yacht-scorecard.bmp");
         yacht->setQaComputerDicePresentation();
         save(L"36-yacht-computer-dice.bmp");
+        if (canvas_.pixelHash({210, 120, 300, 200}) != 0xE0A86509681E5B97ULL)
+            throw std::runtime_error("Macintosh Yacht idle actor lost its composed hand layer");
         yacht->setQaDiceSelectionPresentation();
         save(L"36-yacht-dice-selection.bmp");
         yacht->setQaVictoryPresentation();
@@ -578,7 +578,6 @@ int App::run(int showCommand) {
         startGame(static_cast<int>(std::wcstol(qaGame + 10, nullptr, 10)));
     } else if (const wchar_t* qaMenuSelection =
                    std::wcsstr(GetCommandLineW(), L"--qa-menu-selection=")) {
-        introHandMilliseconds_ = introHandMovie_.duration() * 1000U / introHandMovie_.timeScale();
         screen_ = Screen::Menu;
         showSelectedMenuPose();
         const int selection = static_cast<int>(std::wcstol(qaMenuSelection + 20, nullptr, 10));
@@ -586,13 +585,11 @@ int App::run(int showCommand) {
         InvalidateRect(window_, nullptr, FALSE);
     } else if (const wchar_t* qaMenuIdle =
                    std::wcsstr(GetCommandLineW(), L"--qa-menu-idle=")) {
-        introHandMilliseconds_ = introHandMovie_.duration() * 1000U / introHandMovie_.timeScale();
         screen_ = Screen::Menu;
         showSelectedMenuPose();
         showMenuIdleQaPose(static_cast<int>(std::wcstol(qaMenuIdle + 15, nullptr, 10)));
         InvalidateRect(window_, nullptr, FALSE);
     } else if (std::wcsstr(GetCommandLineW(), L"--qa-menu")) {
-        introHandMilliseconds_ = introHandMovie_.duration() * 1000U / introHandMovie_.timeScale();
         screen_ = Screen::Menu;
         showSelectedMenuPose();
         InvalidateRect(window_, nullptr, FALSE);
@@ -905,15 +902,14 @@ void App::drawMario(bool talking) {
         ? std::clamp(menuSourceSelection_ - 1, 0, 4) : 0;
     canvas_.sprite(graphics_.sprite(1020, pointerFrame), 150, 142, false);
 
-    // The title controller and the menu-selection controller own the same
-    // right-hand layer. Once the menu is live, resources 1111..1115 replace
-    // the title hand; drawing both produces the doubled glove/object visible
-    // in the broken menu capture.
+    // CODE 12 $23C8 loads movie 1111, stores duration-1 in its time field,
+    // and enables that terminal cel as the title's open right hand. It does
+    // not play the checker-stack frames or their effects during the spoken
+    // title sequence. Once the menu is live, the selection controller owns
+    // movies 1111..1115 instead; drawing both would double the hand/object.
     if (screen_ != Screen::Menu) {
-        const std::uint32_t handTime = std::min<std::uint32_t>(
-            introHandMovie_.duration() - 1,
-            introHandMilliseconds_ * introHandMovie_.timeScale() / 1000U);
-        introHandMovie_.render(canvas_, graphics_, handTime, 397, 127);
+        introHandMovie_.render(canvas_, graphics_, introHandMovie_.duration() - 1,
+                               397, 127);
     }
 }
 
@@ -1072,11 +1068,9 @@ void App::advanceIntro(IntroPhase phase) {
 
 void App::skipTitleIntro() {
     // The source mouse-down terminates the live title controller immediately.
-    // Finish movie 1111 on its terminal hand/easel cel so entering the menu
-    // cannot briefly expose an earlier title pose.
+    // The title hand is already pinned to movie 1111's terminal cel. Stop the
+    // title audio and install the live menu controller's selected pose.
     audio_.stop();
-    introHandMilliseconds_ = introHandMovie_.duration() * 1000U /
-                             introHandMovie_.timeScale();
     introPhase_ = IntroPhase::MenuReveal;
     introPhaseMilliseconds_ = 0;
     screen_ = Screen::Menu;
@@ -1087,21 +1081,6 @@ void App::skipTitleIntro() {
 
 void App::tickIntro(unsigned milliseconds) {
     introPhaseMilliseconds_ += milliseconds;
-    if (introPhase_ >= IntroPhase::Greeting) {
-        const std::uint32_t previousTime = std::min<std::uint32_t>(
-            introHandMovie_.duration(),
-            introHandMilliseconds_ * introHandMovie_.timeScale() / 1000U);
-        introHandMilliseconds_ += milliseconds;
-        const std::uint32_t currentTime = std::min<std::uint32_t>(
-            introHandMovie_.duration(),
-            introHandMilliseconds_ * introHandMovie_.timeScale() / 1000U);
-        // CODE 12 starts movie 1111 with the title-stage host.  Its seven
-        // authored hand/easel effects are timeline events, not ambient UI
-        // sounds, and must advance alongside the rendered movie.
-        for (int sound : introHandMovie_.soundsBetween(previousTime, currentTime))
-            audio_.playEffect(sound);
-    }
-
     switch (introPhase_) {
     case IntroPhase::StartupBlack:
         if (introPhaseMilliseconds_ >= 1800U) {

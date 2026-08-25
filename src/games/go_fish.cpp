@@ -1007,22 +1007,43 @@ void GoFishGame::render(Canvas& canvas) {
     }
     canvas.sprite(context_.graphics.sprite(5100),
                   dosEdition() ? 217 : 347, dosEdition() ? 89 : 170, false);
-    canvas.pakText(context_.graphics,
-                   context_.playerName.empty() ? L"MY FRIEND" : context_.playerName,
-                   223, dosEdition() ? Rect{225, 10, 313, 27} : Rect{360, 22, 499, 47},
-                   DT_CENTER | DT_VCENTER | DT_SINGLELINE, 11);
-    canvas.pakText(context_.graphics, std::to_wstring(computerBooks_), 223,
-                   dosEdition() ? Rect{65, 28, 94, 41} : Rect{104, 54, 151, 77},
-                   DT_LEFT | DT_VCENTER | DT_SINGLELINE);
-    canvas.pakText(context_.graphics, std::to_wstring(computer_.size()), 223,
-                   dosEdition() ? Rect{65, 41, 94, 54} : Rect{104, 78, 151, 101},
-                   DT_LEFT | DT_VCENTER | DT_SINGLELINE);
-    canvas.pakText(context_.graphics, std::to_wstring(humanBooks_), 223,
-                   dosEdition() ? Rect{282, 28, 312, 41} : Rect{451, 54, 498, 77},
-                   DT_LEFT | DT_VCENTER | DT_SINGLELINE);
-    canvas.pakText(context_.graphics, std::to_wstring(human_.size()), 223,
-                   dosEdition() ? Rect{282, 41, 312, 54} : Rect{451, 78, 498, 101},
-                   DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+    const std::wstring_view playerLabel =
+        context_.playerName.empty() ? std::wstring_view{L"My Friend"}
+                                    : std::wstring_view{context_.playerName};
+    if (dosEdition()) {
+        // DOS Pak 5001 leaves both scoreboards' captions blank. Overlay 18
+        // writes these six strings with Pak 223 at fixed pixels; unlike the
+        // Macintosh sheet, they are not baked into the background. The old
+        // shared renderer omitted every caption, centred the player name four
+        // rows too high, and displaced both numeric columns.
+        constexpr unsigned leftTop = DT_LEFT | DT_TOP | DT_SINGLELINE;
+        canvas.pakText(context_.graphics, L"MARIO", 223, {15, 19, 96, 27}, leftTop);
+        canvas.pakText(context_.graphics, playerLabel, 223, {230, 19, 313, 27},
+                       leftTop, 11);
+        canvas.pakText(context_.graphics, L"BOOKS", 223, {15, 35, 55, 42}, leftTop);
+        canvas.pakText(context_.graphics, L"CARDS", 223, {15, 44, 55, 51}, leftTop);
+        canvas.pakText(context_.graphics, std::to_wstring(computerBooks_), 223,
+                       {60, 35, 72, 42}, leftTop);
+        canvas.pakText(context_.graphics, std::to_wstring(computer_.size()), 223,
+                       {60, 44, 72, 51}, leftTop);
+        canvas.pakText(context_.graphics, L"BOOKS", 223, {230, 35, 270, 42}, leftTop);
+        canvas.pakText(context_.graphics, L"CARDS", 223, {230, 44, 270, 51}, leftTop);
+        canvas.pakText(context_.graphics, std::to_wstring(humanBooks_), 223,
+                       {275, 35, 288, 42}, leftTop);
+        canvas.pakText(context_.graphics, std::to_wstring(human_.size()), 223,
+                       {275, 44, 288, 51}, leftTop);
+    } else {
+        canvas.pakText(context_.graphics, playerLabel, 223, {360, 22, 499, 47},
+                       DT_CENTER | DT_VCENTER | DT_SINGLELINE, 11);
+        canvas.pakText(context_.graphics, std::to_wstring(computerBooks_), 223,
+                       {104, 54, 151, 77}, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+        canvas.pakText(context_.graphics, std::to_wstring(computer_.size()), 223,
+                       {104, 78, 151, 101}, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+        canvas.pakText(context_.graphics, std::to_wstring(humanBooks_), 223,
+                       {451, 54, 498, 77}, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+        canvas.pakText(context_.graphics, std::to_wstring(human_.size()), 223,
+                       {451, 78, 498, 101}, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+    }
     const bool victoryPresentation = winner_ == 1 &&
         outcomePhase_ != OutcomePhase::Announcement &&
         outcomePhase_ != OutcomePhase::None;

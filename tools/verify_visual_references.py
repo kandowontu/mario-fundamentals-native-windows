@@ -110,6 +110,18 @@ MAC_SAMPLES = (
         MAC_RUN_CAPTURE_SIZE,
         MAC_RUN_CAPTURE_CROP,
     ),
+    # CODE 12 pins movie 1111 at duration-1 during the title sequence. This
+    # focused region rejects the checker-stack cels that previously replaced
+    # Mario's open right hand while he spoke.
+    Sample(
+        "title-open-right-hand",
+        "run-06.png",
+        "05-title-greeting.bmp",
+        ((400, 135, 485, 220),),
+        32.0,
+        MAC_RUN_CAPTURE_SIZE,
+        MAC_RUN_CAPTURE_CROP,
+    ),
     # Stable source menu selections independently cover four of the five
     # button rows, pointer endpoints, hand poses, and held game-piece actors.
     Sample(
@@ -297,6 +309,15 @@ MAC_SAMPLES = (
         ((0, 0, 512, 384),),
         12.0,
     ),
+    # Movie 6021's time-zero overlay completes the idle actor's left glove;
+    # comparing the hand region prevents a raw base-cel substitution.
+    Sample(
+        "yacht-idle-actor-hands",
+        "original-yacht-trace-7.png",
+        "36-yacht-computer-dice.bmp",
+        ((210, 120, 300, 200),),
+        40.0,
+    ),
     Sample(
         "yacht-reroll-gesture-registration",
         "original-yacht-trace-8.png",
@@ -358,6 +379,16 @@ DOS_SAMPLES = (
         "35-gofish-hand.bmp",
         ((0, 0, 110, 80), (210, 0, 320, 80), (0, 80, 320, 145)),
         28.0,
+    ),
+    # Overlay 18 draws these captions and values dynamically in the DOS
+    # edition; Pak 5001 does not contain them. Keep narrow regions around the
+    # fixed labels so a broad board/chrome tolerance cannot hide their loss.
+    Sample(
+        "go-fish-scoreboard-labels",
+        "go-fish.png",
+        "35-gofish-hand.bmp",
+        ((14, 18, 72, 52), (229, 34, 289, 52)),
+        3.0,
     ),
     Sample(
         "yacht-scorecards",
@@ -562,11 +593,13 @@ def main() -> int:
             "reduced to its stable game surface; random actor/card/piece/cursor regions are "
             "excluded from stable-layout cases; four Macintosh publisher states, three title "
             "states, four Macintosh menu selections, seven source-timed Macintosh game intros, "
-            "and five source-timed DOS game intros compare complete frames; three first-use "
+            "and five source-timed DOS game intros compare complete frames; a focused title-hand "
+            "case pins the terminal open-hand cel; three first-use "
             "panel frames, a Backgammon setup reveal, three Go Fish hand/question states, and a "
             "Yacht dice/marker state are checked as complete frames; edge-only checks pin both "
-            "Dominoes score portraits and the Macintosh Yacht reroll gesture; three Macintosh Yacht "
-            "regions independently verify the idle actor, full-body gesture, and roll-contact cup"
+            "Dominoes score portraits and the Macintosh Yacht reroll gesture; four Macintosh Yacht "
+            "regions independently verify the idle actor, its composed hands, the full-body "
+            "gesture, and the roll-contact cup"
         ),
         "cases": cases,
     }

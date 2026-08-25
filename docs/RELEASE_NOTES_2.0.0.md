@@ -16,6 +16,9 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   board skips the remaining voice/animation and lands on the fully revealed menu.
 - The first stable Macintosh title frame now keeps Pak 710 under the source black cast. The easel
   artwork appears only when the greeting begins instead of being exposed during the silhouette hold.
+- CODE 12's title control now pins movie 1111 at `duration-1`, preserving Mario's open right hand
+  throughout his spoken introduction. The checker-stack cels and seven effects belong only to the
+  live Checkers menu-selection animation.
 - The live Macintosh menu now gives its right-hand layer exclusively to the selected-game actor;
   the completed title hand is no longer composited beneath it as a second glove/object.
 - The no-window presentation sweeps now emit 221 exact 512×384 Macintosh frames and 231 exact
@@ -35,12 +38,13 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   The supporting DOS discovery ledger no longer leaves 1,923 heuristic candidates generically
   pending: 77 overlay rows defer to the exact export/prologue ledger and 1,846 resident rows are
   explicitly dispositioned to the replaced platform/runtime/media family.
-- The local release gate now compares 47 representative native frames/regions against independently
+- The local release gate now compares 50 representative native frames/regions against independently
   captured original Macintosh/DOS output. Coverage includes publisher/title states, four selected
   menu poses, stable game geometry, seven Macintosh and all five DOS source-timed intro instants,
-  complete post-intro first-use panels, Backgammon's setup reveal, Go Fish
-  grouped/question/transfer hands, exact Dominoes portrait registration, and Yacht
-  actor/dice/marker/gesture/cup regions. A separate inventory accounts for all 219 retained captures
+  complete post-intro first-use panels, Backgammon's setup reveal, DOS Go Fish scoreboard
+  captions, Go Fish grouped/question/transfer hands, exact Dominoes portrait registration, the
+  title's open hand, and Yacht actor/hand/dice/marker/gesture/cup regions. A separate inventory
+  accounts for all 219 retained captures
   and fails on any unknown file.
 - The Dominoes score portrait now uses its independently captured edition-specific origin:
   Macintosh `(11,11)` and DOS `(7,15)`, safely below the DOS menu bar.
@@ -59,12 +63,17 @@ media, executable, emulator, installer, sound driver, or loose asset files.
 - Yacht speech now draws the fixed torso beneath the live head and uses the complete neutral Mario
   only between lines. Its stationary cup is hidden during the animated roll, removing both the
   shirt-over-jaw layering error and the duplicate cup.
+- The neutral Yacht actor now composes both simultaneous time-zero cels from movie 6021 instead of
+  drawing its incomplete raw base frame. Mario's left glove is solid in Macintosh and DOS gameplay.
 - Both Macintosh computer-roll entry paths now register the full-body movie-6021 gesture at CODE
   18's source `(15,-1)` anchor instead of the displaced DOS-era coordinate. The wide gesture is
   independently compared with vanilla and its exact bounds are self-tested.
 - Go Fish now uses complete Pak 11000 for neutral Mario. Pak 5090 frame zero is only movie 5090's
   transparent base layer, so using it alone exposed the page through his eyes; idle and question-
   card-transfer face regions are now hash-regressed in both editions.
+- DOS Go Fish now draws overlay 18's `MARIO`, player-name, `BOOKS`, and `CARDS` text at the source
+  Pak-223 coordinates instead of leaving blank score panels with displaced numbers. Both panels
+  have exact regional hashes and a focused vanilla screenshot comparison.
 - Go Fish's source-matched question QA now verifies the Luigi request before transfer and the Yoshi
   request afterward, including Pak 5007's rank-specific held card and the 7-to-8 card-count change.
 - DOS MuV/Img geometry now uses its proven conventional x/y field order instead of Macintosh

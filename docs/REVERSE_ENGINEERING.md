@@ -208,7 +208,9 @@ horizontal origin as another caller offset scattered those layers and left only 
 The Yacht gameplay cast has a separate source registration from its title boats. Dialogue movies
 use input `(15,-1)` (movie 11411 frame 3 is `(228,18)-(336,123)`) over Pak 6012 at `(26,0)`; both
 computer-roll entry paths register full-body movie 6021 at the same `(15,-1)` input, whose wide
-source-time-240 bounds are `(99,18)-(337,212)`. The complete idle Pak 6021 actor is at `(217,18)`.
+source-time-240 bounds are `(99,18)-(337,212)`. At source time zero the movie activates base frame
+0 and overlay frame 1 simultaneously. Their shared destination is `(217,18)` on Macintosh and
+`(119,9)` on DOS; drawing raw frame 0 alone drops Mario's left glove.
 Pak 6010 frame 12's stationary cup is
 `(218,129)-(296,228)`, and movie 6020 input `(0,-9)` gives its first live frame those identical
 bounds. The controller suppresses the stationary frame from mouse-down through the movie and all
@@ -236,9 +238,11 @@ checks now enforce all of these distinctions.
 
 Timeline opcode 7 dispatches authored sound events. Native host playback treats a movie's
 time-zero cue as its tracked speech line and later cues as concurrent effects, so multi-hit
-animations do not cancel their preceding effects or extend speech-gated controllers. The startup
-hand/easel movie 1111 is advanced alongside the title stage and fires its original seven cues at
-timeline times 120, 180, 420, 480, 540, 600, and 660.
+animations do not cancel their preceding effects or extend speech-gated controllers. Movie 1111
+contains seven cues at timeline times 120, 180, 420, 480, 540, 600, and 660. CODE 12
+`$23C8-$2424` loads it for the title, writes `duration-1` to the control's time field, and enables
+that terminal open-hand cel. It is therefore not advanced—and those cues do not fire—while Mario
+speaks. The live Checkers menu-selection controller later owns the same movie and its authored cues.
 
 The CODE 12 `$1F74` title controller is preserved as an eight-state sequence. In particular, its
 five-count pause begins only after sound 5001 finishes; movie 12091 then owns the talking-title
@@ -376,6 +380,12 @@ implementations remain evidence-backed rather than inferred from modern versions
   layers. The complete neutral head is Pak 11000 frame zero, placed at Macintosh `(202,18)` or DOS
   `(126,9)` over the fixed Pak 5300 torso. Native idle and question-card-transfer captures hash the
   face region in both editions so the page background cannot leak through it again.
+- DOS Pak 5001 leaves the score captions blank: the original resident strings at executable file
+  offsets `0x39905`, `0x3990B`, and `0x39911` are `MARIO`, `CARDS`, and `BOOKS`. The retained
+  320x200 source frame fixes their Pak-223 raster origins at `(15,19)`, `(15,44)`, and `(15,35)`;
+  the right captions repeat at x=230, with numeric columns at x=60 and x=275. The player name is
+  left-aligned at `(230,19)`. Two native scoreboard hashes plus a narrow independent-source
+  comparison now gate those runtime layers separately from the broad random-gameplay comparison.
 - Go Fish's strategy routine at `$484A` runs with difficulty word two. `$48FA` calls the range
   helper with the adjacent memory-count word, which `$4616` clears and never increments; this is a
   `Random(0)` that always yields slot zero but still advances the QuickDraw seed. It then consults

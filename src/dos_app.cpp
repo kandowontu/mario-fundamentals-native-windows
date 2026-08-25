@@ -98,7 +98,10 @@ constexpr std::array<std::uint64_t, 3> kDosCharacterChoiceQaHashes{
     0x5ECB5FF01CC23392ULL, 0xBB7CCF36B37D9131ULL, 0xFC049B8CCAD7E8E8ULL};
 constexpr std::array<std::uint64_t, 5> kDosNamePromptQaHashes{
     0x92F8BACD0F4D7E58ULL, 0x0665714D87179076ULL, 0x44524397F669CCE0ULL,
-    0xDC354E6EBDAF97E3ULL, 0xDB68C1B280DB61A1ULL};
+    0x8301F9BED88DE3E3ULL, 0xDB68C1B280DB61A1ULL};
+constexpr std::array<std::uint64_t, 2> kDosGoFishScoreboardQaHashes{
+    0x30BDE2EDD196DDFBULL, 0xC5478D472EF086DEULL};
+constexpr std::uint64_t kDosYachtIdleActorQaHash = 0xD58D8A2935D94949ULL;
 
 }  // namespace
 
@@ -452,6 +455,10 @@ void DosApp::renderQaFrames(std::wstring_view outputDirectory) {
     if (auto* goFish = dynamic_cast<GoFishGame*>(game_.get())) {
         goFish->setQaHandSlotsPresentation(false);
         save(L"35-gofish-hand.bmp");
+        if (canvas_.pixelHash({4, 10, 100, 55}) != kDosGoFishScoreboardQaHashes[0] ||
+            canvas_.pixelHash({218, 10, 315, 55}) != kDosGoFishScoreboardQaHashes[1]) {
+            throw std::runtime_error("DOS Go Fish scoreboard captions or values changed");
+        }
         if (canvas_.pixelHash({145, 20, 177, 42}) != 0x5E37997BB4C35C26ULL)
             throw std::runtime_error("DOS Go Fish idle head is not the solid source actor");
         goFish->setQaQuestionPresentation();
@@ -475,6 +482,8 @@ void DosApp::renderQaFrames(std::wstring_view outputDirectory) {
         save(L"36-yacht-scorecard.bmp");
         yacht->setQaComputerDicePresentation();
         save(L"36-yacht-computer-dice.bmp");
+        if (canvas_.pixelHash({119, 9, 184, 97}) != kDosYachtIdleActorQaHash)
+            throw std::runtime_error("DOS Yacht idle actor lost its composed hand layer");
         yacht->setQaDiceSelectionPresentation();
         save(L"36-yacht-dice-selection.bmp");
         yacht->setQaVictoryPresentation();

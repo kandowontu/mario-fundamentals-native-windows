@@ -191,11 +191,11 @@ both deterministic asset packs occur exactly once, proves all 1,707 Macintosh an
 resources against their extraction manifests when those local audit records are present, reruns the
 self-test from an empty working directory, regenerates 221 Macintosh and 231 DOS no-window
 presentation frames at the exact 512×384 and 320×200 logical sizes, inventories all 219 retained
-vanilla captures, compares 47 independent original-output cases (publisher/title states, selected
-menus, stable layouts, source-timed game intros, first-use panels, Backgammon setup, Go Fish
-questions/transfers, exact Dominoes portrait registration, and focused Macintosh Yacht
-actor/dice/marker/gesture/cup checks) when those unshipped local captures are present, and copies the
-result to `dist`.
+vanilla captures, compares 50 independent original-output cases (publisher/title states and the
+terminal open-hand cel, selected menus, stable layouts, source-timed game intros, first-use panels,
+Backgammon setup, Go Fish scoreboard captions/questions/transfers, exact Dominoes portrait
+registration, and focused Macintosh Yacht actor/hand/dice/marker/gesture/cup checks) when those
+unshipped local captures are present, and copies the result to `dist`.
 
 The dual-edition artifact produced here is an unreleased QA candidate. Its build-specific checksum
 is written to `dist/SHA256SUMS.txt`; no candidate should be redistributed as a 2.0 release until the

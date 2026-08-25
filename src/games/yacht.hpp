@@ -113,6 +113,7 @@ private:
     HostAnimation host_;
     HostAnimation rollAnimation_;
     HostAnimation gestureAnimation_;
+    Movie idleActorMovie_;
     // 0 = none, 1 = resolve a player roll, -1 = resolve Mario's roll.
     int pendingRollPlayer_{};
     int settlingDieIndex_{};
