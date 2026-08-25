@@ -280,6 +280,11 @@ void DosApp::renderQaFrames(std::wstring_view outputDirectory) {
         for (int sample = 0; sample <= 20; ++sample) {
             gameIntroMilliseconds_ = gameIntroDurationMilliseconds_ *
                                      static_cast<std::uint32_t>(sample) / 20U;
+            // The independent Checkers reference was captured on source tick
+            // 4200, where Pak 2801 frame 7 and Pak 2800 frame 6 meet. Preserve
+            // that exact authored instant in the standard QA sequence instead
+            // of landing 75 ticks later through integer twentieths.
+            if (gameIndex == 2 && sample == 19) gameIntroMilliseconds_ = 7000U;
             save(L"07-intro-" + std::to_wstring(gameIndex) + L"-" +
                  (sample < 10 ? L"0" : L"") + std::to_wstring(sample) + L".bmp");
         }
@@ -783,13 +788,33 @@ void DosApp::beginGameIntro(int gameIndex) {
     switch (gameIndex) {
     // These direct-render offsets reconcile the positions written by DOS
     // overlays 1, 13, 7, 17, and 30 with each MuV's intrinsic registration.
-    case 0: add(4999, -100, 126); break;
+    case 0:
+        // Overlay 1 stores the Backgammon actor registration at (-100,126),
+        // while MuV 4999 contributes its own (101,18) bounding origin. The
+        // original controller removes that origin before handing the actor to
+        // the movie player. Passing the raw registration directly made the
+        // foreground land 101 pixels right and 18 pixels low; later cels only
+        // disguised that as broken timing when they re-entered the screen.
+        // This resolved origin puts Pak 4999 frame 2 at the independently
+        // captured vanilla position (108,126).
+        add(4999, -201, 108);
+        break;
     // Overlay 13 anchors the surviving composite actor at stage y=120, while
     // movie 3002 registers its image plane at y=128.  Subtract the movie
     // registration instead of adding the actor anchor a second time.
     case 1: add(3002, 0, -8); break;
-    case 2: add(2801, -93, 144); add(2800, -93, 144); break;
-    case 3: add(5101, 0, 120); add(5102, 0, 90); break;
+    case 2:
+        // Checkers supplies registered actor points too; remove MuV 2801's
+        // (3,10) and MuV 2800's (14,14) bounds origins before rendering.
+        add(2801, -96, 134);
+        add(2800, -107, 130);
+        break;
+    case 3:
+        // The two Go Fish swimmers have independent vertical registrations.
+        // Applying those origins twice put both actors below the vanilla lane.
+        add(5101, 0, 79);
+        add(5102, 0, 85);
+        break;
     case 4: add(6100, -90, 0); add(6150, -123, 0); break;
     }
     screen_ = Screen::GameIntro;

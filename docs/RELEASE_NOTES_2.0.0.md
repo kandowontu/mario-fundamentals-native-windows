@@ -32,11 +32,18 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   The supporting DOS discovery ledger no longer leaves 1,923 heuristic candidates generically
   pending: 77 overlay rows defer to the exact export/prologue ledger and 1,846 resident rows are
   explicitly dispositioned to the replaced platform/runtime/media family.
-- The local release gate now compares eleven representative native frames against independently
-  captured original Macintosh/DOS output. The checks cover the DOS main menu and every game's
-  stable board, table, scorecard, or chrome geometry without conflating random game states.
+- The local release gate now compares sixteen representative native frames against independently
+  captured original Macintosh/DOS output. Eleven checks cover the DOS main menu and every game's
+  stable board, table, scorecard, or chrome geometry; five more compare complete source-timed DOS
+  game-intro frames, including their moving foreground actors.
+- DOS Backgammon, Checkers, and Go Fish intro actors now resolve the registered points supplied by
+  their overlays before applying MuV bounds. This removes the second registration that displaced
+  Backgammon by `(101,18)`, both Checkers actors by their separate origins, and both Go Fish actors
+  below their original swimming lanes.
 - The Yacht idle cup is suppressed by the same controller guard in both editions throughout the
   roll movie and all sequential die-settle passes, with separate Macintosh and DOS regressions.
+  Every movie tick also proves there is at most one large cup cel; vanilla's two small cup-shaped
+  counters remain because they are the authored remaining-roll markers.
 - DOS `Ply` motion pairs retain the source vertical/horizontal layout even though DOS `MuV` and
   `Img` geometry uses conventional x/y fields. The runtime now treats those dialects separately;
   all five game introductions move on their authored axes, the Yacht crosses the water instead

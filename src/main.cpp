@@ -470,6 +470,7 @@ int selfTest(HINSTANCE instance) {
     }
     const mf::Movie yachtIntroUpper(assets, 6100);
     const mf::Movie yachtIntroLower(assets, 6150);
+    const mf::Movie yachtRollCup(assets, 6020);
     const mf::Rect yachtUpperStart = yachtIntroUpper.imageBounds(0, -149, 0);
     const mf::Rect yachtLowerStart = yachtIntroLower.imageBounds(0, -208, 0);
     const mf::Rect yachtTalkingHead = mf::Movie(assets, 11411).imageBounds(3, -11, -1);
@@ -480,6 +481,11 @@ int selfTest(HINSTANCE instance) {
         yachtTalkingHead.left != 202 || yachtTalkingHead.top != 18 ||
         yachtTalkingHead.right != 310 || yachtTalkingHead.bottom != 123) {
         throw std::runtime_error("Yacht registered movie geometry regression");
+    }
+    for (std::uint32_t time = 0; time < yachtRollCup.duration(); ++time) {
+        if (yachtRollCup.activeImageCount(time) > 1) {
+            throw std::runtime_error("Macintosh Yacht roll movie duplicated its large cup layer");
+        }
     }
     constexpr std::array<std::pair<int, int>, 6> yachtOutcomeVoiceCues{{
         {11439, 6045}, {11442, 6046}, {11443, 8023},
@@ -744,6 +750,33 @@ int selfTest(HINSTANCE instance) {
         yachtLater.top != yachtStart.top ||
         cupShake.left != cupStart.left || cupShake.top - cupStart.top != 8) {
         throw std::runtime_error("DOS Ply motion-axis regression");
+    }
+    for (std::uint32_t time = 0; time < dosYachtCup.duration(); ++time) {
+        if (dosYachtCup.activeImageCount(time) > 1) {
+            throw std::runtime_error("DOS Yacht roll movie duplicated its large cup layer");
+        }
+    }
+    // The intro overlays do not all pass the same kind of coordinate to the
+    // movie player. Backgammon, Checkers, and Go Fish supply registered actor
+    // points, so their MuV bounds origins must be resolved at the call site.
+    // These source-time samples are also the exact foreground placements in
+    // the independent vanilla DOS screenshots used by the visual gate.
+    const mf::Rect dosBackgammonReference =
+        mf::Movie(dosAssets, 4999).activeVisualBounds(1320, -201, 108);
+    const mf::Rect dosCheckersLeftReference =
+        mf::Movie(dosAssets, 2801).activeVisualBounds(4200, -96, 134);
+    const mf::Rect dosCheckersRightReference =
+        mf::Movie(dosAssets, 2800).activeVisualBounds(4200, -107, 130);
+    const mf::Rect dosGoFishRightReference =
+        mf::Movie(dosAssets, 5101).activeVisualBounds(1620, 0, 79);
+    const mf::Rect dosGoFishLeftReference =
+        mf::Movie(dosAssets, 5102).activeVisualBounds(1620, 0, 85);
+    if (dosBackgammonReference.left != 108 || dosBackgammonReference.top != 126 ||
+        dosCheckersLeftReference.left != 24 || dosCheckersLeftReference.top != 145 ||
+        dosCheckersRightReference.left != 119 || dosCheckersRightReference.top != 144 ||
+        dosGoFishRightReference.left != 234 || dosGoFishRightReference.top != 121 ||
+        dosGoFishLeftReference.left != 94 || dosGoFishLeftReference.top != 115) {
+        throw std::runtime_error("DOS intro registered-position regression");
     }
     if (!mf::DosApp::sourceIntroSkipRegressionTest() ||
         !mf::DosApp::sourceGameIntroCompletionRegressionTest())

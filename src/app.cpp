@@ -190,6 +190,8 @@ void App::renderQaFrames(std::wstring_view outputDirectory) {
     introHandMilliseconds_ = 600U;
     save(L"08-skip-before.bmp");
     click({256, 192});
+    if (screen_ != Screen::Menu)
+        throw std::runtime_error("Macintosh live-title mouse-down did not finish the intro");
     save(L"09-skip-menu.bmp");
 
     screen_ = Screen::Intro;
@@ -199,6 +201,8 @@ void App::renderQaFrames(std::wstring_view outputDirectory) {
                              introHandMovie_.timeScale();
     save(L"09a-board-skip-before.bmp");
     click({256, 192});
+    if (screen_ != Screen::Menu)
+        throw std::runtime_error("Macintosh board-reveal mouse-down did not finish the intro");
     save(L"09b-board-skip-menu.bmp");
 
     for (int sourceSelection = 1; sourceSelection <= 5; ++sourceSelection) {

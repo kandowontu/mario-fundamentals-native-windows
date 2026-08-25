@@ -126,6 +126,44 @@ DOS_SAMPLES = (
         ((0, 0, 105, 180), (215, 0, 320, 180)),
         12.0,
     ),
+    # Dynamic intro samples use independently captured source instants. These
+    # whole-frame comparisons catch registered-actor offsets that static board
+    # and scorecard regions deliberately exclude.
+    Sample(
+        "backgammon-intro",
+        "backgammon-intro.png",
+        "07-intro-0-06.bmp",
+        ((0, 0, 320, 200),),
+        2.0,
+    ),
+    Sample(
+        "dominoes-intro",
+        "dominoes-intro.png",
+        "07-intro-1-04.bmp",
+        ((0, 0, 320, 200),),
+        5.5,
+    ),
+    Sample(
+        "checkers-intro",
+        "checkers-intro.png",
+        "07-intro-2-19.bmp",
+        ((0, 0, 320, 200),),
+        5.0,
+    ),
+    Sample(
+        "go-fish-intro",
+        "go-fish-intro.png",
+        "07-intro-3-12.bmp",
+        ((0, 0, 320, 200),),
+        2.5,
+    ),
+    Sample(
+        "yacht-intro",
+        "yacht-intro.png",
+        "07-intro-4-01.bmp",
+        ((0, 0, 320, 200),),
+        19.0,
+    ),
 )
 
 
@@ -272,8 +310,9 @@ def main() -> int:
         },
         "method": (
             "Gaussian-smoothed 64x64 regional RGB RMSE; the Macintosh browser capture is "
-            "reduced to its stable game surface and dynamic actor/card/piece/cursor regions "
-            "are excluded from both editions"
+            "reduced to its stable game surface; dynamic actor/card/piece/cursor regions are "
+            "excluded from the stable-layout cases, while five source-timed DOS intro cases "
+            "compare their complete frames"
         ),
         "cases": cases,
     }

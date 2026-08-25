@@ -206,6 +206,16 @@ instance input `(45,55)` gives a base bound of `(46,56)-(151,187)` and final-cel
 `(55,77)-(139,153)`, centered within the authored easel. The movie's persistent base cel conceals
 Pak 1001's already-complete menu until the flip timeline begins.
 
+The DOS game-intro overlays expose a second registration distinction. Overlay 1 writes movie 4999's
+actor point as `(-100,126)`, overlay 7 writes both Checkers points as `(-93,144)`, and overlay 17
+writes the Go Fish points as `(0,120)` and `(0,90)`. Those control paths register the actors against
+their MuV bounds before playback; the native direct renderer therefore pre-resolves the MuV origins
+instead of applying them a second time. At the independently captured source instants this places
+Pak 4999 frame 2 at `(108,126)`, Pak 2801/2800 frames 7/6 at `(24,145)` and `(119,144)`, and Pak
+5101/5102 frame 10 at `(234,121)` and `(94,115)`. Dominoes overlay 13 and Yacht overlay 30 use their
+movie origins directly and retain their separately proven inputs. Five complete-frame reference
+checks now enforce all of these distinctions.
+
 Timeline opcode 7 dispatches authored sound events. Native host playback treats a movie's
 time-zero cue as its tracked speech line and later cues as concurrent effects, so multi-hit
 animations do not cancel their preceding effects or extend speech-gated controllers. The startup

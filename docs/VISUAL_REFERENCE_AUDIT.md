@@ -20,10 +20,11 @@ are used only for local preservation QA.
 ## Method and current result
 
 The comparison uses Gaussian-smoothed regional RGB root-mean-square error after normalizing each
-image to its edition's logical resolution. Regions containing random pieces, cards, speech-mouth
-frames, or the captured mouse cursor are excluded. That makes the test sensitive to scorecard,
-board, status-bar, tiled-background, menu, and whole-scene placement regressions without treating
-different random game states as failures.
+image to its edition's logical resolution. The eleven stable-layout checks exclude regions with
+random pieces, cards, speech-mouth frames, or the captured mouse cursor. Five additional DOS cases
+compare complete game-intro frames at their independently identified source times. Together they
+cover scorecard, board, status-bar, tiled-background, menu, whole-scene placement, and moving-actor
+registration without treating different random gameplay states as failures.
 
 | Edition | Reference case | Current RMSE | Maximum |
 | --- | --- | ---: | ---: |
@@ -38,9 +39,15 @@ different random game states as failures.
 | DOS | Checkers chrome | 22.418 | 27.0 |
 | DOS | Go Fish table | 24.395 | 28.0 |
 | DOS | Yacht scorecards | 8.509 | 12.0 |
+| DOS | Backgammon intro | 0.967 | 2.0 |
+| DOS | Dominoes intro | 4.044 | 5.5 |
+| DOS | Checkers intro | 3.573 | 5.0 |
+| DOS | Go Fish intro | 1.268 | 2.5 |
+| DOS | Yacht intro | 15.660 | 19.0 |
 
 The release gate writes the machine-readable result to
 `work/audit/visual-reference-verification.json`. Thresholds are deliberately below the measured
-distance to mismatched scenes; the fixed-edge cases also reject small whole-scene shifts. This is
-a structural cross-check, not a claim that browser-scaled captures or different random turns are
-pixel-identical.
+distance to mismatched scenes; the fixed-edge cases also reject small whole-scene shifts. The
+Backgammon and Go Fish intro results are near pixel-identical, while the other intro margins allow
+only the independently captured cursor and source-frame/browser differences. This is a structural
+cross-check, not a claim that browser-scaled captures or different random turns are pixel-identical.

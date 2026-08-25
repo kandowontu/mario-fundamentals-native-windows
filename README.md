@@ -190,9 +190,9 @@ executable's full hidden/silent self-test, verifies the PE architecture and depe
 both deterministic asset packs occur exactly once, proves all 1,707 Macintosh and 1,806 DOS ripped
 resources against their extraction manifests when those local audit records are present, reruns the
 self-test from an empty working directory, regenerates 200 Macintosh and 210 DOS no-window
-presentation frames at the exact 512×384 and 320×200 logical sizes, compares eleven stable scene
-regions with independent original-output references when the unshipped local captures are present,
-and copies the result to `dist`.
+presentation frames at the exact 512×384 and 320×200 logical sizes, compares sixteen independent
+original-output references (eleven stable layouts plus all five source-timed DOS game intros) when
+the unshipped local captures are present, and copies the result to `dist`.
 
 The dual-edition artifact produced here is an unreleased QA candidate. Its build-specific checksum
 is written to `dist/SHA256SUMS.txt`; no candidate should be redistributed as a 2.0 release until the
