@@ -19,7 +19,7 @@ All notable native-port changes are documented here.
 - Silent, no-window Macintosh presentation output covering startup, title skip, four board-flip
   positions, every menu pose, 21 points across each game intro, eight opening states per game, and
   stationary/contact cup plus seven Yacht roll/settle states. The release gate regenerates and
-  validates all 201 frames plus the DOS sweep at each edition's exact logical dimensions.
+  validates all 202 frames plus the DOS sweep at each edition's exact logical dimensions.
 
 ### Changed
 
@@ -30,6 +30,8 @@ All notable native-port changes are documented here.
 
 ### Fixed
 
+- Moved the Dominoes score portrait to the independently captured vanilla position in each
+  edition: `(11,11)` on Macintosh and `(7,15)` below the DOS menu bar.
 - Routed Escape during the live Macintosh title through CODE 12's same completion path as a board
   click, preserving movie 1111's terminal hand/easel pose instead of entering the menu mid-cel.
 - Corrected all CODE 14 Dominoes opening routes: first-round deal speech now uses movies

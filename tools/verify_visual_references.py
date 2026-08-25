@@ -31,6 +31,9 @@ MAC_LOGICAL_SIZE = (512, 384)
 MAC_CAPTURE_SIZE = (2048, 1280)
 # Stable interior of the emulated 512x384 game surface in the local captures.
 MAC_CAPTURE_CROP = (341, 128, 1707, 1152)
+# The retained title-sequence run was captured in a smaller browser viewport.
+MAC_RUN_CAPTURE_SIZE = (1265, 712)
+MAC_RUN_CAPTURE_CROP = (370, 157, 882, 541)
 MAC_SOURCE_URL = "https://archive.org/details/mario-fundamentals"
 DOS_LOGICAL_SIZE = (320, 200)
 DOS_CAPTURE_CROP = (0, 0, 320, 200)
@@ -44,9 +47,60 @@ class Sample:
     qa_frame: str
     regions: tuple[tuple[int, int, int, int], ...]
     maximum_rmse: float
+    capture_size: tuple[int, int] | None = None
+    capture_crop: tuple[int, int, int, int] | None = None
+    edge_only: bool = False
 
 
 MAC_SAMPLES = (
+    # Independently captured publisher/title states protect the palette, stage
+    # composition, Mario's complete title pose, and talking animation.
+    Sample(
+        "brainstorm",
+        "hi-20.png",
+        "00-brainstorm.bmp",
+        ((0, 0, 512, 384),),
+        1.5,
+    ),
+    Sample(
+        "brainstorm-fade",
+        "hi-28.png",
+        "01-brainstorm-fade.bmp",
+        ((0, 0, 512, 384),),
+        1.0,
+    ),
+    Sample(
+        "stepping-stone",
+        "hi-34.png",
+        "02-stepping-stone.bmp",
+        ((0, 0, 512, 384),),
+        2.0,
+    ),
+    Sample(
+        "stepping-stone-fade",
+        "hi-52.png",
+        "03-stepping-stone-fade.bmp",
+        ((0, 0, 512, 384),),
+        2.0,
+    ),
+    Sample(
+        "title-greeting",
+        "run-06.png",
+        "05-title-greeting.bmp",
+        ((0, 0, 512, 384),),
+        10.0,
+        MAC_RUN_CAPTURE_SIZE,
+        MAC_RUN_CAPTURE_CROP,
+    ),
+    Sample(
+        "title-talking",
+        "run-23.png",
+        "06-title-talking.bmp",
+        ((0, 0, 512, 384),),
+        10.0,
+        MAC_RUN_CAPTURE_SIZE,
+        MAC_RUN_CAPTURE_CROP,
+    ),
     # Whole-frame dynamic captures catch source actor registration and staging
     # errors that board/chrome-only comparisons deliberately exclude.
     Sample(
@@ -106,11 +160,26 @@ MAC_SAMPLES = (
         16.0,
     ),
     Sample(
+        "backgammon-character-choice",
+        "original-backgammon-after-intro.png",
+        "12-backgammon-character-choice.bmp",
+        ((0, 0, 512, 384),),
+        13.0,
+    ),
+    Sample(
         "dominoes-table",
         "original-dominoes-trace-4.png",
         "21-opening-0.bmp",
         ((100, 0, 512, 330),),
         4.0,
+    ),
+    Sample(
+        "dominoes-score-portrait-registration",
+        "original-dominoes-trace-4.png",
+        "21-opening-0.bmp",
+        ((0, 0, 110, 115),),
+        38.0,
+        edge_only=True,
     ),
     Sample(
         "checkers-chrome",
@@ -171,6 +240,14 @@ DOS_SAMPLES = (
         "11-opening-8.bmp",
         ((100, 95, 315, 145),),
         3.0,
+    ),
+    Sample(
+        "dominoes-score-portrait-registration",
+        "dominoes.png",
+        "11-opening-128.bmp",
+        ((0, 8, 70, 75),),
+        60.0,
+        edge_only=True,
     ),
     Sample(
         "checkers-chrome",
@@ -266,16 +343,18 @@ def structural_rmse(
     candidate: Image.Image,
     regions: tuple[tuple[int, int, int, int], ...],
     blur_radius: float,
+    edge_only: bool,
 ) -> float:
     squared_rms = 0.0
     channel_count = 0
     for region in regions:
-        expected = reference.crop(region).filter(ImageFilter.GaussianBlur(blur_radius)).resize(
-            (64, 64), Image.Resampling.BILINEAR
-        )
-        actual = candidate.crop(region).filter(ImageFilter.GaussianBlur(blur_radius)).resize(
-            (64, 64), Image.Resampling.BILINEAR
-        )
+        expected = reference.crop(region).filter(ImageFilter.GaussianBlur(blur_radius))
+        actual = candidate.crop(region).filter(ImageFilter.GaussianBlur(blur_radius))
+        if edge_only:
+            expected = expected.convert("L").filter(ImageFilter.FIND_EDGES)
+            actual = actual.convert("L").filter(ImageFilter.FIND_EDGES)
+        expected = expected.resize((64, 64), Image.Resampling.BILINEAR)
+        actual = actual.resize((64, 64), Image.Resampling.BILINEAR)
         rms = ImageStat.Stat(ImageChops.difference(expected, actual)).rms
         squared_rms += sum(value * value for value in rms)
         channel_count += len(rms)
@@ -342,10 +421,16 @@ def main() -> int:
             if not qa_path.is_file():
                 raise SystemExit(f"missing {edition} native QA frame: {qa_path}")
             score = structural_rmse(
-                load_reference(reference_path, capture_size, capture_crop, logical_size),
+                load_reference(
+                    reference_path,
+                    sample.capture_size or capture_size,
+                    sample.capture_crop or capture_crop,
+                    logical_size,
+                ),
                 load_qa_frame(qa_path, logical_size),
                 sample.regions,
                 blur_radius,
+                sample.edge_only,
             )
             passed = score <= sample.maximum_rmse
             failed |= not passed
@@ -358,6 +443,7 @@ def main() -> int:
                     "regions": [list(region) for region in sample.regions],
                     "structural_rmse": round(score, 6),
                     "maximum_rmse": sample.maximum_rmse,
+                    "comparison": "edge" if sample.edge_only else "rgb",
                     "status": "PASS" if passed else "FAIL",
                 }
             )
@@ -378,9 +464,11 @@ def main() -> int:
         "method": (
             "Gaussian-smoothed 64x64 regional RGB RMSE; the Macintosh browser capture is "
             "reduced to its stable game surface; random actor/card/piece/cursor regions are "
-            "excluded from stable-layout cases, while seven source-timed Macintosh and five "
-            "source-timed DOS intro cases compare complete frames; two Macintosh Yacht regions "
-            "independently verify the gameplay actor and roll-contact cup"
+            "excluded from stable-layout cases; four Macintosh publisher states, two title "
+            "states, seven source-timed Macintosh game intros, and five source-timed DOS game "
+            "intros compare complete frames; one post-intro character prompt is checked as a "
+            "complete frame; edge-only registration checks pin both Dominoes score portraits; "
+            "two Macintosh Yacht regions independently verify the gameplay actor and roll-contact cup"
         ),
         "cases": cases,
     }

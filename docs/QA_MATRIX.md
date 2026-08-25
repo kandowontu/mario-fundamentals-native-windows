@@ -13,7 +13,7 @@ The `v2.0.0` release remains withdrawn until the replacement artifact is visuall
 | Temporary softlock after “Proudly Present” | MIDI output is prewarmed asynchronously and sequence requests queue until the mapper is ready; the isolated hidden startup/self-test completes. See `docs/AUDIO_AUDIT.md`. | Automated pass |
 | No background Mario/audio process after exit | Both window destroy paths stop voices and music and terminate their message loops; every gate run ends with no `MarioFundamentals` process. | Automated pass |
 | Frame-to-frame menu/gameplay shifting | `Canvas::present` performs one explicit nearest-neighbour logical-to-client map before a 1:1 upload, eliminating DPI-dependent `StretchBlt` phase changes. Every QA frame is pinned to 512×384 or 320×200. | Automated pass |
-| Port scenes retain original whole-frame geometry | Sixteen independent reference comparisons cover the main DOS menu, Backgammon, Dominoes, Checkers, Go Fish, and Yacht chrome/board/table geometry in both editions, plus complete source-timed frames for all five DOS game intros. `docs/VISUAL_REFERENCE_AUDIT.md` records the method and measured margins. | Automated pass |
+| Port scenes retain original whole-frame geometry | Thirty-four independent comparisons cover Macintosh publisher/title states, stable gameplay geometry in both editions, seven Macintosh and all five DOS game-intro instants, the full post-intro Backgammon chooser, both Dominoes score-portrait registrations, and focused Yacht actor/cup regions. `docs/VISUAL_REFERENCE_AUDIT.md` records the method and measured margins. | Automated pass |
 | Black repaint flicker | Both shells suppress erase-background; DOS composes the complete logical frame before touching the window DC and clears only the letterbox. | Automated pass |
 | Board flip centered and menu concealed before reveal | Macintosh/DOS dialect-specific MuV/Img ordering is independently validated; movie 1125's persistent base frame covers the latent menu. Four timeline frames per edition exercise start through terminal reveal. | Automated pass |
 | Clicking the DOS board cannot rewind the reveal | `DosApp::introSkipTarget` advances DimTitle/TalkingTitle to MenuReveal and MenuReveal to the completed menu; `03g/03h` captures exercise the live skip route. | Automated pass |
@@ -23,7 +23,7 @@ The `v2.0.0` release remains withdrawn until the replacement artifact is visuall
 | Mario head/torso compositing is solid during speech | The fixed torso renders before the live head and the complete neutral actor is used only between lines. Game intros/openings and outcome captures exercise these layers in both editions. | Automated pass |
 | Yacht cup does not duplicate | CODE 18's stationary-cup guard is ported through the roll movie and all five settle passes. Every movie tick is asserted to contain at most one large-cup cel, and seven roll/settle frames are generated for both editions. The two small cup-shaped objects in vanilla are intentional remaining-roll markers, not duplicated roll cups. | Automated pass |
 | Backgammon setup reveal is aligned and complete | CODE 11's eight stack records and all 46 controller passes have semantic regressions; visual QA renders 0, 1, 5, 10, 15, and all 30 revealed checkers in both dialects. | Automated pass |
-| Dominoes deals, accepts a legal drag, and reaches all endings | Opening/deal timing, exact deck, boneyard, geometry, and drag/drop regressions run in both dialects; QA renders a legal drag plus player, Mario, and blocked-tie result states. | Automated pass |
+| Dominoes deals, accepts a legal drag, and reaches all endings | Opening/deal timing, exact deck, boneyard, geometry, and drag/drop regressions run in both dialects; QA renders a legal drag plus player, Mario, and blocked-tie result states. Independent edge comparisons pin the score portrait to Macintosh `(11,11)` and DOS `(7,15)`, below the menu bar. | Automated pass |
 | Checkers intro/gameplay and endings | Full-path strategy, capture rules, replay state, idle behavior, and four ending branches are regression-tested; all four result presentations render in both dialects. | Automated pass |
 | Go Fish deals all cards progressively and remains playable | The seven-card deal/group timeline, stable hand-slot transfer, click rectangles, strategy, dialogue, and three outcomes are regression-tested; grouped hand, transfer, and 0/3/7-letter victory frames render in both dialects. | Automated pass |
 | Yacht scoring, selection, turn order, and endings | Score/category/input, adviser, roll order, dialogue, cup, and all outcome branches have executable regressions; scorecard, held-dice selection, victory, and roll/settle states render in both dialects. | Automated pass |
@@ -37,7 +37,7 @@ The `v2.0.0` release remains withdrawn until the replacement artifact is visuall
 
 `tools/build_release.ps1` must pass all semantic, asset, audiovisual, presentation, independent
 visual-reference, fullscreen, function-traceability, preservation, PE/dependency, and
-isolated-runtime checks. It now requires exactly 200 fresh
+isolated-runtime checks. It now requires exactly 202 fresh
 Macintosh frames and 210 fresh DOS frames at their native logical dimensions. Any missing, stale,
 wrong-sized, or corrupt frame fails the build.
 

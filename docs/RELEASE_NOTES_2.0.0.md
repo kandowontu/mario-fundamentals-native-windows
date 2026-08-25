@@ -16,7 +16,7 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   board skips the remaining voice/animation and lands on the fully revealed menu.
 - The live Macintosh menu now gives its right-hand layer exclusively to the selected-game actor;
   the completed title hand is no longer composited beneath it as a second glove/object.
-- The no-window presentation sweeps now emit 200 exact 512×384 Macintosh frames and 210 exact
+- The no-window presentation sweeps now emit 202 exact 512×384 Macintosh frames and 210 exact
   320×200 DOS frames. They cover both Macintosh title/board mouse-down completion paths, all five
   source-specific selected-game intro input routes, DOS menu/help contexts, all intros/openings,
   Backgammon setup reveal, Dominoes drag/endings, Checkers endings, Go Fish hand transfer/victory,
@@ -32,10 +32,12 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   The supporting DOS discovery ledger no longer leaves 1,923 heuristic candidates generically
   pending: 77 overlay rows defer to the exact export/prologue ledger and 1,846 resident rows are
   explicitly dispositioned to the replaced platform/runtime/media family.
-- The local release gate now compares sixteen representative native frames against independently
-  captured original Macintosh/DOS output. Eleven checks cover the DOS main menu and every game's
-  stable board, table, scorecard, or chrome geometry; five more compare complete source-timed DOS
-  game-intro frames, including their moving foreground actors.
+- The local release gate now compares 34 representative native frames/regions against independently
+  captured original Macintosh/DOS output. Coverage includes publisher/title states, stable game
+  geometry, seven Macintosh and all five DOS source-timed intro instants, the complete post-intro
+  Backgammon character chooser, exact Dominoes portrait registration, and Yacht actor/cup regions.
+- The Dominoes score portrait now uses its independently captured edition-specific origin:
+  Macintosh `(11,11)` and DOS `(7,15)`, safely below the DOS menu bar.
 - DOS Backgammon, Checkers, and Go Fish intro actors now resolve the registered points supplied by
   their overlays before applying MuV bounds. This removes the second registration that displaced
   Backgammon by `(101,18)`, both Checkers actors by their separate origins, and both Go Fish actors

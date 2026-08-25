@@ -1401,11 +1401,15 @@ Rect DominoesGame::chainTileRect(int index, int visible) const {
 void DominoesGame::render(Canvas& canvas) {
     canvas.clear(rgb(0, 0, 0));
     drawBackground(canvas, 3001);
+    // The independently captured vanilla Macintosh scoreboard begins at
+    // (11,11). The DOS panel begins at (7,15), below its nine-pixel menu bar.
+    // Scaling an unverified shared anchor had clipped the DOS portrait under
+    // that bar and left both editions' scoreboard up/left of the source pose.
     canvas.sprite(context_.graphics.sprite(3700),
-                  dosEdition() ? 2 : 3, dosEdition() ? 3 : 5, false);
+                  dosEdition() ? 7 : 11, dosEdition() ? 15 : 11, false);
     if (characterChooser_ || !host_.render(canvas)) {
         canvas.sprite(context_.graphics.sprite(10000),
-                      dosEdition() ? 12 : 19, dosEdition() ? 7 : 13, false);
+                      dosEdition() ? 17 : 27, dosEdition() ? 19 : 19, false);
     }
     if (!characterChooser_ && computer_.size() <= 28) {
         canvas.sprite(context_.graphics.sprite(3701,

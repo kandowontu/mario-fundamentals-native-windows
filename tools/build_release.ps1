@@ -101,7 +101,7 @@ function Invoke-PresentationQa {
 
 Invoke-PresentationQa -Argument "--render-mac-qa" `
     -OutputDirectory (Join-Path $projectRoot "work/qa/mac") -Label "macintosh" `
-    -ExpectedFrames 201 -ExpectedBytes 786486
+    -ExpectedFrames 202 -ExpectedBytes 786486
 Invoke-PresentationQa -Argument "--render-dos-qa" `
     -OutputDirectory (Join-Path $projectRoot "work/qa/dos") -Label "dos" `
     -ExpectedFrames 210 -ExpectedBytes 256054

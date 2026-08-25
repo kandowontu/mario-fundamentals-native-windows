@@ -233,6 +233,20 @@ void App::renderQaFrames(std::wstring_view outputDirectory) {
     }
     gameIntroMovies_.clear();
 
+    // Preserve the first Backgammon post-intro state captured from vanilla:
+    // the completed Yoshi/Koopa prompt composited over the already-created
+    // board.  This catches prompt/board ordering, actor layering, and the
+    // modal's source registration instead of auditing those pieces apart.
+    characterConfirmed_ = false;
+    nameConfirmed_ = false;
+    playerName_ = L"My friend";
+    beginGameCharacter(0);
+    gameCharacterHost_.stop();
+    save(L"12-backgammon-character-choice.bmp");
+    game_.reset();
+    characterConfirmed_ = true;
+    nameConfirmed_ = true;
+
     // Exercise each source mouse-down route with first-use prompts already
     // satisfied. Backgammon/Yacht finish, Dominoes advances one controller
     // tick, and Checkers/Go Fish retain the current title frame.
