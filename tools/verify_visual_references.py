@@ -189,11 +189,39 @@ MAC_SAMPLES = (
         14.0,
     ),
     Sample(
+        "checkers-character-choice",
+        "original-checkers-game.png",
+        "12-character-choice-2.bmp",
+        ((0, 0, 512, 384),),
+        12.0,
+    ),
+    Sample(
+        "checkers-name-prompt",
+        "original-checkers-yoshi-board.png",
+        "13-name-prompt-2.bmp",
+        ((0, 0, 512, 384),),
+        16.0,
+    ),
+    Sample(
         "go-fish-table",
         "original-gofish-trace-3.png",
         "35-gofish-victory-0.bmp",
         ((0, 0, 180, 135), (332, 0, 512, 135), (0, 180, 512, 340)),
         16.0,
+    ),
+    Sample(
+        "go-fish-grouped-hand",
+        "original-gofish-trace-5.png",
+        "35-gofish-hand.bmp",
+        ((0, 0, 512, 384),),
+        22.0,
+    ),
+    Sample(
+        "go-fish-question-transfer",
+        "original-gofish-trace-8.png",
+        "35-gofish-hand-transfer.bmp",
+        ((0, 0, 512, 384),),
+        15.0,
     ),
     Sample(
         "yacht-scorecards",
@@ -208,6 +236,14 @@ MAC_SAMPLES = (
         "24-opening-32.bmp",
         ((145, 0, 367, 220),),
         30.0,
+    ),
+    Sample(
+        "yacht-reroll-gesture-registration",
+        "original-yacht-trace-8.png",
+        "36-yacht-reroll-gesture-180.bmp",
+        ((90, 0, 345, 220),),
+        16.0,
+        edge_only=True,
     ),
     Sample(
         "yacht-roll-contact-cup",
@@ -466,9 +502,10 @@ def main() -> int:
             "reduced to its stable game surface; random actor/card/piece/cursor regions are "
             "excluded from stable-layout cases; four Macintosh publisher states, two title "
             "states, seven source-timed Macintosh game intros, and five source-timed DOS game "
-            "intros compare complete frames; one post-intro character prompt is checked as a "
-            "complete frame; edge-only registration checks pin both Dominoes score portraits; "
-            "two Macintosh Yacht regions independently verify the gameplay actor and roll-contact cup"
+            "intros compare complete frames; three first-use panel frames and two Go Fish hand "
+            "states are checked as complete frames; edge-only registration checks pin both "
+            "Dominoes score portraits and the Macintosh Yacht reroll gesture; three Macintosh Yacht "
+            "regions independently verify the idle actor, full-body gesture, and roll-contact cup"
         ),
         "cases": cases,
     }

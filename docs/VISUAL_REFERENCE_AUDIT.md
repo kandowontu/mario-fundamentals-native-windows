@@ -20,16 +20,17 @@ are used only for local preservation QA.
 ## Method and current result
 
 The comparison uses Gaussian-smoothed regional RGB root-mean-square error after normalizing each
-image to its edition's logical resolution. The eleven stable-layout checks exclude regions with
-random pieces, cards, speech-mouth frames, or the captured mouse cursor. Four publisher states and
-two title-speaking states compare complete Macintosh frames. Seven Macintosh and five DOS cases
-compare complete game-intro frames at independently identified source times; one more checks the
-complete post-intro Backgammon character chooser. Two edge-only cases pin the Dominoes score
-portrait to its edition-specific source position even though the captured hands/counts differ. Two
-focused Macintosh Yacht regions additionally verify the central gameplay actor and roll-contact
-cup. Together the 34 cases cover startup colors, title composition, scorecards, boards, status bars,
-tiled backgrounds, menus, prompt ordering, and moving-actor registration without treating different
-random gameplay states as failures.
+image to its edition's logical resolution. Stable-layout checks exclude regions with random pieces,
+cards, speech-mouth frames, or the captured mouse cursor. Four publisher states and two
+title-speaking states compare complete Macintosh frames. Seven Macintosh and five DOS cases
+compare complete game-intro frames at independently identified source times. Three complete frames
+cover the Backgammon/Checkers first-use panels, and two more cover Go Fish's grouped hand and
+question-card transfer. Edge-only cases pin both Dominoes score portraits and the Macintosh Yacht
+reroll gesture to their source registrations. Three focused Macintosh Yacht cases verify the idle
+actor, full-body gesture, and roll-contact cup. Together the 39 cases cover startup colors, title
+composition, scorecards, boards, status bars, tiled backgrounds, menus, prompt ordering, hand
+transfers, and moving-actor registration without treating different random gameplay states as
+failures.
 
 | Edition | Reference case | Current RMSE | Maximum |
 | --- | --- | ---: | ---: |
@@ -51,14 +52,19 @@ random gameplay states as failures.
 | Macintosh | Dominoes table | 2.335 | 4.0 |
 | Macintosh | Dominoes score/portrait registration (edge) | 37.255 | 38.0 |
 | Macintosh | Checkers chrome | 10.620 | 14.0 |
+| Macintosh | Checkers character choice | 10.093 | 12.0 |
+| Macintosh | Checkers name prompt | 13.793 | 16.0 |
 | Macintosh | Go Fish table | 12.639 | 16.0 |
+| Macintosh | Go Fish grouped hand | 20.561 | 22.0 |
+| Macintosh | Go Fish question-card transfer | 13.146 | 15.0 |
 | Macintosh | Yacht scorecards | 6.110 | 10.0 |
 | Macintosh | Yacht center actor | 27.293 | 30.0 |
+| Macintosh | Yacht reroll gesture registration (edge) | 14.250 | 16.0 |
 | Macintosh | Yacht roll-contact cup | 1.311 | 3.0 |
 | DOS | Main menu | 8.191 | 11.0 |
 | DOS | Backgammon chrome | 30.693 | 34.0 |
 | DOS | Dominoes table | 2.068 | 3.0 |
-| DOS | Dominoes score/portrait registration (edge) | 44.171 | 60.0 |
+| DOS | Dominoes score/portrait registration (edge) | 52.998 | 60.0 |
 | DOS | Checkers chrome | 22.418 | 27.0 |
 | DOS | Go Fish table | 24.395 | 28.0 |
 | DOS | Yacht scorecards | 8.509 | 12.0 |
@@ -70,8 +76,9 @@ random gameplay states as failures.
 
 The release gate writes the machine-readable result to
 `work/audit/visual-reference-verification.json`. Thresholds are deliberately below the measured
-distance to mismatched scenes; the registration cases reject a one-pixel displacement on their
-audited axis. Several publisher/intro/cup results are near pixel-identical, while the other intro
+distance to mismatched scenes; the two portrait registration cases reject a one-pixel displacement
+on their audited axis, while exact source actor bounds are enforced by the executable self-test.
+Several publisher/intro/cup results are near pixel-identical, while the other intro
 margins allow only the independently captured cursor and source-frame/browser differences. This is
 a structural cross-check, not a claim that browser-scaled captures or different random turns are
 pixel-identical.

@@ -922,7 +922,7 @@ void GoFishGame::setQaHandSlotsPresentation(bool afterTransfer) {
     openingFirstSpeechPlaying_ = false;
     directSpeechMilliseconds_ = 0;
     moviesAfterDirectSpeech_.clear();
-    pendingComputerRank_ = -1;
+    pendingComputerRank_ = afterTransfer ? 5 : -1;
     computerTurnWaiting_ = false;
     winner_ = 0;
     outcomePhase_ = OutcomePhase::None;
@@ -986,9 +986,15 @@ void GoFishGame::render(Canvas& canvas) {
     // lower face with its red collar and looked like a duplicated head.
     canvas.sprite(context_.graphics.sprite(5300),
                   dosEdition() ? 119 : 191, dosEdition() ? 52 : 100, false);
-    if (!host_.render(canvas))
-        canvas.sprite(context_.graphics.sprite(5090),
+    if (!host_.render(canvas)) {
+        // Pak 5090 frame zero is only the base layer of movie 5090: its eyes
+        // are transparent holes filled by frames 1/2 while that movie plays.
+        // Using it as an idle actor exposed the orange page through Mario's
+        // face. Pak 11000 frame zero is the source's complete neutral head in
+        // both asset dialects.
+        canvas.sprite(context_.graphics.sprite(11000, 0),
                       dosEdition() ? 126 : 202, dosEdition() ? 9 : 18, false);
+    }
     canvas.sprite(context_.graphics.sprite(5100),
                   dosEdition() ? 217 : 347, dosEdition() ? 89 : 170, false);
     canvas.pakText(context_.graphics,

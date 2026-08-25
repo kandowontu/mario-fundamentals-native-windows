@@ -233,18 +233,27 @@ void App::renderQaFrames(std::wstring_view outputDirectory) {
     }
     gameIntroMovies_.clear();
 
-    // Preserve the first Backgammon post-intro state captured from vanilla:
-    // the completed Yoshi/Koopa prompt composited over the already-created
-    // board.  This catches prompt/board ordering, actor layering, and the
-    // modal's source registration instead of auditing those pieces apart.
+    // Preserve the first-use character/name transitions over their live game
+    // pages. These catch prompt/board ordering, actor layering, and modal
+    // registration instead of auditing those pieces apart.
     characterConfirmed_ = false;
     nameConfirmed_ = false;
     playerName_ = L"My friend";
-    beginGameCharacter(0);
-    gameCharacterHost_.stop();
-    save(L"12-backgammon-character-choice.bmp");
-    game_.reset();
+    for (int gameIndex = 0; gameIndex <= 2; ++gameIndex) {
+        beginGameCharacter(gameIndex);
+        gameCharacterHost_.stop();
+        save(gameIndex == 0 ? L"12-backgammon-character-choice.bmp" :
+             L"12-character-choice-" + std::to_wstring(gameIndex) + L".bmp");
+        game_.reset();
+    }
     characterConfirmed_ = true;
+    for (int gameIndex = 0; gameIndex < 5; ++gameIndex) {
+        beginGameName(gameIndex);
+        // Capture the source panel between insertion-point blinks.
+        introPhaseMilliseconds_ = 500U;
+        save(L"13-name-prompt-" + std::to_wstring(gameIndex) + L".bmp");
+        game_.reset();
+    }
     nameConfirmed_ = true;
 
     // Exercise each source mouse-down route with first-use prompts already
@@ -339,8 +348,12 @@ void App::renderQaFrames(std::wstring_view outputDirectory) {
     if (auto* goFish = dynamic_cast<GoFishGame*>(game_.get())) {
         goFish->setQaHandSlotsPresentation(false);
         save(L"35-gofish-hand.bmp");
+        if (canvas_.pixelHash({230, 35, 283, 75}) != 0x6F80822EB2A44F3DULL)
+            throw std::runtime_error("Macintosh Go Fish idle head is not the solid source actor");
         goFish->setQaHandSlotsPresentation(true);
         save(L"35-gofish-hand-transfer.bmp");
+        if (canvas_.pixelHash({230, 35, 283, 75}) != 0x6F80822EB2A44F3DULL)
+            throw std::runtime_error("Macintosh Go Fish question card damaged the idle head");
     }
     for (const int letters : std::array{0, 3, 7}) {
         startGame(3);
@@ -358,6 +371,11 @@ void App::renderQaFrames(std::wstring_view outputDirectory) {
         save(L"36-yacht-dice-selection.bmp");
         yacht->setQaVictoryPresentation();
         save(L"36-yacht-victory.bmp");
+        for (std::uint32_t sourceTime = 0; sourceTime < 600; sourceTime += 60) {
+            yacht->setQaRerollGesturePresentation(sourceTime);
+            save(sourceTime == 240 ? L"36-yacht-reroll-gesture.bmp" :
+                 L"36-yacht-reroll-gesture-" + std::to_wstring(sourceTime) + L".bmp");
+        }
     }
 
     startGame(4);

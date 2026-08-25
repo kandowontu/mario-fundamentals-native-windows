@@ -16,11 +16,12 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   board skips the remaining voice/animation and lands on the fully revealed menu.
 - The live Macintosh menu now gives its right-hand layer exclusively to the selected-game actor;
   the completed title hand is no longer composited beneath it as a second glove/object.
-- The no-window presentation sweeps now emit 202 exact 512×384 Macintosh frames and 210 exact
+- The no-window presentation sweeps now emit 219 exact 512×384 Macintosh frames and 220 exact
   320×200 DOS frames. They cover both Macintosh title/board mouse-down completion paths, all five
   source-specific selected-game intro input routes, DOS menu/help contexts, all intros/openings,
   Backgammon setup reveal, Dominoes drag/endings, Checkers endings, Go Fish hand transfer/victory,
-  Yacht scoring/selection/victory, and both Yacht roll/settle timelines.
+  Yacht scoring/selection/victory, both Yacht roll/settle timelines, and the complete movie-6021
+  reroll-gesture cycle in both editions.
 - The DOS source's eight-pixel `File / Options / Help` bar is restored exactly over main-menu and
   gameplay frames, with context-specific commands and the Pak 8000/8001 two-page instruction UI.
 - Dominoes now follows CODE 14's exact first/later deal and highest-double dialogue tables. The
@@ -32,10 +33,11 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   The supporting DOS discovery ledger no longer leaves 1,923 heuristic candidates generically
   pending: 77 overlay rows defer to the exact export/prologue ledger and 1,846 resident rows are
   explicitly dispositioned to the replaced platform/runtime/media family.
-- The local release gate now compares 34 representative native frames/regions against independently
+- The local release gate now compares 39 representative native frames/regions against independently
   captured original Macintosh/DOS output. Coverage includes publisher/title states, stable game
   geometry, seven Macintosh and all five DOS source-timed intro instants, the complete post-intro
-  Backgammon character chooser, exact Dominoes portrait registration, and Yacht actor/cup regions.
+  first-use character/name panels, Go Fish grouped/transfer hands, exact Dominoes portrait
+  registration, and Yacht actor/gesture/cup regions.
 - The Dominoes score portrait now uses its independently captured edition-specific origin:
   Macintosh `(11,11)` and DOS `(7,15)`, safely below the DOS menu bar.
 - DOS Backgammon, Checkers, and Go Fish intro actors now resolve the registered points supplied by
@@ -53,6 +55,12 @@ media, executable, emulator, installer, sound driver, or loose asset files.
 - Yacht speech now draws the fixed torso beneath the live head and uses the complete neutral Mario
   only between lines. Its stationary cup is hidden during the animated roll, removing both the
   shirt-over-jaw layering error and the duplicate cup.
+- Both Macintosh computer-roll entry paths now register the full-body movie-6021 gesture at CODE
+  18's source `(15,-1)` anchor instead of the displaced DOS-era coordinate. The wide gesture is
+  independently compared with vanilla and its exact bounds are self-tested.
+- Go Fish now uses complete Pak 11000 for neutral Mario. Pak 5090 frame zero is only movie 5090's
+  transparent base layer, so using it alone exposed the page through his eyes; idle and question-
+  card-transfer face regions are now hash-regressed in both editions.
 - DOS MuV/Img geometry now uses its proven conventional x/y field order instead of Macintosh
   QuickDraw ordering. All 1,213 same-ID Img/Pak records are exact, eliminating clipped cels,
   displaced board-flip layers, and incomplete talking heads.

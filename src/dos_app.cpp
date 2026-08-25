@@ -354,8 +354,12 @@ void DosApp::renderQaFrames(std::wstring_view outputDirectory) {
     if (auto* goFish = dynamic_cast<GoFishGame*>(game_.get())) {
         goFish->setQaHandSlotsPresentation(false);
         save(L"35-gofish-hand.bmp");
+        if (canvas_.pixelHash({145, 20, 177, 42}) != 0x5E37997BB4C35C26ULL)
+            throw std::runtime_error("DOS Go Fish idle head is not the solid source actor");
         goFish->setQaHandSlotsPresentation(true);
         save(L"35-gofish-hand-transfer.bmp");
+        if (canvas_.pixelHash({145, 20, 177, 42}) != 0x5E37997BB4C35C26ULL)
+            throw std::runtime_error("DOS Go Fish question card damaged the idle head");
     }
     for (const int letters : std::array{0, 3, 7}) {
         startGame(3);
@@ -373,6 +377,11 @@ void DosApp::renderQaFrames(std::wstring_view outputDirectory) {
         save(L"36-yacht-dice-selection.bmp");
         yacht->setQaVictoryPresentation();
         save(L"36-yacht-victory.bmp");
+        for (std::uint32_t sourceTime = 0; sourceTime < 600; sourceTime += 60) {
+            yacht->setQaRerollGesturePresentation(sourceTime);
+            save(sourceTime == 240 ? L"36-yacht-reroll-gesture.bmp" :
+                 L"36-yacht-reroll-gesture-" + std::to_wstring(sourceTime) + L".bmp");
+        }
 
         yacht->setQaRollPresentation();
         constexpr std::array<int, 7> rollTicks{0, 4, 8, 16, 32, 48, 56};

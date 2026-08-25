@@ -471,6 +471,7 @@ int selfTest(HINSTANCE instance) {
     const mf::Movie yachtIntroUpper(assets, 6100);
     const mf::Movie yachtIntroLower(assets, 6150);
     const mf::Movie yachtRollCup(assets, 6020);
+    const mf::Movie yachtRerollGesture(assets, 6021);
     const mf::Movie dominoesIntroRight(assets, 3002);
     const mf::Movie dominoesIntroMiddle(assets, 3003);
     const mf::Movie dominoesIntroLeft(assets, 3004);
@@ -484,6 +485,7 @@ int selfTest(HINSTANCE instance) {
     const mf::Rect yachtLowerStart = yachtIntroLower.imageBounds(0, -208, 0);
     const mf::Rect yachtTalkingHead = mf::Movie(assets, 11411).imageBounds(3, 15, -1);
     const mf::Rect yachtRollStart = yachtRollCup.activeVisualBounds(0, 0, -9);
+    const mf::Rect yachtGestureWide = yachtRerollGesture.activeVisualBounds(240, 15, -1);
     if (dominoesRightFinal.left != 400 || dominoesRightFinal.top != 270 ||
         dominoesRightFinal.right != 477 || dominoesRightFinal.bottom != 323 ||
         dominoesMiddleFinal.left != 169 || dominoesMiddleFinal.top != 283 ||
@@ -497,7 +499,9 @@ int selfTest(HINSTANCE instance) {
         yachtTalkingHead.left != 228 || yachtTalkingHead.top != 18 ||
         yachtTalkingHead.right != 336 || yachtTalkingHead.bottom != 123 ||
         yachtRollStart.left != 218 || yachtRollStart.top != 129 ||
-        yachtRollStart.right != 296 || yachtRollStart.bottom != 228) {
+        yachtRollStart.right != 296 || yachtRollStart.bottom != 228 ||
+        yachtGestureWide.left != 99 || yachtGestureWide.top != 18 ||
+        yachtGestureWide.right != 337 || yachtGestureWide.bottom != 212) {
         throw std::runtime_error("Macintosh registered actor geometry regression");
     }
     for (std::uint32_t time = 0; time < yachtRollCup.duration(); ++time) {

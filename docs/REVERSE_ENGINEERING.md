@@ -204,8 +204,10 @@ movie 3004 four pixels to the right. Inputs `(18,220)`, `(18,220)`, and `(22,220
 horizontal origin as another caller offset scattered those layers and left only one partial domino.
 
 The Yacht gameplay cast has a separate source registration from its title boats. Dialogue movies
-use input `(15,-1)` (movie 11411 frame 3 is `(228,18)-(336,123)`) over Pak 6012 at `(26,0)`; the
-complete idle Pak 6021 actor is at `(217,18)`. Pak 6010 frame 12's stationary cup is
+use input `(15,-1)` (movie 11411 frame 3 is `(228,18)-(336,123)`) over Pak 6012 at `(26,0)`; both
+computer-roll entry paths register full-body movie 6021 at the same `(15,-1)` input, whose wide
+source-time-240 bounds are `(99,18)-(337,212)`. The complete idle Pak 6021 actor is at `(217,18)`.
+Pak 6010 frame 12's stationary cup is
 `(218,129)-(296,228)`, and movie 6020 input `(0,-9)` gives its first live frame those identical
 bounds. The controller suppresses the stationary frame from mouse-down through the movie and all
 five settle passes, so the contact frame neither jumps nor doubles. These Macintosh values do not
@@ -361,6 +363,11 @@ implementations remain evidence-backed rather than inferred from modern versions
   tests cover merging, four-card removal, first-free reuse, overflow coordinates, exact 54x76
   boundaries, and holes; muted captures cover both the grouped opening hand and the post-transfer
   gap seen in the source trace.
+- Go Fish's neutral head cannot be drawn from Pak 5090 frame zero alone. That image is movie 5090's
+  base layer and deliberately leaves transparent eye/eyebrow holes for its subsequent animation
+  layers. The complete neutral head is Pak 11000 frame zero, placed at Macintosh `(202,18)` or DOS
+  `(126,9)` over the fixed Pak 5300 torso. Native idle and question-card-transfer captures hash the
+  face region in both editions so the page background cannot leak through it again.
 - Go Fish's strategy routine at `$484A` runs with difficulty word two. `$48FA` calls the range
   helper with the adjacent memory-count word, which `$4616` clears and never increments; this is a
   `Random(0)` that always yields slot zero but still advances the QuickDraw seed. It then consults

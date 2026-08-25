@@ -213,7 +213,7 @@ bool YachtGame::tick() {
 
     const auto beginComputerRerollGesture = [this]() {
         status_.clear();
-        gestureAnimation_.play(6021, 73, -12);
+        gestureAnimation_.play(6021, kMacYachtHostAnchor.x, kMacYachtHostAnchor.y);
         context_.audio.playEffect(5010);
         computerRerollStage_ = 6;
     };
@@ -519,7 +519,7 @@ void YachtGame::beginComputerRoll() {
     status_ = L"Mario's turn.";
     // Computer controller $D84 creates movie 6021 before every roll. Its
     // authored 5044 cue and the direct 5010 effect precede pipe movie 6020.
-    gestureAnimation_.play(6021, 73, -12);
+    gestureAnimation_.play(6021, kMacYachtHostAnchor.x, kMacYachtHostAnchor.y);
     context_.audio.playEffect(5010);
     computerRerollStage_ = 6;
 }
@@ -1283,6 +1283,22 @@ void YachtGame::setQaStationaryCupPresentation() {
     dice_.fill(1);
     status_.clear();
     cancelSourceIdle();
+}
+
+void YachtGame::setQaRerollGesturePresentation(std::uint32_t sourceTime) {
+    setQaStationaryCupPresentation();
+    // Match the independently captured vanilla third-attempt gesture: two
+    // white dice followed by three held red dice, empty scorecards, and no
+    // remaining-roll markers. This isolates movie 6021's registration without
+    // manufacturing presentation state that was absent from the source frame.
+    humanScores_.fill(-1);
+    computerScores_.fill(-1);
+    computerAttempt_ = 3;
+    showComputerDice_ = true;
+    dice_ = {4, 2, 3, 3, 4};
+    held_ = {false, false, true, true, true};
+    gestureAnimation_.showFrame(6021, kMacYachtHostAnchor.x,
+                                kMacYachtHostAnchor.y, sourceTime);
 }
 
 void YachtGame::setQaRollPresentation() {

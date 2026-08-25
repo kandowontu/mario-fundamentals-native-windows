@@ -37,6 +37,7 @@ public:
     void setQaScorecardPresentation();
     void setQaDiceSelectionPresentation();
     void setQaStationaryCupPresentation();
+    void setQaRerollGesturePresentation(std::uint32_t sourceTime);
     void setQaRollPresentation();
 
 private:
