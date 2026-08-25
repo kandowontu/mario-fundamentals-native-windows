@@ -141,6 +141,9 @@ public:
     }
 
     [[nodiscard]] bool active() const noexcept { return movie_ != nullptr; }
+    [[nodiscard]] int activeResourceId() const noexcept {
+        return movie_ ? movie_->id() : -1;
+    }
     [[nodiscard]] bool playing() const noexcept {
         return movie_ != nullptr && !holdingFrame_;
     }

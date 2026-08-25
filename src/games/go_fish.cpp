@@ -845,6 +845,32 @@ void GoFishGame::appendHumanTurnAnnouncement() {
     appendConversation(movies);
 }
 
+bool GoFishGame::refillHumanHand(bool marioContinues) {
+    if (!human_.empty()) return false;
+    if (deck_.empty()) {
+        checkEnd();
+        return false;
+    }
+
+    human_.push_back(deck_.back());
+    addHumanCardsToDisplay(std::span{&human_.back(), std::size_t{1}});
+    deck_.pop_back();
+    context_.audio.playEffect(5013);
+    const int booksBefore = humanBooks_;
+    const int made = removeBooks(human_, humanBooks_, true);
+    std::vector<int> movies{11538};
+    if (made) movies.push_back(booksBefore == 0 ? 11531 : 11532);
+    beginConversation(movies);
+    status_ = L"You need another card.";
+    // CODE 17 reaches this refill from both turn controllers. When Mario's
+    // successful request emptied the player, he continues after the line;
+    // when the player's own successful request made a book, the extra turn
+    // remains with the player after receiving the replacement card.
+    computerTurnWaiting_ = marioContinues;
+    checkEnd();
+    return true;
+}
+
 void GoFishGame::computerTurn() {
     if (winner_ || humanTurn_ || pendingComputerRank_ >= 0 || computerTurnWaiting_ ||
         host_.active() || directSpeechPending_ || openingActive()) return;
@@ -865,19 +891,7 @@ void GoFishGame::computerTurn() {
         return;
     }
     if (human_.empty()) {
-        if (deck_.empty()) { checkEnd(); return; }
-        human_.push_back(deck_.back());
-        addHumanCardsToDisplay(std::span{&human_.back(), std::size_t{1}});
-        deck_.pop_back();
-        context_.audio.playEffect(5013);
-        const int booksBefore = humanBooks_;
-        const int made = removeBooks(human_, humanBooks_, true);
-        std::vector<int> movies{11538};
-        if (made) movies.push_back(booksBefore == 0 ? 11531 : 11532);
-        beginConversation(movies);
-        status_ = L"You need another card.";
-        computerTurnWaiting_ = true;
-        checkEnd();
+        (void)refillHumanHand(true);
         return;
     }
 
@@ -928,7 +942,14 @@ bool GoFishGame::tick() {
     }
 
     changed |= tickOpeningController();
-    if (!openingActive() && pendingComputerRank_ >= 0 && !host_.active() &&
+    if (!winner_ && !openingActive() && humanTurn_ && human_.empty() &&
+        pendingComputerRank_ < 0 && !computerTurnWaiting_ && !host_.active() &&
+        !directSpeechPending_) {
+        // A successful player request grants another turn even when the
+        // resulting four-card book emptied the hand. The source turn
+        // controller deals the replacement before accepting another click.
+        changed |= refillHumanHand(false);
+    } else if (!openingActive() && pendingComputerRank_ >= 0 && !host_.active() &&
         !directSpeechPending_) {
         const int requested = pendingComputerRank_;
         pendingComputerRank_ = -1;
@@ -943,9 +964,57 @@ bool GoFishGame::tick() {
     }
     changed |= tickOutcome();
     const bool waitingForPlayer = !winner_ && humanTurn_ && pendingComputerRank_ < 0 &&
-        !computerTurnWaiting_ && !openingActive() && !directSpeechPending_ && !host_.active();
+        !human_.empty() && !computerTurnWaiting_ && !openingActive() &&
+        !directSpeechPending_ && !host_.active();
     changed |= tickSourceIdle(waitingForPlayer);
     return changed;
+}
+
+bool GoFishGame::sourceEmptyHandRefillRegressionTest() {
+    host_.stop();
+    openingPhase_ = OpeningPhase::Complete;
+    openingCardMotion_ = {};
+    directSpeechPending_ = false;
+    moviesAfterDirectSpeech_.clear();
+    pendingComputerRank_ = -1;
+    computerTurnWaiting_ = false;
+    winner_ = 0;
+    outcomePhase_ = OutcomePhase::None;
+    humanTurn_ = true;
+    humanBooks_ = computerBooks_ = 0;
+
+    // The player owns three Goombas and successfully requests the fourth.
+    // Removing that book must not leave an input-dead empty extra turn.
+    human_ = {0, 1, 2};
+    computer_ = {3, 40};
+    deck_ = {16, 20, 24};
+    humanHandSlots_.fill({});
+    humanHandSlots_[0] = HumanHandSlot{0, 3};
+    ask(true, 0);
+    if (!humanTurn_ || !human_.empty() || humanBooks_ != 1 ||
+        humanHandSlots_[0].count != 0 || computerTurnWaiting_) {
+        return false;
+    }
+
+    // Drain the success line and advance the live controller once. It must
+    // deal exactly one replacement, retain the player's turn, and expose a
+    // clickable rank record rather than scheduling Mario.
+    host_.stop();
+    if (!tick() || !humanTurn_ || human_.size() != 1 || human_[0] != 24 ||
+        deck_ != std::vector<int>({16, 20}) || computerTurnWaiting_ ||
+        humanHandSlots_[0].rank != 6 || humanHandSlots_[0].count != 1 ||
+        context_.audio.requestedEffectResourceId() != 5013 ||
+        host_.activeResourceId() != 11538 || status_ != L"You need another card.") {
+        return false;
+    }
+
+    host_.stop();
+    Point slotCenter{
+        humanSlotPositions[0].x + humanCardWidth / 2,
+        humanSlotPositions[0].y + humanCardHeight / 2};
+    if (dosEdition()) slotCenter = {dosX(slotCenter.x), dosY(slotCenter.y)};
+    click(slotCenter);
+    return !humanTurn_ && computerTurnWaiting_ && humanQuestionMemory_[0] == 6;
 }
 
 bool GoFishGame::finished() const {

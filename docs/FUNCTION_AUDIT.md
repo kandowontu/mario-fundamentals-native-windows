@@ -123,6 +123,10 @@ being presented as fully named routines.
 
 Go Fish card groups draw Pak 5006 frames zero through three over Pak 5005 at the recovered card
 origin, reproducing the authored red one-through-four corner numerals instead of system-font text.
+The empty-hand controller is covered in both directions as well: Mario continues after refilling a
+player whom his request emptied, while a player who completes a book on a successful request receives
+movie 11538's replacement card and retains the earned extra turn. The latter live regression proves
+the replacement rank can immediately be clicked instead of leaving an empty-hand softlock.
 
 The Yacht controller audit additionally covers `$1560`'s adviser-driven white/red transitions:
 Mario changes one die at a time with effect 5028 and five-tick gaps, retains the resulting lane

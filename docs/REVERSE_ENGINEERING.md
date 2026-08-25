@@ -411,6 +411,14 @@ implementations remain evidence-backed rather than inferred from modern versions
   removal, first-free reuse, overflow coordinates, exact 54x76 boundaries, and holes; muted
   captures cover raw dealing, live grouping, the settled hand, and the post-transfer gap seen in
   the source trace.
+- Go Fish has two semantically different paths through its forced player refill. If Mario's
+  successful request empties the player's hand, Mario resumes after the replacement line. If the
+  player's own successful request completes a four-card book, the same movie 11538 ("You need
+  another card") and direct draw effect 5013 deal one replacement while the extra turn remains
+  with the player. The native controller previously exposed that second state as an empty hand whose
+  click path could never advance. A live regression now constructs the three-plus-one request,
+  removes the book, drains the success line, proves the single replacement and stable rank record,
+  then performs the retained player's next legal click in both asset dialects.
 - Go Fish's neutral head cannot be drawn from Pak 5090 frame zero alone. That image is movie 5090's
   base layer and deliberately leaves transparent eye/eyebrow holes for its subsequent animation
   layers. The complete neutral head is Pak 11000 frame zero, placed at Macintosh `(202,18)` or DOS

@@ -46,6 +46,9 @@ public:
     [[nodiscard]] int requestedSoundResourceId() const noexcept {
         return requestedSoundResourceId_;
     }
+    [[nodiscard]] int requestedEffectResourceId() const noexcept {
+        return requestedEffectResourceId_;
+    }
 
 private:
     static std::vector<std::uint8_t> makeWave(std::span<const std::uint8_t> sound,
@@ -85,6 +88,7 @@ private:
     int activeMusicResourceId_{-1};
     int requestedMusicResourceId_{-1};
     int requestedSoundResourceId_{-1};
+    int requestedEffectResourceId_{-1};
     bool requestedMusicLoop_{true};
     bool midiLoop_{};
     bool soundEnabled_{true};

@@ -18,6 +18,7 @@ public:
     [[nodiscard]] bool sourceDialogueRegressionTest() const;
     [[nodiscard]] bool sourceHandSlotRegressionTest() const;
     [[nodiscard]] bool sourceOpeningDealRegressionTest();
+    [[nodiscard]] bool sourceEmptyHandRefillRegressionTest();
     [[nodiscard]] bool sourceOutcomeRegressionTest(int expectedWinner);
     void setQaVictoryPresentation(int letterCount);
     void setQaHandSlotsPresentation(bool afterTransfer);
@@ -95,6 +96,7 @@ private:
     }
     [[nodiscard]] int humanRankAtPoint(const HumanHandSlots& slots, Point point) const;
     void ask(bool human, int rank);
+    [[nodiscard]] bool refillHumanHand(bool marioContinues);
     void computerTurn();
     [[nodiscard]] int chooseComputerRank();
     void rememberHumanQuestion(int rank);

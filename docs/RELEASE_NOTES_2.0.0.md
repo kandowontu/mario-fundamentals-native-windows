@@ -41,6 +41,10 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   The seven cards appear on their source passes with tracked 5032 cues; `$30F6` merges one duplicate
   at a time; `$3862` settles one surviving card per re-entry; and `$316E/$3022` keep each moving card
   visible for the source distance-derived pass count before movie 11529 and Mario's first turn.
+- Go Fish no longer softlocks when a successful player request completes a book and empties the
+  hand. Movie 11538 and draw effect 5013 now deal the source replacement card after the success line
+  while preserving the earned extra turn; the same helper retains Mario's distinct continue-after-
+  refill route.
 - The no-window presentation sweeps now emit 230 exact 512×384 Macintosh frames and 231 exact
   320×200 DOS frames. They cover both Macintosh title/board mouse-down completion paths, all five
   source-specific selected-game intro input routes, DOS menu/help contexts, all intros/openings,

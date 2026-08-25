@@ -146,6 +146,7 @@ bool Audio::playSound(int resourceId) {
 }
 
 bool Audio::playEffect(int resourceId) {
+    requestedEffectResourceId_ = resourceId;
     return startVoice(resourceId, false);
 }
 
