@@ -677,6 +677,9 @@ int selfTest(HINSTANCE instance) {
     auto goFishRefill = std::make_unique<mf::GoFishGame>(context);
     if (!goFishRefill->sourceEmptyHandRefillRegressionTest())
         throw std::runtime_error("Go Fish source empty-hand refill regression");
+    auto goFishFullMatch = std::make_unique<mf::GoFishGame>(context);
+    if (!goFishFullMatch->sourceFullMatchRegressionTest())
+        throw std::runtime_error("Go Fish full-match controller regression");
     auto goFishHumanOutcome = std::make_unique<mf::GoFishGame>(context);
     auto goFishMarioOutcome = std::make_unique<mf::GoFishGame>(context);
     auto goFishTieOutcome = std::make_unique<mf::GoFishGame>(context);
@@ -978,6 +981,9 @@ int selfTest(HINSTANCE instance) {
     auto dosGoFishRefill = std::make_unique<mf::GoFishGame>(dosContext);
     if (!dosGoFishRefill->sourceEmptyHandRefillRegressionTest())
         throw std::runtime_error("DOS Go Fish empty-hand refill regression");
+    auto dosGoFishFullMatch = std::make_unique<mf::GoFishGame>(dosContext);
+    if (!dosGoFishFullMatch->sourceFullMatchRegressionTest())
+        throw std::runtime_error("DOS Go Fish full-match controller regression");
     if (!dosGoFishHumanOutcome->sourceOutcomeRegressionTest(1))
         throw std::runtime_error("DOS Go Fish player outcome regression");
     if (!dosGoFishMarioOutcome->sourceOutcomeRegressionTest(-1))

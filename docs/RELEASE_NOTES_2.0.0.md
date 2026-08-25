@@ -45,6 +45,10 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   hand. Movie 11538 and draw effect 5013 now deal the source replacement card after the success line
   while preserving the earned extra turn; the same helper retains Mario's distinct continue-after-
   refill route.
+- Go Fish release verification now completes eight deterministic live-controller matches in both
+  editions through actual card clicks. It checks all 52 cards and every persistent hand record after
+  each transition, so a lost card, duplicate card, broken hit target, or input-dead turn blocks the
+  candidate rather than passing through isolated opening/outcome fixtures.
 - The no-window presentation sweeps now emit 230 exact 512×384 Macintosh frames and 231 exact
   320×200 DOS frames. They cover both Macintosh title/board mouse-down completion paths, all five
   source-specific selected-game intro input routes, DOS menu/help contexts, all intros/openings,

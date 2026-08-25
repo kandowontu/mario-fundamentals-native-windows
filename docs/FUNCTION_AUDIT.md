@@ -127,6 +127,10 @@ The empty-hand controller is covered in both directions as well: Mario continues
 player whom his request emptied, while a player who completes a book on a successful request receives
 movie 11538's replacement card and retains the earned extra turn. The latter live regression proves
 the replacement rank can immediately be clicked instead of leaving an empty-hand softlock.
+Eight seeded full matches in each asset dialect also drive the public click path from the recovered
+opening deal through the real result controller. They reject any duplicated/lost live card, any
+52-card/book conservation error, any divergence between the player's cards and the thirteen source
+display records, or any input-dead turn that cannot finish within the controller ceiling.
 
 The Yacht controller audit additionally covers `$1560`'s adviser-driven white/red transitions:
 Mario changes one die at a time with effect 5028 and five-tick gaps, retains the resulting lane

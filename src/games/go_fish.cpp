@@ -1017,6 +1017,106 @@ bool GoFishGame::sourceEmptyHandRefillRegressionTest() {
     return !humanTurn_ && computerTurnWaiting_ && humanQuestionMemory_[0] == 6;
 }
 
+bool GoFishGame::sourceFullMatchRegressionTest() {
+    const std::uint32_t savedSeed = context_.random.seed();
+    const auto fail = [&]() {
+        context_.random.setSeed(savedSeed);
+        return false;
+    };
+    constexpr std::array<std::uint32_t, 8> seeds{
+        1U, 17U, 0x1234U, 0x4d415249U,
+        0x00c0ffeeU, 0x13579bdfU, 0x2468ace0U, 0x7ffffffeU};
+    bool sawHumanInput = false;
+    bool sawMarioQuestion = false;
+    bool sawBook = false;
+    bool sawDraw = false;
+
+    const auto stateIsValid = [&]() {
+        if (humanBooks_ < 0 || computerBooks_ < 0 ||
+            humanBooks_ + computerBooks_ > 13) return false;
+        const std::size_t accounted = human_.size() + computer_.size() + deck_.size() +
+            static_cast<std::size_t>(4 * (humanBooks_ + computerBooks_));
+        if (accounted != 52) return false;
+
+        std::array<bool, 52> present{};
+        const auto recordCards = [&](std::span<const int> cards) {
+            for (const int card : cards) {
+                if (card < 0 || card >= 52 || present[static_cast<std::size_t>(card)])
+                    return false;
+                present[static_cast<std::size_t>(card)] = true;
+            }
+            return true;
+        };
+        if (!recordCards(human_) || !recordCards(computer_) || !recordCards(deck_))
+            return false;
+
+        std::array<int, 13> cardCounts{};
+        for (const int card : human_) ++cardCounts[static_cast<std::size_t>(rank(card))];
+        std::array<int, 13> slotCounts{};
+        for (const HumanHandSlot& slot : humanHandSlots_) {
+            if (slot.count == 0) continue;
+            if (slot.rank < 0 || slot.rank >= 13 || slot.count < 1 || slot.count > 3 ||
+                slotCounts[static_cast<std::size_t>(slot.rank)] != 0) return false;
+            slotCounts[static_cast<std::size_t>(slot.rank)] = slot.count;
+        }
+        return cardCounts == slotCounts;
+    };
+
+    for (const std::uint32_t seed : seeds) {
+        context_.random.setSeed(seed);
+        reset();
+        std::size_t previousDeckSize = deck_.size();
+        bool sawSettledOpening = false;
+        bool matchHadHumanInput = false;
+        bool matchHadMarioQuestion = false;
+
+        // Speech is deliberately fast-forwarded, but every game transition is
+        // made by the live opening, click, Mario-turn, draw, and outcome
+        // controllers. The generous ceiling turns any input-dead state into a
+        // deterministic regression failure rather than hiding it behind a
+        // synthesized result.
+        for (int controllerPass = 0; controllerPass < 12000 && !finished();
+             ++controllerPass) {
+            host_.stop();
+            sawSettledOpening |= openingPhase_ == OpeningPhase::Complete;
+            sawMarioQuestion |= pendingComputerRank_ >= 0;
+            matchHadMarioQuestion |= pendingComputerRank_ >= 0;
+
+            if (!winner_ && !openingActive() && humanTurn_ && !human_.empty() &&
+                pendingComputerRank_ < 0 && !computerTurnWaiting_ &&
+                !directSpeechPending_) {
+                const auto occupied = std::find_if(
+                    humanHandSlots_.begin(), humanHandSlots_.end(),
+                    [](const HumanHandSlot& slot) { return slot.count > 0; });
+                if (occupied == humanHandSlots_.end()) return fail();
+                const std::size_t slot = static_cast<std::size_t>(
+                    occupied - humanHandSlots_.begin());
+                Point point{
+                    humanSlotPositions[slot].x + humanCardWidth / 2,
+                    humanSlotPositions[slot].y + humanCardHeight / 2};
+                if (dosEdition()) point = {dosX(point.x), dosY(point.y)};
+                click(point);
+                sawHumanInput = true;
+                matchHadHumanInput = true;
+            }
+
+            (void)tick();
+            if (deck_.size() < previousDeckSize) sawDraw = true;
+            previousDeckSize = deck_.size();
+            sawBook |= humanBooks_ + computerBooks_ != 0;
+            if (!stateIsValid()) return fail();
+        }
+
+        if (!finished() || winner_ == 0 || !sawSettledOpening ||
+            !matchHadHumanInput || !matchHadMarioQuestion || !stateIsValid()) {
+            return fail();
+        }
+    }
+
+    context_.random.setSeed(savedSeed);
+    return sawHumanInput && sawMarioQuestion && sawBook && sawDraw;
+}
+
 bool GoFishGame::finished() const {
     return outcomePhase_ == OutcomePhase::Complete;
 }

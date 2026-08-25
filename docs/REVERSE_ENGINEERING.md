@@ -456,6 +456,13 @@ implementations remain evidence-backed rather than inferred from modern versions
   another game with me?”). Mario-win and tie results instead jump to state 30 after a two-tick
   pause and deliberately skip both the card display and replay question. The native controller now
   keeps the Play Again dialog out of all three paths until their source sequence is complete.
+- The release self-test no longer proves these controller fragments only in isolation. For eight
+  deterministic deals in each edition it fast-forwards speech but otherwise uses the live opening,
+  physical card hit rectangles, player/Mario request controllers, draw and book paths, and `$1FB4`
+  outcome progression until completion. On every pass it verifies that remaining card identities
+  are unique, live cards plus four per completed book still total 52, and the player's thirteen
+  persistent display records exactly match the logical hand. A stalled or corrupt full match fails
+  the release gate.
 - Yacht CODE 18 `$23EA` dispatches score categories. Its category routines establish Yacht = 50
   (`$2508`), Big Straight = 30 (`$253A`), Little Straight = 25 for any four consecutive values
   (`$259C`), Four of a Kind = dice sum (`$2622`), Full House = dice sum (`$2670`), Choice = dice sum
