@@ -613,6 +613,7 @@ int selfTest(HINSTANCE instance) {
     auto backgammonSetup = std::make_unique<mf::BackgammonGame>(context);
     auto backgammonStartup = std::make_unique<mf::BackgammonGame>(context);
     auto backgammonFullMatch = std::make_unique<mf::BackgammonGame>(context);
+    auto backgammonReplay = std::make_unique<mf::BackgammonGame>(context);
     if (!backgammon->sourceStrategyRegressionTest() ||
         !mf::BackgammonGame::sourceIdleRegressionTest() ||
         !mf::BackgammonGame::sourceCheckerGeometryRegressionTest() ||
@@ -623,6 +624,8 @@ int selfTest(HINSTANCE instance) {
     }
     if (!backgammonFullMatch->sourceFullMatchRegressionTest())
         throw std::runtime_error("Backgammon full-match controller regression");
+    if (!backgammonReplay->sourceReplayRegressionTest())
+        throw std::runtime_error("Backgammon replay-state regression");
     auto backgammonHumanOutcome = std::make_unique<mf::BackgammonGame>(context);
     auto backgammonMarioOutcome = std::make_unique<mf::BackgammonGame>(context);
     if (!backgammonHumanOutcome->sourceOutcomeRegressionTest(true) ||
@@ -692,9 +695,11 @@ int selfTest(HINSTANCE instance) {
     auto goFishHumanOutcome = std::make_unique<mf::GoFishGame>(context);
     auto goFishMarioOutcome = std::make_unique<mf::GoFishGame>(context);
     auto goFishTieOutcome = std::make_unique<mf::GoFishGame>(context);
+    auto goFishReplay = std::make_unique<mf::GoFishGame>(context);
     if (!goFishHumanOutcome->sourceOutcomeRegressionTest(1) ||
         !goFishMarioOutcome->sourceOutcomeRegressionTest(-1) ||
-        !goFishTieOutcome->sourceOutcomeRegressionTest(2)) {
+        !goFishTieOutcome->sourceOutcomeRegressionTest(2) ||
+        !goFishReplay->sourceReplayRegressionTest()) {
         throw std::runtime_error("Go Fish source outcome sequence regression");
     }
     auto yachtHumanOutcome = std::make_unique<mf::YachtGame>(context);
@@ -704,12 +709,14 @@ int selfTest(HINSTANCE instance) {
     auto yachtTurnOrder = std::make_unique<mf::YachtGame>(context);
     auto yachtCupPresentation = std::make_unique<mf::YachtGame>(context);
     auto yachtFullMatch = std::make_unique<mf::YachtGame>(context);
+    auto yachtReplay = std::make_unique<mf::YachtGame>(context);
     if (!mf::App::sourceIntroSkipRegressionTest() ||
         !mf::YachtGame::sourceDialogueRegressionTest() ||
         !yachtComputerSelection->sourceComputerSelectionRegressionTest() ||
         !yachtTurnOrder->sourceTurnOrderRegressionTest() ||
         !yachtCupPresentation->sourceCupPresentationRegressionTest() ||
         !yachtFullMatch->sourceFullMatchRegressionTest() ||
+        !yachtReplay->sourceReplayRegressionTest() ||
         !yachtHumanOutcome->sourceOutcomeRegressionTest(1) ||
         !yachtMarioOutcome->sourceOutcomeRegressionTest(-1) ||
         !yachtTieOutcome->sourceOutcomeRegressionTest(2)) {
@@ -926,6 +933,7 @@ int selfTest(HINSTANCE instance) {
     auto dosBackgammonHumanOutcome = std::make_unique<mf::BackgammonGame>(dosContext);
     auto dosBackgammonMarioOutcome = std::make_unique<mf::BackgammonGame>(dosContext);
     auto dosBackgammonFullMatch = std::make_unique<mf::BackgammonGame>(dosContext);
+    auto dosBackgammonReplay = std::make_unique<mf::BackgammonGame>(dosContext);
     if (!dosBackgammon->sourceStrategyRegressionTest() ||
         !dosBackgammon->sourceDialogueRegressionTest() ||
         !dosBackgammonStartup->sourceStartupRegressionTest() ||
@@ -936,6 +944,8 @@ int selfTest(HINSTANCE instance) {
     }
     if (!dosBackgammonFullMatch->sourceFullMatchRegressionTest())
         throw std::runtime_error("DOS Backgammon full-match controller regression");
+    if (!dosBackgammonReplay->sourceReplayRegressionTest())
+        throw std::runtime_error("DOS Backgammon replay-state regression");
     if (dosAudio.requestedMusicResourceId() != 141)
         throw std::runtime_error("DOS Backgammon player-win XMI routing regression");
     auto dosDominoes = std::make_unique<mf::DominoesGame>(dosContext);
@@ -990,6 +1000,7 @@ int selfTest(HINSTANCE instance) {
     auto dosGoFishHumanOutcome = std::make_unique<mf::GoFishGame>(dosContext);
     auto dosGoFishMarioOutcome = std::make_unique<mf::GoFishGame>(dosContext);
     auto dosGoFishTieOutcome = std::make_unique<mf::GoFishGame>(dosContext);
+    auto dosGoFishReplay = std::make_unique<mf::GoFishGame>(dosContext);
     if (!dosGoFish->sourceStrategyRegressionTest())
         throw std::runtime_error("DOS Go Fish strategy regression");
     if (!dosGoFish->sourceDialogueRegressionTest())
@@ -1010,6 +1021,8 @@ int selfTest(HINSTANCE instance) {
         throw std::runtime_error("DOS Go Fish Mario outcome regression");
     if (!dosGoFishTieOutcome->sourceOutcomeRegressionTest(2))
         throw std::runtime_error("DOS Go Fish tie outcome regression");
+    if (!dosGoFishReplay->sourceReplayRegressionTest())
+        throw std::runtime_error("DOS Go Fish replay-state regression");
     if (dosAudio.requestedMusicResourceId() != 137)
         throw std::runtime_error("DOS Go Fish player-win XMI routing regression");
     auto dosYachtSelection = std::make_unique<mf::YachtGame>(dosContext);
@@ -1019,10 +1032,12 @@ int selfTest(HINSTANCE instance) {
     auto dosYachtTieOutcome = std::make_unique<mf::YachtGame>(dosContext);
     auto dosYachtCupPresentation = std::make_unique<mf::YachtGame>(dosContext);
     auto dosYachtFullMatch = std::make_unique<mf::YachtGame>(dosContext);
+    auto dosYachtReplay = std::make_unique<mf::YachtGame>(dosContext);
     if (!dosYachtSelection->sourceComputerSelectionRegressionTest() ||
         !dosYachtTurnOrder->sourceTurnOrderRegressionTest() ||
         !dosYachtCupPresentation->sourceCupPresentationRegressionTest() ||
         !dosYachtFullMatch->sourceFullMatchRegressionTest() ||
+        !dosYachtReplay->sourceReplayRegressionTest() ||
         !dosYachtHumanOutcome->sourceOutcomeRegressionTest(1) ||
         !dosYachtMarioOutcome->sourceOutcomeRegressionTest(-1) ||
         !dosYachtTieOutcome->sourceOutcomeRegressionTest(2)) {

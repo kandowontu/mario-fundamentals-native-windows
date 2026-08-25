@@ -105,6 +105,11 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   all player rolls, holds and releases dice through their source hit records, fills the right
   scorecard, lets Mario's recovered adviser fill the left scorecard, reaches round twelve, and
   drains the native result sequence while enforcing cup, dice, score, and turn-state invariants.
+- Play Again now has explicit dual-edition state-ownership coverage for all five games. Per-round
+  boards, hands, scores, request histories, animations, and outcome state reset, while each game's
+  source-defined later-round counters, shuffled dialogue cursors, idle cycles, player identity, and
+  options remain attached to the existing session. Later Backgammon full matches use this live
+  replay path instead of reconstructing a fresh engine.
 - DOS `Ply` motion pairs retain the source vertical/horizontal layout even though DOS `MuV` and
   `Img` geometry uses conventional x/y fields. The runtime now treats those dialects separately;
   all five game introductions move on their authored axes, the Yacht crosses the water instead

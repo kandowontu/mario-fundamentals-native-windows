@@ -792,9 +792,12 @@ bool BackgammonGame::sourceFullMatchRegressionTest() {
         return Point{(rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2};
     };
 
+    bool firstMatch = true;
     for (const std::uint32_t seed : seeds) {
         context_.random.setSeed(seed);
-        reset(false);
+        if (firstMatch) reset(false);
+        else resetForReplay();
+        firstMatch = false;
         bool matchSawStartup = false;
         bool matchSawOpening = false;
         bool matchSawHumanMove = false;
@@ -909,6 +912,60 @@ bool BackgammonGame::sourceFullMatchRegressionTest() {
     context_.random.setSeed(savedSeed);
     return sawHumanRoll && sawMarioRoll && sawHumanMove && sawMarioMove && sawHit &&
            sawBarEntry && sawBearOff && sawFriendlyPointBuild && sawSelectionCancel;
+}
+
+bool BackgammonGame::sourceReplayRegressionTest() {
+    const std::uint32_t savedSeed = context_.random.seed();
+    openingGreetingPool_ = {11604, 11600, 11603};
+    computerNoMovePool_ = {11617, 11613, 11614};
+    computerThinkingPool_ = {11631, 11630, 11632};
+    openingGreetingPoolCursor_ = 1;
+    computerNoMovePoolCursor_ = 2;
+    computerThinkingPoolCursor_ = 1;
+    lastIdleLine_ = 2;
+    lastIdleVisual_ = 1;
+    const auto openingPool = openingGreetingPool_;
+    const auto noMovePool = computerNoMovePool_;
+    const auto thinkingPool = computerThinkingPool_;
+    state_ = {};
+    state_.humanOff = 15;
+    state_.computerBar = 15;
+    dice_ = {6, 6, 6, 6};
+    winner_ = 1;
+    pendingRoll_ = 1;
+    rolled_ = true;
+    opening_ = false;
+    outcomePhase_ = OutcomePhase::Complete;
+    animatedPieces_ = false;
+    context_.playerIsYoshi = false;
+
+    resetForReplay();
+
+    State expected{};
+    expected.points[12] = 2;
+    expected.points[23] = 5;
+    expected.points[6] = 5;
+    expected.points[4] = 3;
+    expected.points[17] = -5;
+    expected.points[19] = -3;
+    expected.points[11] = -2;
+    expected.points[0] = -5;
+    const bool valid = state_.points == expected.points && state_.humanBar == 0 &&
+        state_.computerBar == 0 && state_.humanOff == 0 && state_.computerOff == 0 &&
+        dice_.empty() && computerMoves_.empty() && winner_ == 0 && pendingRoll_ == 0 &&
+        !rolled_ && opening_ && outcomePhase_ == OutcomePhase::None &&
+        startupPhase_ == StartupPhase::PreGreeting && startupDelayTicks_ == 2 &&
+        std::all_of(setupVisiblePoints_.begin(), setupVisiblePoints_.end(),
+                    [](int count) { return count == 0; }) &&
+        openingGreetingPool_ == openingPool && computerNoMovePool_ == noMovePool &&
+        computerThinkingPool_ == thinkingPool && openingGreetingPoolCursor_ == 1 &&
+        computerNoMovePoolCursor_ == 2 && computerThinkingPoolCursor_ == 1 &&
+        lastIdleLine_ == 2 && lastIdleVisual_ == 1 && !animatedPieces_ &&
+        !context_.playerIsYoshi && context_.random.seed() == savedSeed &&
+        !host_.active() && !diceRoll_.active() && !secondDiceRoll_.active() &&
+        !pieceAnimation_.active;
+    context_.random.setSeed(savedSeed);
+    return valid;
 }
 
 bool BackgammonGame::tickOutcome() {

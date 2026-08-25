@@ -21,6 +21,7 @@ public:
     [[nodiscard]] bool sourceEmptyHandRefillRegressionTest();
     [[nodiscard]] bool sourceFullMatchRegressionTest();
     [[nodiscard]] bool sourceOutcomeRegressionTest(int expectedWinner);
+    [[nodiscard]] bool sourceReplayRegressionTest();
     void setQaVictoryPresentation(int letterCount);
     void setQaHandSlotsPresentation(bool afterTransfer);
     void setQaQuestionPresentation();

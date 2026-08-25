@@ -26,6 +26,9 @@ All notable native-port changes are documented here.
 - Eight deterministic full Yacht matches per edition, driven through the public roll, die-control,
   and score-line click paths with continuous dice, scorecard, turn, cup-ownership, and completion
   invariants.
+- Dual-edition Play Again regressions for all five games, separating reset board/deck/score/history
+  data from preserved source module state such as round counters, shuffled dialogue cursors, idle
+  cycles, character identity, and options.
 
 ### Changed
 

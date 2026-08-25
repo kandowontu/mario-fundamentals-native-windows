@@ -151,6 +151,14 @@ public roll button, white/red die hit records, and right-scorecard lines; requir
 records to be committed exactly once before the source wipe; and reject invalid dice, score,
 turn-stage, cup-ownership, or nonterminating states after every controller pass.
 
+Play Again is now regression-tested across every game and asset dialect, not inferred from the
+shell's virtual call alone. The tests distinguish round state from module/session state: Dominoes'
+round number and Checkers' Mario-win count survive as their source dialogue branches require;
+Backgammon's three shuffled pools and idle rejection memory survive; Go Fish's thirteen shuffled
+selectors and alternating idle branch survive while both request-history arrays reset; and Yacht's
+four lazy pools plus joke cursor survive while scores, dice, and opening state reset. The same live
+objects retain player identity and animation options.
+
 ## Fidelity boundaries
 
 - The game rules are native semantic equivalents with source-derived probability tables, the

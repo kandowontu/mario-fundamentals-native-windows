@@ -463,6 +463,10 @@ implementations remain evidence-backed rather than inferred from modern versions
   are unique, live cards plus four per completed book still total 52, and the player's thirteen
   persistent display records exactly match the logical hand. A stalled or corrupt full match fails
   the release gate.
+  Play Again retains CODE 17's module-scoped shuffled selectors and the speech/visual idle
+  alternation counter, but reconstructs the 52-card deal and clears both book totals, the 200-entry
+  player-question memory, the 30-entry Mario request history, and the last requested rank. The
+  replay regression pins both halves of that ownership boundary in Macintosh and DOS resources.
 - Yacht CODE 18 `$23EA` dispatches score categories. Its category routines establish Yacht = 50
   (`$2508`), Big Straight = 30 (`$253A`), Little Straight = 25 for any four consecutive values
   (`$259C`), Four of a Kind = dice sum (`$2622`), Full House = dice sum (`$2670`), Choice = dice sum
@@ -515,6 +519,10 @@ implementations remain evidence-backed rather than inferred from modern versions
   rounds and the complete outcome controller. Per-pass invariants cover dice values, score formats,
   scorecard ownership, Mario/player turn ordering, controller bounds, and stationary-cup exclusion
   throughout every live roll and settle sequence.
+  Play Again clears both twelve-line scorecards, dice, held flags, outcome state, and Mario's local
+  score-announcement alternation before replaying Good Luck/I Go First. CODE 18's module-scoped
+  thinking/reaction pools and four-joke cursor remain at their current positions; a dual-edition
+  replay regression prevents either session state from being re-seeded or silently discarded.
 
 - Yacht's dice are two distinct Pak 6010 control lanes. `$2B42` places flag-zero white dice at
   `(154,261)`, `(195,261)`, `(236,261)`, `(277,261)`, and `(318,261)`; `$2C40` places flag-one red
@@ -656,6 +664,9 @@ implementations remain evidence-backed rather than inferred from modern versions
   two-click point/bar/off-board hit records from the full setup through the result controller.
   Speech alone is fast-forwarded; dice movies, checker motion, Mario's delayed plan, hits, entries,
   and bearing off remain live, with exact 15+15 checker conservation checked after every move.
+  Only the first match constructs fresh module state; the following seven invoke Play Again's
+  `resetForReplay` path on the same object and retain the shuffled greeting/thinking/no-move pools
+  and nonrepeating idle memory while rebuilding the board and startup controller.
 - Backgammon does not begin directly on a fully painted board. `$DD8` spends two controller passes
   installing and presenting the game, then lazily shuffles A5-`$3B52`'s indices `[3,4,0]` and starts
   one of `MuV ` 11603 (“Let's play!”), 11604 (“Good luck!”), or 11600 (“Nice to see you again!”)

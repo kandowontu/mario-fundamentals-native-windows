@@ -130,6 +130,9 @@ original executable, emulator, installer, DOS driver, or loose asset file at run
   Play Again dialog. Its source-timed idle controller restores the three full-body animations, two
   impatient lines, ordered four-joke cycle, inter-line pauses, and exact random follow-up delays.
   The former invented 80-quiet-move draw shortcut has been removed.
+- Play Again resets each board/deck/score controller in place. Dual-edition regressions cover every
+  game and preserve only its source-owned session state: later-round counters, lazy dialogue pools,
+  idle cycles, player identity, and options.
 - Original game backgrounds, characters, cards, dice, pieces, scorecards, voices, effects, and music
   are decoded from the supplied image rather than replaced with lookalike art.
 - The original QuickDraw pseudorandom generator, CODE 1 range scaler, CODE 13 startup stirring and

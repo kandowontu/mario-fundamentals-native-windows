@@ -1386,6 +1386,55 @@ bool YachtGame::sourceFullMatchRegressionTest() {
            sawPlayerScore && sawMarioScore;
 }
 
+bool YachtGame::sourceReplayRegressionTest() {
+    const std::uint32_t savedSeed = context_.random.seed();
+    thinkingPool_ = {11431, 11429, 11430, 11429};
+    positiveReactionPool_ = {11447, 11448, 11446};
+    worriedReactionPool_ = {11425, 11421, 11424};
+    friendlyReactionPool_ = {11452, 11451};
+    thinkingPoolCursor_ = 2;
+    positiveReactionPoolCursor_ = 1;
+    worriedReactionPoolCursor_ = 2;
+    friendlyReactionPoolCursor_ = 1;
+    idleJokeIndex_ = 3;
+    const auto thinkingPool = thinkingPool_;
+    const auto positivePool = positiveReactionPool_;
+    const auto worriedPool = worriedReactionPool_;
+    const auto friendlyPool = friendlyReactionPool_;
+    humanScores_.fill(50);
+    computerScores_.fill(30);
+    dice_ = {2, 3, 4, 5, 6};
+    held_.fill(true);
+    rolls_ = 3;
+    round_ = 12;
+    winner_ = 1;
+    computerAnnouncementCount_ = 9;
+    outcomePhase_ = OutcomePhase::Complete;
+    animatedPieces_ = false;
+    context_.playerIsYoshi = false;
+
+    resetForReplay();
+
+    const bool valid =
+        std::all_of(humanScores_.begin(), humanScores_.end(), [](int score) { return score == -1; }) &&
+        std::all_of(computerScores_.begin(), computerScores_.end(), [](int score) { return score == -1; }) &&
+        std::all_of(dice_.begin(), dice_.end(), [](int die) { return die == 1; }) &&
+        std::none_of(held_.begin(), held_.end(), [](bool held) { return held; }) &&
+        rolls_ == 0 && round_ == 0 && winner_ == 0 && outcomePhase_ == OutcomePhase::None &&
+        introPhase_ == IntroPhase::GoodLuck && openingDelayMilliseconds_ == 1 &&
+        pendingRollPlayer_ == 0 && computerRerollStage_ == 0 &&
+        computerAnnouncementCount_ == 0 && host_.active() && host_.activeResourceId() == 11411 &&
+        !rollAnimation_.active() && !gestureAnimation_.active() && !outcomeAnimation_.active() &&
+        thinkingPool_ == thinkingPool && thinkingPoolCursor_ == 2 &&
+        positiveReactionPool_ == positivePool && positiveReactionPoolCursor_ == 1 &&
+        worriedReactionPool_ == worriedPool && worriedReactionPoolCursor_ == 2 &&
+        friendlyReactionPool_ == friendlyPool && friendlyReactionPoolCursor_ == 1 &&
+        idleJokeIndex_ == 3 && !animatedPieces_ && !context_.playerIsYoshi &&
+        context_.random.seed() == savedSeed;
+    context_.random.setSeed(savedSeed);
+    return valid;
+}
+
 void YachtGame::setQaVictoryPresentation() {
     host_.stop();
     openingDelayMilliseconds_ = 0;

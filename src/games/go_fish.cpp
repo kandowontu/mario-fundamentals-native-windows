@@ -1117,6 +1117,122 @@ bool GoFishGame::sourceFullMatchRegressionTest() {
     return sawHumanInput && sawMarioQuestion && sawBook && sawDraw;
 }
 
+bool GoFishGame::sourceReplayRegressionTest() {
+    const std::uint32_t savedSeed = context_.random.seed();
+    openingPool_ = {11600, 11603, 11003, 11526};
+    prefixPool_ = {11557, 11545, 11576, 11575};
+    thinkingPool_ = {11544, 11543};
+    humanSuccessPool_ = {11540, 11539};
+    marioSuccessPool_ = {11577, 11550, 11558};
+    marioFishingPool_ = {11554, 11555, 11551};
+    humanTurnPool_ = {11422, 11530};
+    praisePool_ = {11608, 11607, 11610};
+    frustrationPool_ = {11635, 11629};
+    idlePool_ = {11562, 11561};
+    idleVisualPool_ = {999, 5090, 999, 5091, 5094};
+    marioWinPool_ = {11566, 11565, 11568, 11569};
+    humanWinPool_ = {11567, 11570};
+    openingPoolCursor_ = 0;
+    prefixPoolCursor_ = 1;
+    thinkingPoolCursor_ = 1;
+    humanSuccessPoolCursor_ = 1;
+    marioSuccessPoolCursor_ = 2;
+    marioFishingPoolCursor_ = 1;
+    humanTurnPoolCursor_ = 1;
+    praisePoolCursor_ = 2;
+    frustrationPoolCursor_ = 1;
+    idlePoolCursor_ = 1;
+    idleVisualPoolCursor_ = 3;
+    marioWinPoolCursor_ = 2;
+    humanWinPoolCursor_ = 1;
+    idleAlternationCounter_ = 7;
+    const auto openingPool = openingPool_;
+    const auto prefixPool = prefixPool_;
+    const auto thinkingPool = thinkingPool_;
+    const auto humanSuccessPool = humanSuccessPool_;
+    const auto marioSuccessPool = marioSuccessPool_;
+    const auto marioFishingPool = marioFishingPool_;
+    const auto humanTurnPool = humanTurnPool_;
+    const auto praisePool = praisePool_;
+    const auto frustrationPool = frustrationPool_;
+    const auto idlePool = idlePool_;
+    const auto idleVisualPool = idleVisualPool_;
+    const auto marioWinPool = marioWinPool_;
+    const auto humanWinPool = humanWinPool_;
+    winner_ = 1;
+    humanBooks_ = 13;
+    humanTurn_ = true;
+    pendingComputerRank_ = 5;
+    computerTurnWaiting_ = true;
+    outcomePhase_ = OutcomePhase::Complete;
+    humanQuestionMemory_.fill(4);
+    computerQuestionHistory_.fill(8);
+    lastComputerRank_ = 8;
+    marioHasFished_ = true;
+    animatedPieces_ = false;
+    context_.playerIsYoshi = false;
+
+    resetForReplay();
+
+    std::array<bool, 52> present{};
+    bool uniqueCards = true;
+    const auto record = [&](std::span<const int> cards) {
+        for (const int card : cards) {
+            if (card < 0 || card >= 52 || present[static_cast<std::size_t>(card)]) {
+                uniqueCards = false;
+                return;
+            }
+            present[static_cast<std::size_t>(card)] = true;
+        }
+    };
+    record(human_);
+    record(computer_);
+    record(deck_);
+    std::array<int, 13> humanRankCounts{};
+    std::array<int, 13> displayedRankCounts{};
+    for (const int card : human_)
+        ++humanRankCounts[static_cast<std::size_t>(rank(card))];
+    for (const HumanHandSlot& slot : humanHandSlots_) {
+        if (slot.count == 0) continue;
+        if (slot.rank < 0 || slot.rank >= 13 ||
+            displayedRankCounts[static_cast<std::size_t>(slot.rank)] != 0) {
+            uniqueCards = false;
+            break;
+        }
+        displayedRankCounts[static_cast<std::size_t>(slot.rank)] = slot.count;
+    }
+    const std::size_t accounted = human_.size() + computer_.size() + deck_.size() +
+        static_cast<std::size_t>(4 * (humanBooks_ + computerBooks_));
+    const bool valid = moduleStateInitialized_ && winner_ == 0 && outcomePhase_ == OutcomePhase::None &&
+        openingPhase_ == OpeningPhase::Greeting && !humanTurn_ && pendingComputerRank_ == -1 &&
+        !computerTurnWaiting_ && !directSpeechPending_ && !marioHasFished_ &&
+        std::all_of(humanQuestionMemory_.begin(), humanQuestionMemory_.end(),
+                    [](int rank) { return rank == 99; }) &&
+        std::all_of(computerQuestionHistory_.begin(), computerQuestionHistory_.end(),
+                    [](int rank) { return rank == 99; }) &&
+        lastComputerRank_ == 99 && uniqueCards && accounted == 52 &&
+        humanRankCounts == displayedRankCounts && !openingCardMotion_.active &&
+        std::none_of(victoryCardFlips_.begin(), victoryCardFlips_.end(),
+                     [](const auto& flip) { return flip->active(); }) &&
+        openingPool_ == openingPool && openingPoolCursor_ == 1 &&
+        prefixPool_ == prefixPool && prefixPoolCursor_ == 1 &&
+        thinkingPool_ == thinkingPool && thinkingPoolCursor_ == 1 &&
+        humanSuccessPool_ == humanSuccessPool && humanSuccessPoolCursor_ == 1 &&
+        marioSuccessPool_ == marioSuccessPool && marioSuccessPoolCursor_ == 2 &&
+        marioFishingPool_ == marioFishingPool && marioFishingPoolCursor_ == 1 &&
+        humanTurnPool_ == humanTurnPool && humanTurnPoolCursor_ == 1 &&
+        praisePool_ == praisePool && praisePoolCursor_ == 2 &&
+        frustrationPool_ == frustrationPool && frustrationPoolCursor_ == 1 &&
+        idlePool_ == idlePool && idlePoolCursor_ == 1 &&
+        idleVisualPool_ == idleVisualPool && idleVisualPoolCursor_ == 3 &&
+        marioWinPool_ == marioWinPool && marioWinPoolCursor_ == 2 &&
+        humanWinPool_ == humanWinPool && humanWinPoolCursor_ == 1 &&
+        idleAlternationCounter_ == 7 && !animatedPieces_ && !context_.playerIsYoshi &&
+        host_.active() && host_.activeResourceId() == 11600;
+    context_.random.setSeed(savedSeed);
+    return valid;
+}
+
 bool GoFishGame::finished() const {
     return outcomePhase_ == OutcomePhase::Complete;
 }
