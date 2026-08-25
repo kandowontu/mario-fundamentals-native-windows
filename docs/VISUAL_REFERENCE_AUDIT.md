@@ -22,24 +22,26 @@ are used only for local preservation QA.
 The comparison uses Gaussian-smoothed regional RGB root-mean-square error after normalizing each
 image to its edition's logical resolution. Stable-layout checks exclude regions with random pieces,
 cards, speech-mouth frames, or the captured mouse cursor. Four publisher states, the black-cast
-title silhouette, two title-speaking states, and four selected-menu poses compare complete
-Macintosh frames. Seven Macintosh and five DOS cases compare complete game-intro frames at
-independently identified source times. Complete frames also cover the Backgammon setup reveal,
+title silhouette, two title-speaking states, four menu-transition instants, and a settled Go Fish
+selection compare complete Macintosh frames. A focused case additionally pins that settled
+selection's two-cel hand/deck composition. Seven Macintosh and five DOS cases compare complete
+game-intro frames at independently identified source times. Complete frames also cover the Backgammon setup reveal,
 Backgammon/Checkers first-use panels, three Go Fish grouped/question/transfer states, and Yacht's
 post-roll dice/marker state. Edge-only cases pin both Dominoes score portraits and the Macintosh
 Yacht reroll gesture to their source registrations. Focused cases pin the title's terminal open
 hand, Yacht's two-cel-composed idle hands, and the DOS Go Fish captions/value columns absent from
-Pak 5001. Together the 50 cases cover startup colors,
-title reveal order, title composition, scorecards, boards, status bars, tiled backgrounds, menus,
+Pak 5001. Together the 52 cases cover startup colors, title reveal order, title composition,
+scorecards, boards, status bars, tiled backgrounds, menus,
 prompt ordering, hand transfers, and moving-actor registration without treating different random
 gameplay states as failures.
 
 `tools/verify_visual_reference_inventory.py` separately accounts for every retained capture before
-pixel comparison. The current 219-file inventory contains 44 unique files used directly by one or
+pixel comparison. The current 225-file inventory contains 45 unique files used directly by one or
 more comparisons, 75 redundant sequence frames, 43 external pre-launch frames, 41 blank/host
-repaints, eight incomplete QuickDraw/browser repaints, seven stochastic gameplay alternates, and
-one cross-edition supplemental screenshot. Unknown captures fail the gate. Partial repaints are
-preserved as evidence but deliberately are not reproduced: the native renderer presents a completed
+repaints, eight incomplete QuickDraw/browser repaints, five invalid browser-scaled clips, seven
+stochastic gameplay alternates, and one cross-edition supplemental screenshot. Unknown captures
+fail the gate. Partial repaints and invalid clips are preserved as evidence but deliberately are
+not reproduced: the native renderer presents a completed
 back buffer so the source/browser's black flicker cannot become a port feature.
 
 | Edition | Reference case | Current RMSE | Maximum |
@@ -52,10 +54,12 @@ back buffer so the source/browser's black flicker cannot become a port feature.
 | Macintosh | Title greeting | 7.164 | 10.0 |
 | Macintosh | Title talking | 7.409 | 10.0 |
 | Macintosh | Title open right hand | 27.910 | 32.0 |
-| Macintosh | Menu, Backgammon selected | 8.303 | 10.0 |
-| Macintosh | Menu, Dominoes selected | 8.240 | 10.0 |
-| Macintosh | Menu, Go Fish selected | 8.599 | 10.0 |
-| Macintosh | Menu, Yacht selected | 11.412 | 13.0 |
+| Macintosh | Menu, Backgammon settled | 2.540 | 4.0 |
+| Macintosh | Menu transition, Dominoes outgoing | 2.864 | 4.0 |
+| Macintosh | Menu transition, Go Fish outgoing | 2.575 | 4.0 |
+| Macintosh | Menu transition, Yacht outgoing | 3.741 | 5.0 |
+| Macintosh | Menu, Go Fish settled | 10.752 | 12.0 |
+| Macintosh | Menu, Go Fish settled hand/deck | 27.660 | 30.0 |
 | Macintosh | Dominoes intro | 13.549 | 15.0 |
 | Macintosh | Checkers intro | 11.196 | 12.5 |
 | Macintosh | Go Fish intro, early | 5.228 | 6.0 |
@@ -67,7 +71,7 @@ back buffer so the source/browser's black flicker cannot become a port feature.
 | Macintosh | Backgammon character choice | 11.069 | 13.0 |
 | Macintosh | Backgammon setup reveal | 13.142 | 15.0 |
 | Macintosh | Dominoes table | 2.335 | 4.0 |
-| Macintosh | Dominoes score/portrait registration (edge) | 37.429 | 38.0 |
+| Macintosh | Dominoes score/portrait registration (edge) | 37.255 | 38.0 |
 | Macintosh | Checkers chrome | 10.620 | 14.0 |
 | Macintosh | Checkers character choice | 10.073 | 12.0 |
 | Macintosh | Checkers name prompt | 13.793 | 16.0 |

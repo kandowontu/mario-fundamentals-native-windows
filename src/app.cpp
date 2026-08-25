@@ -189,8 +189,8 @@ void App::renderQaFrames(std::wstring_view outputDirectory) {
     }
 
     // Exercise the actual mouse-down route through both a live title pose and
-    // the board-flip phase. Both must install movie 1111's terminal
-    // hand/easel cel before the menu frame.
+    // the board-flip phase. Both must replace the title's terminal open hand
+    // with movie 1111 at the menu controller's selected resting time.
     screen_ = Screen::Intro;
     introPhase_ = IntroPhase::TalkingHead;
     introPhaseMilliseconds_ = 600U;
@@ -215,16 +215,54 @@ void App::renderQaFrames(std::wstring_view outputDirectory) {
     if (canvas_.pixelHash({0, 0, kLogicalWidth, kLogicalHeight}) != liveTitleSkipHash)
         throw std::runtime_error("Macintosh board-reveal skip did not install the final menu pose");
 
+    constexpr std::array<std::uint64_t, 5> menuPoseHashes{
+        0x70CE4E84B33772BDULL, 0x19DD24378C922F77ULL,
+        0x582A7D30B43A2E2DULL, 0x12509D07234EF5CAULL,
+        0x409B4CE6373B957EULL};
     for (int sourceSelection = 1; sourceSelection <= 5; ++sourceSelection) {
         menuSourceSelection_ = sourceSelection;
         showSelectedMenuPose();
         save(L"10-menu-selection-" + std::to_wstring(sourceSelection) + L".bmp");
-        if (sourceSelection == 1 &&
-            canvas_.pixelHash({0, 0, kLogicalWidth, kLogicalHeight}) !=
-                0xC8DC550B480F2920ULL) {
-            throw std::runtime_error("Macintosh single-hand menu composition regression");
+        if (canvas_.pixelHash({0, 0, kLogicalWidth, kLogicalHeight}) !=
+            menuPoseHashes[static_cast<std::size_t>(sourceSelection - 1)]) {
+            throw std::runtime_error("Macintosh selected menu resting-pose regression");
         }
     }
+
+    const auto beginMenuTransition = [this, &save](
+            int outgoing, int incoming, std::wstring_view name) {
+        menuSourceSelection_ = outgoing;
+        menuSelectionHost_.showFrame(menu_catalog::movie(outgoing), 397, 127,
+                                     menu_catalog::holdSourceTime(outgoing));
+        render();
+        const std::uint64_t outgoingActorHash =
+            canvas_.pixelHash({397, 127, 497, 227});
+        if (!selectMenuSource(incoming))
+            throw std::runtime_error("Macintosh menu transition did not start");
+        save(name);
+        if (canvas_.pixelHash({397, 127, 497, 227}) != outgoingActorHash)
+            throw std::runtime_error("Macintosh menu transition skipped the outgoing pose");
+    };
+
+    // Independent vanilla captures land on these exact click/hover instants:
+    // the new red label is visible while the prior hand/object actor begins its
+    // 300 ms retraction.  The middle case also exercises the full two-stage
+    // $DBC-$100C transition through neutral into the new selected pose.
+    beginMenuTransition(4, 3, L"10a-transition-backgammon-to-dominoes.bmp");
+    menuSelectionHost_.stop();
+    beginMenuTransition(3, 2, L"10b-transition-dominoes-to-go-fish-outgoing.bmp");
+    menuSelectionHost_.tick(300U);
+    save(L"10c-transition-dominoes-to-go-fish-neutral.bmp");
+    if (!menuSelectionHost_.playing())
+        throw std::runtime_error("Macintosh menu transition stopped before its incoming pose");
+    menuSelectionHost_.tick(1300U);
+    save(L"10d-transition-dominoes-to-go-fish-settled.bmp");
+    if (menuSelectionHost_.playing() ||
+        canvas_.pixelHash({0, 0, kLogicalWidth, kLogicalHeight}) != menuPoseHashes[1]) {
+        throw std::runtime_error("Macintosh menu transition did not hold its source pose");
+    }
+    beginMenuTransition(2, 5, L"10e-transition-go-fish-to-yacht.bmp");
+    menuSelectionHost_.stop();
 
     for (int gameIndex = 0; gameIndex < 5; ++gameIndex) {
         beginGameIntro(gameIndex);
@@ -1550,22 +1588,28 @@ bool App::selectMenuSource(int sourceSelection, bool animate) {
         sourceSelection == menuSourceSelection_) {
         return false;
     }
+    const int previousSourceSelection = menuSourceSelection_;
     menuSourceSelection_ = sourceSelection;
     if (!menuIdleRunning_) menuIdleElapsedTicks_ = 0;
     if (animate && screen_ == Screen::Menu) {
-        // CODE 12 $D36 emits snd 5003 when the active cast label changes, then
-        // advances the selected 1111-1115 hand/object movie and leaves its last
-        // frame visible until another selection replaces it.
+        // CODE 12 $D36 emits snd 5003 when the active cast label changes. Its
+        // $DBC-$100C state machine first advances the outgoing 1111-1115 actor
+        // from its $C34 resting time to neutral, then advances the incoming
+        // actor from zero to that selection's own resting time.
         audio_.playEffect(audio_catalog::kMenuSelectionSound);
-        menuSelectionHost_.play(menu_catalog::movie(sourceSelection), 397, 127,
-                                true, 180U);
+        menuSelectionHost_.playTransition(
+            menu_catalog::movie(previousSourceSelection),
+            menu_catalog::holdSourceTime(previousSourceSelection),
+            menu_catalog::movie(sourceSelection),
+            menu_catalog::holdSourceTime(sourceSelection), 397, 127, true);
     }
     return true;
 }
 
 void App::showSelectedMenuPose() {
     menuSelectionHost_.showFrame(menu_catalog::movie(menuSourceSelection_),
-                                 397, 127, 180U);
+                                 397, 127,
+                                 menu_catalog::holdSourceTime(menuSourceSelection_));
     resetMenuIdleControllers();
 }
 

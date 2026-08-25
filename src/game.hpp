@@ -41,6 +41,30 @@ public:
         start(resourceId);
     }
 
+    void playTransition(int outgoingResourceId,
+                        std::uint32_t outgoingSourceTime,
+                        int incomingResourceId,
+                        std::uint32_t incomingHoldSourceTime,
+                        int x, int y, bool playAudio = true) {
+        queuedMovies_.clear();
+        if (scaleDosCoordinates_ && assets_.dialect() == AssetDialect::Dos) {
+            x = x * kDosLogicalWidth / kLogicalWidth;
+            y = y * kDosLogicalHeight / kLogicalHeight;
+        }
+        requestedX_ = x;
+        requestedY_ = y;
+        audioEnabled_ = playAudio;
+        holdSourceTime_ = incomingHoldSourceTime;
+
+        // CODE 12 advances the old selected actor from its resting time to its
+        // terminal neutral hand, then advances the new actor from zero only as
+        // far as that selection's resting time.  Do not replay old time-zero
+        // cues when resuming the outgoing movie halfway through its timeline.
+        start(outgoingResourceId, false);
+        elapsedMilliseconds_ = outgoingSourceTime * 1000U / movie_->timeScale();
+        queuedMovies_.push_back(incomingResourceId);
+    }
+
     void showFrame(int resourceId, int x, int y, std::uint32_t sourceTime) {
         play(resourceId, x, y, false, sourceTime);
         elapsedMilliseconds_ = sourceTime * 1000U / movie_->timeScale();
@@ -49,7 +73,7 @@ public:
 
     void queue(int resourceId) { queuedMovies_.push_back(resourceId); }
 
-    void start(int resourceId) {
+    void start(int resourceId, bool playStartSounds = true) {
         movie_ = std::make_unique<Movie>(assets_, resourceId);
         Point placement{requestedX_, requestedY_};
         if (assets_.dialect() == AssetDialect::Dos && dosPlacement_) {
@@ -59,7 +83,7 @@ public:
         y_ = placement.y;
         elapsedMilliseconds_ = 0;
         holdingFrame_ = false;
-        if (audioEnabled_) {
+        if (audioEnabled_ && playStartSounds) {
             bool first = true;
             for (int sound : movie_->soundsAtStart()) {
                 if (first) audio_.playSound(sound);
@@ -86,6 +110,14 @@ public:
             for (int sound : movie_->soundsBetween(previous, current))
                 audio_.playEffect(sound);
         }
+        if (queuedMovies_.empty() && holdSourceTime_ &&
+            current >= std::min(*holdSourceTime_, movie_->duration() - 1U)) {
+            const std::uint32_t target =
+                std::min(*holdSourceTime_, movie_->duration() - 1U);
+            elapsedMilliseconds_ = target * 1000U / movie_->timeScale();
+            holdingFrame_ = true;
+            return true;
+        }
         const std::uint32_t durationMilliseconds =
             (movie_->duration() * 1000U + movie_->timeScale() - 1U) / movie_->timeScale();
         if (elapsedMilliseconds_ >= durationMilliseconds) {
@@ -94,7 +126,9 @@ public:
                 queuedMovies_.erase(queuedMovies_.begin());
                 start(next);
             } else if (holdSourceTime_) {
-                elapsedMilliseconds_ = *holdSourceTime_ * 1000U / movie_->timeScale();
+                const std::uint32_t target =
+                    std::min(*holdSourceTime_, movie_->duration() - 1U);
+                elapsedMilliseconds_ = target * 1000U / movie_->timeScale();
                 holdingFrame_ = true;
             } else {
                 movie_.reset();

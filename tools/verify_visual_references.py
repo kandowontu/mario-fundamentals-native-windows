@@ -122,35 +122,55 @@ MAC_SAMPLES = (
         MAC_RUN_CAPTURE_SIZE,
         MAC_RUN_CAPTURE_CROP,
     ),
-    # Stable source menu selections independently cover four of the five
-    # button rows, pointer endpoints, hand poses, and held game-piece actors.
+    # These click/hover captures cover one settled pose plus three exact
+    # outgoing-pose transition instants.  CODE 12 changes the red label first,
+    # retracts the prior hand/object actor for 300 ms, and only then advances
+    # the incoming actor to its selection-specific resting time.
     Sample(
         "menu-backgammon-selected",
         "original-dominoes-flow-0.png",
         "10-menu-selection-4.bmp",
         ((0, 0, 512, 384),),
-        10.0,
+        4.0,
     ),
     Sample(
-        "menu-dominoes-selected",
+        "menu-dominoes-transition-outgoing",
         "original-dominoes-flow-1.png",
-        "10-menu-selection-3.bmp",
+        "10a-transition-backgammon-to-dominoes.bmp",
         ((0, 0, 512, 384),),
-        10.0,
+        4.0,
     ),
     Sample(
-        "menu-go-fish-selected",
+        "menu-go-fish-transition-outgoing",
         "original-gofish-trace-0.png",
+        "10b-transition-dominoes-to-go-fish-outgoing.bmp",
+        ((0, 0, 512, 384),),
+        4.0,
+    ),
+    Sample(
+        "menu-yacht-transition-outgoing",
+        "original-yacht-trace-0.png",
+        "10e-transition-go-fish-to-yacht.bmp",
+        ((0, 0, 512, 384),),
+        5.0,
+    ),
+    Sample(
+        "menu-go-fish-settled",
+        "original-menu-hover-gofish-full.png",
         "10-menu-selection-2.bmp",
         ((0, 0, 512, 384),),
-        10.0,
+        12.0,
+        MAC_RUN_CAPTURE_SIZE,
+        MAC_RUN_CAPTURE_CROP,
     ),
     Sample(
-        "menu-yacht-selected",
-        "original-yacht-trace-0.png",
-        "10-menu-selection-5.bmp",
-        ((0, 0, 512, 384),),
-        13.0,
+        "menu-go-fish-settled-hand-object",
+        "original-menu-hover-gofish-full.png",
+        "10-menu-selection-2.bmp",
+        ((385, 125, 480, 230),),
+        30.0,
+        MAC_RUN_CAPTURE_SIZE,
+        MAC_RUN_CAPTURE_CROP,
     ),
     # Whole-frame dynamic captures catch source actor registration and staging
     # errors that board/chrome-only comparisons deliberately exclude.
@@ -592,7 +612,8 @@ def main() -> int:
             "Gaussian-smoothed 64x64 regional RGB RMSE; the Macintosh browser capture is "
             "reduced to its stable game surface; random actor/card/piece/cursor regions are "
             "excluded from stable-layout cases; four Macintosh publisher states, three title "
-            "states, four Macintosh menu selections, seven source-timed Macintosh game intros, "
+            "states, four Macintosh menu-transition instants, a settled selection and its "
+            "focused hand/object actor, seven source-timed Macintosh game intros, "
             "and five source-timed DOS game intros compare complete frames; a focused title-hand "
             "case pins the terminal open-hand cel; three first-use "
             "panel frames, a Backgammon setup reveal, three Go Fish hand/question states, and a "

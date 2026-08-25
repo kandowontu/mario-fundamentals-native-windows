@@ -330,7 +330,9 @@ int selfTest(HINSTANCE instance) {
         mf::menu_catalog::kGameIndexToSourceSelection !=
             std::array<int, 5>{4, 3, 1, 2, 5} ||
         mf::menu_catalog::kSelectionMovies !=
-            std::array<int, 5>{1111, 1112, 1113, 1114, 1115}) {
+            std::array<int, 5>{1111, 1112, 1113, 1114, 1115} ||
+        mf::menu_catalog::kSelectionHoldSourceTimes !=
+            std::array<std::uint32_t, 5>{600U, 780U, 600U, 600U, 480U}) {
         throw std::runtime_error("CODE 12 C/G/D/B/Y menu-selection mapping changed");
     }
     if (mf::menu_catalog::fileQuitAction(-1, -1) !=

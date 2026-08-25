@@ -21,7 +21,11 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   live Checkers menu-selection animation.
 - The live Macintosh menu now gives its right-hand layer exclusively to the selected-game actor;
   the completed title hand is no longer composited beneath it as a second glove/object.
-- The no-window presentation sweeps now emit 221 exact 512×384 Macintosh frames and 231 exact
+- CODE 12's menu controller now uses the five disassembled selection hold times
+  `(600,780,600,600,480)` and plays each outgoing actor from its hold to the terminal neutral hand
+  before advancing the incoming actor from zero to its own hold. This replaces the former universal
+  180-tick shortcut and restores the original click/hover transition composition.
+- The no-window presentation sweeps now emit 226 exact 512×384 Macintosh frames and 231 exact
   320×200 DOS frames. They cover both Macintosh title/board mouse-down completion paths, all five
   source-specific selected-game intro input routes, DOS menu/help contexts, all intros/openings,
   Backgammon setup reveal, Dominoes drag/endings, Checkers endings, Go Fish
@@ -38,13 +42,13 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   The supporting DOS discovery ledger no longer leaves 1,923 heuristic candidates generically
   pending: 77 overlay rows defer to the exact export/prologue ledger and 1,846 resident rows are
   explicitly dispositioned to the replaced platform/runtime/media family.
-- The local release gate now compares 50 representative native frames/regions against independently
-  captured original Macintosh/DOS output. Coverage includes publisher/title states, four selected
-  menu poses, stable game geometry, seven Macintosh and all five DOS source-timed intro instants,
+- The local release gate now compares 52 representative native frames/regions against independently
+  captured original Macintosh/DOS output. Coverage includes publisher/title states, four menu
+  transition instants plus the exact settled Go Fish actor, stable game geometry, seven Macintosh and all five DOS source-timed intro instants,
   complete post-intro first-use panels, Backgammon's setup reveal, DOS Go Fish scoreboard
   captions, Go Fish grouped/question/transfer hands, exact Dominoes portrait registration, the
   title's open hand, and Yacht actor/hand/dice/marker/gesture/cup regions. A separate inventory
-  accounts for all 219 retained captures
+  accounts for all 225 retained captures
   and fails on any unknown file.
 - The Dominoes score portrait now uses its independently captured edition-specific origin:
   Macintosh `(11,11)` and DOS `(7,15)`, safely below the DOS menu bar.

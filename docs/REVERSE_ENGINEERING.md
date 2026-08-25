@@ -284,6 +284,14 @@ directly. Controller `$1400` waits for the active `$D36` selection movie or idle
 then starts tracked sound 5010 and performs the transition. Mouse clicks and Return therefore queue
 the destination, while further hover and keyboard selection changes are ignored once it is posted.
 
+The selected actor's resting point is not a shared early frame. CODE 12 `$ABC` assigns multipliers
+10, 13, 10, 10, and 8 to movies 1111–1115; `$C34` multiplies each by the movie tick duration 60,
+giving exact Checkers/Go Fish/Dominoes/Backgammon/Yacht source times of
+`600/780/600/600/480`. Controller `$DBC-$100C` advances the outgoing movie from that hold to its
+terminal neutral hand before playing the incoming movie from zero to its own hold. Native menu QA
+therefore covers both the settled hashes and the authored overlap during the two-part transition;
+freezing every actor at an arbitrary universal time would produce the wrong held object and hand.
+
 Movies at IDs 10000 and above select the image sheet at the containing 1000 boundary. The catalog
 contains 467 movies, 125 image sheets, 1,380 image records, and 8,586 commands. The native `Movie`
 class parses every timeline and renders all 466 source-resolvable timelines. The remaining resource,

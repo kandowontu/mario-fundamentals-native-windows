@@ -22,7 +22,7 @@ from PIL import Image
 from verify_visual_references import DOS_SAMPLES, MAC_SAMPLES
 
 
-EXPECTED_CAPTURE_COUNTS = {"macintosh": 207, "dos": 12}
+EXPECTED_CAPTURE_COUNTS = {"macintosh": 213, "dos": 12}
 
 
 @dataclass(frozen=True)
@@ -39,6 +39,12 @@ def rule(pattern: str, category: str, reason: str,
 
 
 MAC_NON_COMPARISON_RULES = (
+    rule(
+        r"original-menu-hover-(?:checkers|gofish|dominoes|backgammon|yacht)\.png",
+        "invalid_browser_clip",
+        "browser clip coordinates were device-scaled and padded; the canonical full-page Go Fish hover capture is normalized and compared instead",
+        "original-menu-hover-gofish-full.png",
+    ),
     rule(
         r"cold-0[0-9]\.png",
         "external_prelaunch",
