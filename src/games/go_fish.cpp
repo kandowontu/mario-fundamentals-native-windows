@@ -1264,8 +1264,7 @@ bool GoFishGame::tickOutcome() {
         if (outcomeDelayTicks_-- > 0) return true;
         if (!victoryMusicStarted_) {
             // $2150 switches to SONG 137 before the fourteen-tick first-card transit.
-            context_.audio.playMusic(dosEdition() ? audio_catalog::kDosPlayerWinMusic[3]
-                                                  : audio_catalog::kPlayerWinMusic[3]);
+            context_.audio.playMusic(audio_catalog::playerWinMusic(dosEdition(), 3));
             victoryMusicStarted_ = true;
             outcomeDelayTicks_ = 14;
             return true;

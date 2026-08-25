@@ -32,6 +32,7 @@ public:
     void setQaDragPresentation();
     void setQaDrawnHandPresentation();
     void setQaOutcomePresentation(int expectedWinner, bool blocked);
+    void setQaPlayerResultPresentation(std::uint32_t sourceTime);
 
 private:
     struct Tile { int left; int right; };
@@ -54,6 +55,8 @@ private:
         MarioAnnouncement,
         MarioAnnouncementDelay,
         ChainResetWait,
+        PlayerResultAnimation,
+        PlayerResultDelay,
         ReplayPrompt,
         ReplayDelay,
         FinalDelay,
@@ -136,6 +139,7 @@ private:
     std::vector<int> outcomeMoviesPlayed_;
     std::wstring status_;
     HostAnimation host_;
+    HostAnimation playerResultAnimation_;
     const Rect drawButton_{476, 286, 512, 357};
     const Rect newButton_{392, 288, 498, 320};
     const Rect menuButton_{392, 328, 498, 360};

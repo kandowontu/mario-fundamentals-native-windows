@@ -436,6 +436,11 @@ void App::renderQaFrames(std::wstring_view outputDirectory) {
             save(L"33-dominoes-outcome-" + std::wstring(label) + L".bmp");
         }
     }
+    startGame(1);
+    if (auto* dominoes = dynamic_cast<DominoesGame*>(game_.get())) {
+        dominoes->setQaPlayerResultPresentation(840);
+        save(L"33-dominoes-player-result-movie.bmp");
+    }
 
     constexpr std::array<std::pair<int, std::wstring_view>, 4> checkerOutcomes{{
         {1, L"human-elimination"}, {2, L"human-stuck"},
@@ -1335,7 +1340,7 @@ void App::beginGameIntro(int index) {
     menuBlinkVisible_ = false;
     audio_.stop();
     audio_.stopMusic();
-    audio_.playMusic(audio_catalog::kPrimaryGameMusic[static_cast<std::size_t>(index)]);
+    audio_.playMusic(audio_catalog::primaryGameMusic(false, index));
     game_.reset();
     activeGameIndex_ = -1;
     pendingGameIndex_ = index;
@@ -2081,8 +2086,7 @@ void App::clickDialog(Point logical) {
     if (yes.contains(logical)) {
         if (responseTo == Dialog::PlayAgain && game_) {
             if (activeGameIndex_ >= 0 && activeGameIndex_ < 5) {
-                audio_.playMusic(audio_catalog::kPrimaryGameMusic[
-                    static_cast<std::size_t>(activeGameIndex_)]);
+                audio_.playMusic(audio_catalog::primaryGameMusic(false, activeGameIndex_));
             }
             game_->resetForReplay();
             gameFinishedMilliseconds_ = 0;
@@ -2114,7 +2118,7 @@ void App::startGame(int index) {
     characterGameIndex_ = -1;
     nameGameIndex_ = -1;
     gameIntroMovies_.clear();
-    audio_.playMusic(audio_catalog::kPrimaryGameMusic[static_cast<std::size_t>(index)]);
+    audio_.playMusic(audio_catalog::primaryGameMusic(false, index));
     screen_ = Screen::Game;
     updateFileMenu();
     updateOptionsMenu();

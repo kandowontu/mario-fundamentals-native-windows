@@ -953,8 +953,7 @@ bool YachtGame::tickOutcome() {
     case OutcomePhase::Announcement:
         if (host_.active()) return false;
         if (winner_ > 0 && winner_ != 2) {
-            context_.audio.playMusic(dosEdition() ? audio_catalog::kDosPlayerWinMusic[4]
-                                                  : audio_catalog::kPlayerWinMusic[4]);
+            context_.audio.playMusic(audio_catalog::playerWinMusic(dosEdition(), 4));
             showComputerDice_ = true;
             held_.fill(false);
             outcomeVisibleDiceCount_ = 0;

@@ -41,7 +41,7 @@ other CODE segment calls the query.
 | CODE 12 `$203C/$2064/$208A/$2132` | Gate the 5012/5000/5001/5011 title states and final handoff | `App::tickIntro` uses `directSoundBusy` at all four corresponding state boundaries; the hidden startup sweep covers every state. |
 | CODE 14 `$E42/$F2A` | Pace seven opening Dominoes pairs and drain the seventh cue | `DominoesGame::tick` exposes exactly one player/computer pair after each free-channel check, plays 5044 seven times, preserves `$EFE`'s two controller passes between later pairs, and waits once more before the opening move. A semantic regression asserts visible counts 1 through 7 and exact silent pass indices `0,3,6,9,12,15,18` in both editions. |
 | CODE 14 `$1174` | Drain the blocked-result cue before speech | `DominoesGame::tickOutcome` uses the shared direct-channel query before choosing the result line. |
-| CODE 14 `$1528` | Drain chain-reset effect 5023 before the three-pass replay hold | `OutcomePhase::ChainResetWait` preserves both the sound gate and the subsequent controller delay. |
+| CODE 14 `$1528` | Drain chain-reset effect 5023 before player-result music/movie | `OutcomePhase::ChainResetWait` drains the effect, switches to SONG 135, runs movie 3900 to completion, and only then applies `$15A4`'s three-pass hold. Both last-tile and blocked-hand source-result-2 paths use it. |
 | CODE 14 `$19C6` | Suppress selection effect 5043 when Mario moves while the channel is occupied | Both opening and ordinary Mario tile selection use the guarded effect route; the move itself is never incorrectly blocked. |
 | CODE 17 `$139A` | Drain standalone Go Fish sound 26015 before the queued response movies | `GoFishGame::beginAfterDirectSpeech` and `tick` use the actual channel state, not a guessed WAV-duration timer. |
 
@@ -114,10 +114,14 @@ The source `SONG` table is not numerically sequential by game. The exact mapping
 | Checkers gameplay | 142 | 912 |
 | Checkers player win | 143 | 913 |
 
-The native catalog uses these exact IDs. Music is started with the game title sequence, switches to
-the corresponding win song only on a player victory, and returns to the primary song on Play Again.
-Turning Music off preserves the requested song so turning it back on resumes the correct menu,
-gameplay, or victory track rather than guessing a replacement.
+The native catalog uses these exact IDs. Music is started with the game title sequence and follows
+the source controller's branch-specific switch points: Backgammon's player bear-off; both Dominoes
+source-result-2 routes (last tile and blocked-hand score); Checkers' elimination-and-board-wipe
+route, but not Mario's fixed no-legal-move line; Go Fish's player result; and Yacht's player result.
+Mario and tie branches retain the primary game track. Dual-edition executable regressions assert
+the requested track after every outcome branch and then require Play Again to restore the exact
+primary track for all five games. Turning Music off preserves the requested song so turning it back
+on resumes the correct menu, gameplay, or victory track rather than guessing a replacement.
 
 `midiOutOpen` is never called synchronously by the window thread. The port prewarms the Windows MIDI
 mapper in the background and queues a requested sequence until that handle is ready. This removes
@@ -164,7 +168,7 @@ and is routed as well.
 | Game | Recovered direct sound routes |
 | --- | --- |
 | Backgammon | 5042 once at the start of each of `$F78`'s eight progressively painted checker stacks; 5024 roll-control press; movie 4020's ten authored 5069 rattles; 5019 roll settle; 5053 checker selection; 5054 invalid destination; 5072 bar entry; 5034 checker movement for both players; 5010 hit response; movie 4022/4023's authored player-win cues |
-| Dominoes | 5044 for each of seven opening deals; 5003 on every player draw and Mario's repeated-draw decision; 5043 tile selection; 5042 tile transit; delayed 5017 placement commit; 9202 at the Macintosh fourteen-bone or DOS sixteen-bone hand limit; 5024 empty-boneyard cue; 5023 chain re-layout and player-result reset; blocked-result 5034 for Mario or 5057 for player/tie |
+| Dominoes | 5044 for each of seven opening deals; 5003 on every player draw and Mario's repeated-draw decision; 5043 tile selection; 5042 tile transit; delayed 5017 placement commit; 9202 at the Macintosh fourteen-bone or DOS sixteen-bone hand limit; 5024 empty-boneyard cue; 5023 chain re-layout and player-result reset; blocked-result 5034 for Mario or 5057 for player/tie; movie 3900's six authored 5069 cues after SONG/XMI 135 on either player-win route |
 | Checkers | 5003 for checker movement and the source-order player-win board wipe; remaining host speech/effects come from the authored movie timelines |
 | Go Fish | tracked 5032 through CODE 1 `$A18` for each of seven opening deals; concurrent 5010 requested-card motion; 5013 draws, both forced empty-hand refill entries, and player-win card transit; standalone 26015 on the failed Mario request; all question, response, refill (movie 11538), idle, and outcome speech from their source movies |
 | Yacht | 5018 pipe/dice roll start; 5019 for each settling white die; 5028 for every player or sequential Mario white/red die-retention toggle; 5010 hand gesture plus movie 6021's authored 5044 cue before every Mario roll; 5003 score entry and scorecard clear |

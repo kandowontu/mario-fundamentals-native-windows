@@ -440,6 +440,11 @@ void DosApp::renderQaFrames(std::wstring_view outputDirectory) {
             save(L"33-dominoes-outcome-" + std::wstring(label) + L".bmp");
         }
     }
+    startGame(1);
+    if (auto* dominoes = dynamic_cast<DominoesGame*>(game_.get())) {
+        dominoes->setQaPlayerResultPresentation(840);
+        save(L"33-dominoes-player-result-movie.bmp");
+    }
 
     constexpr std::array<std::pair<int, std::wstring_view>, 4> checkerOutcomes{{
         {1, L"human-elimination"}, {2, L"human-stuck"},
@@ -899,7 +904,7 @@ void DosApp::beginGameIntro(int gameIndex) {
     audio_.stop();
     audio_.stopMusic();
     audio_.playSound(5010);
-    audio_.playMusic(audio_catalog::kDosPrimaryGameMusic[static_cast<std::size_t>(gameIndex)]);
+    audio_.playMusic(audio_catalog::primaryGameMusic(true, gameIndex));
     pendingGameIndex_ = gameIndex;
     activeGameIndex_ = -1;
     game_.reset();
@@ -1127,8 +1132,7 @@ void DosApp::clickDialog(Point point) {
             game_->resetForReplay();
             gameFinishedMilliseconds_ = 0;
             if (activeGameIndex_ >= 0 && activeGameIndex_ < 5)
-                audio_.playMusic(
-                    audio_catalog::kDosPrimaryGameMusic[static_cast<std::size_t>(activeGameIndex_)]);
+                audio_.playMusic(audio_catalog::primaryGameMusic(true, activeGameIndex_));
         } else {
             startGame(activeGameIndex_);
         }

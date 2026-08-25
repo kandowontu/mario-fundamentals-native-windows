@@ -17,6 +17,20 @@ inline constexpr int kDosMenuMusic = 130;
 inline constexpr std::array<int, 5> kDosPrimaryGameMusic{140, 134, 142, 136, 138};
 inline constexpr std::array<int, 5> kDosPlayerWinMusic{141, 135, 143, 137, 139};
 
+[[nodiscard]] constexpr int primaryGameMusic(bool dosEdition, int gameIndex) noexcept {
+    if (gameIndex < 0 || gameIndex >= 5) return -1;
+    return dosEdition
+        ? kDosPrimaryGameMusic[static_cast<std::size_t>(gameIndex)]
+        : kPrimaryGameMusic[static_cast<std::size_t>(gameIndex)];
+}
+
+[[nodiscard]] constexpr int playerWinMusic(bool dosEdition, int gameIndex) noexcept {
+    if (gameIndex < 0 || gameIndex >= 5) return -1;
+    return dosEdition
+        ? kDosPlayerWinMusic[static_cast<std::size_t>(gameIndex)]
+        : kPlayerWinMusic[static_cast<std::size_t>(gameIndex)];
+}
+
 // CODE 12 $1B74 starts these directly rather than through a movie timeline.
 inline constexpr int kBrainstormSound = 8038;
 inline constexpr int kSteppingStoneSound = 8042;

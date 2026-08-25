@@ -39,6 +39,11 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   checks, retains `$EFE`'s two controller passes between later pairs, and drains the seventh 5044
   cue at `$F2A` before the opening move. The prior fixed-delay path that made the other bones pop
   into existence has been removed in both editions.
+- Dominoes now completes CODE 14 `$14C6` after either kind of player win. Effect 5023 drains before
+  SONG/XMI 135 begins; movie 3900 then runs at the recovered Macintosh `(231,-13)` or DOS
+  `(-2,-17)` registration with its six 5069 cues, followed by the source three-pass hold. The
+  blocked-hand player branch can no longer skip the result actor/music, and the last-tile branch
+  can no longer switch music before its preceding speech has finished.
 - Go Fish now runs CODE 17 `$756-$8B2`'s opening state machine instead of one four-second delay.
   The seven cards appear on their source passes with tracked 5032 cues; `$30F6` merges one duplicate
   at a time; `$3862` settles one surviving card per re-entry; and `$316E/$3022` keep each moving card
@@ -60,7 +65,7 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   targets, DOS uses its own hand cap, and `$5744`/DOS `$5367` forces the final permitted draw to
   match a chain endpoint. The release test completes 128 matches per dialect through real draw and
   drag/drop input while preserving all 28 unique bones and every chain link.
-- The no-window presentation sweeps now emit 231 exact 512×384 Macintosh frames and 232 exact
+- The no-window presentation sweeps now emit 232 exact 512×384 Macintosh frames and 233 exact
   320×200 DOS frames. They cover both Macintosh title/board mouse-down completion paths, all five
   source-specific selected-game intro input routes, DOS menu/help contexts, all intros/openings,
   Backgammon setup reveal, Dominoes full-hand/drag/endings, Checkers endings, Go Fish

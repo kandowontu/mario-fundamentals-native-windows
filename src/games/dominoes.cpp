@@ -224,7 +224,8 @@ DominoesGame::DominoesGame(GameContext context)
           [](int resourceId, Point scaled) {
               if (resourceId >= 10000) return Point{7, 3};
               return scaled;
-          }) { reset(); }
+          }),
+      playerResultAnimation_(context.assets, context.graphics, context.audio, false) { reset(); }
 
 void DominoesGame::sourceShuffleDeck(std::vector<Tile>& deck, SourceRandom& random) {
     if (deck.size() != 28) {
@@ -335,6 +336,7 @@ void DominoesGame::reset(bool preserveSession) {
     outcomeKind_ = OutcomeKind::None;
     outcomePhase_ = OutcomePhase::None;
     outcomeMoviesPlayed_.clear();
+    playerResultAnimation_.stop();
     status_ = L"Let's play, eh?";
     host_.play(dealMovie, 14, 5);
 }
@@ -345,6 +347,7 @@ void DominoesGame::resetForReplay() {
 
 bool DominoesGame::tick() {
     bool changed = host_.tick();
+    changed |= playerResultAnimation_.tick();
     if (tileCommitSoundDelayMilliseconds_ > 0) {
         tileCommitSoundDelayMilliseconds_ =
             std::max(0, tileCommitSoundDelayMilliseconds_ - 33);
@@ -774,8 +777,6 @@ bool DominoesGame::tickOutcome() {
     case OutcomePhase::HumanInitialDelay: {
         if (host_.active()) return false;
         if (outcomeDelayTicks_-- > 0) return true;
-        context_.audio.playMusic(dosEdition() ? audio_catalog::kDosPlayerWinMusic[1]
-                                              : audio_catalog::kPlayerWinMusic[1]);
         // $136A uses six authored player-win variants with 20/20/20/20/10/10 odds.
         static constexpr std::array movies{10051, 10087, 10055, 10053, 10086, 10052};
         static constexpr std::array weights{20, 40, 60, 80, 90, 100};
@@ -810,7 +811,6 @@ bool DominoesGame::tickOutcome() {
         // The common result controller runs $14C6 before the replay prompt
         // for source result 2 (the player), resetting the chain with 5023.
         context_.audio.playEffect(5023);
-        outcomeDelayTicks_ = 3;
         outcomePhase_ = OutcomePhase::ChainResetWait;
         return true;
     case OutcomePhase::MarioAnnouncement: {
@@ -827,16 +827,30 @@ bool DominoesGame::tickOutcome() {
         if (outcomeDelayTicks_-- > 0) return true;
         if (outcomeKind_ == OutcomeKind::Blocked && winner_ > 0 && winner_ != 2) {
             context_.audio.playEffect(5023);
-            outcomeDelayTicks_ = 3;
             outcomePhase_ = OutcomePhase::ChainResetWait;
         } else {
             outcomePhase_ = OutcomePhase::ReplayPrompt;
         }
         return true;
     case OutcomePhase::ChainResetWait:
-        // CODE 14 $1528 waits for snd 5023, then holds the reset actor for
-        // three controller passes before entering the replay question.
+        // CODE 14 $1528 drains snd 5023. $1538 then switches to SONG 135
+        // and starts movie 3900 for every source result 2, including a
+        // blocked-hand player win; it is not limited to the last-tile path.
         if (context_.audio.directSoundBusy()) return false;
+        context_.audio.playMusic(audio_catalog::playerWinMusic(dosEdition(), 1));
+        // Macintosh CODE 14 derives (231,-13) from the window origin. DOS
+        // overlay 12 stores the Point as v/h and derives (-2,-17).
+        playerResultAnimation_.play(3900, dosEdition() ? -2 : 231,
+                                    dosEdition() ? -17 : -13);
+        outcomePhase_ = OutcomePhase::PlayerResultAnimation;
+        return true;
+    case OutcomePhase::PlayerResultAnimation:
+        if (playerResultAnimation_.active()) return false;
+        // $15A4 installs the source three-count post-movie hold.
+        outcomeDelayTicks_ = 3;
+        outcomePhase_ = OutcomePhase::PlayerResultDelay;
+        return true;
+    case OutcomePhase::PlayerResultDelay:
         if (outcomeDelayTicks_-- > 0) return true;
         outcomePhase_ = OutcomePhase::ReplayPrompt;
         return true;
@@ -999,10 +1013,29 @@ bool DominoesGame::sourceOutcomeRegressionTest(int expectedWinner, bool blocked)
     computerTurnPending_ = false;
     winner_ = expectedWinner;
     outcomePhase_ = OutcomePhase::None;
+    playerResultAnimation_.stop();
+    const int initialMusic = context_.audio.requestedMusicResourceId();
     beginOutcome(blocked ? OutcomeKind::Blocked : OutcomeKind::LastDomino);
-    for (int tickIndex = 0; tickIndex < 2400 && !finished(); ++tickIndex) (void)tick();
+    bool sawPlayerResultAnimation = false;
+    bool musicChangedBeforePlayerResult = false;
+    for (int tickIndex = 0; tickIndex < 2400 && !finished(); ++tickIndex) {
+        (void)tick();
+        const bool playerResultActive = playerResultAnimation_.active();
+        if (!sawPlayerResultAnimation && !playerResultActive &&
+            context_.audio.requestedMusicResourceId() != initialMusic) {
+            musicChangedBeforePlayerResult = true;
+        }
+        sawPlayerResultAnimation |= playerResultActive;
+    }
     if (!finished() || outcomeMoviesPlayed_.empty() ||
         (outcomeMoviesPlayed_.back() != 10073 && outcomeMoviesPlayed_.back() != 10074)) {
+        return false;
+    }
+    const bool expectPlayerResult = expectedWinner == 1;
+    if (musicChangedBeforePlayerResult || sawPlayerResultAnimation != expectPlayerResult ||
+        context_.audio.requestedMusicResourceId() !=
+            (expectPlayerResult ? audio_catalog::playerWinMusic(dosEdition(), 1)
+                                : initialMusic)) {
         return false;
     }
     const auto in = [](int value, std::span<const int> pool) {
@@ -1041,6 +1074,7 @@ bool DominoesGame::sourceReplayRegressionTest() {
 
 void DominoesGame::setQaOutcomePresentation(int expectedWinner, bool blocked) {
     host_.stop();
+    playerResultAnimation_.stop();
     dealDelayMilliseconds_ = 0;
     dealComplete_ = true;
     pendingComputerOpening_ = -1;
@@ -1050,6 +1084,15 @@ void DominoesGame::setQaOutcomePresentation(int expectedWinner, bool blocked) {
         ? L"Congratulations! You win!" : L"Mario wins this time.";
     outcomePhase_ = OutcomePhase::None;
     beginOutcome(blocked ? OutcomeKind::Blocked : OutcomeKind::LastDomino);
+}
+
+void DominoesGame::setQaPlayerResultPresentation(std::uint32_t sourceTime) {
+    setQaOutcomePresentation(1, false);
+    host_.stop();
+    outcomePhase_ = OutcomePhase::PlayerResultAnimation;
+    playerResultAnimation_.showFrame(3900, dosEdition() ? -2 : 231,
+                                     dosEdition() ? -17 : -13, sourceTime);
+    status_ = L"Congratulations! You win!";
 }
 
 void DominoesGame::scheduleComputerTurn() {
@@ -1689,6 +1732,7 @@ void DominoesGame::render(Canvas& canvas) {
         canvas.sprite(context_.graphics.sprite(10000),
                       dosEdition() ? 17 : 27, dosEdition() ? 19 : 19, false);
     }
+    (void)playerResultAnimation_.render(canvas);
     const int visibleDealCount = std::clamp(dealSoundCount_, 0, 7);
     const int visibleComputerCount = dealComplete_
         ? static_cast<int>(computer_.size())

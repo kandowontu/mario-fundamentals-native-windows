@@ -366,8 +366,7 @@ bool CheckersGame::tickOutcome() {
             return true;
         }
         selected_ = continuation_ = -1;
-        context_.audio.playMusic(dosEdition() ? audio_catalog::kDosPlayerWinMusic[2]
-                                              : audio_catalog::kPlayerWinMusic[2]);
+        context_.audio.playMusic(audio_catalog::playerWinMusic(dosEdition(), 2));
         outcomeDelayTicks_ = 6;
         outcomePhase_ = OutcomePhase::PreReplayDelay;
         return true;

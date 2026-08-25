@@ -145,8 +145,20 @@ int selfTest(HINSTANCE instance) {
     }
     if (mf::audio_catalog::kMenuMusic != 900 ||
         mf::audio_catalog::kPrimaryGameMusic != std::array<int, 5>{910, 904, 912, 906, 908} ||
-        mf::audio_catalog::kPlayerWinMusic != std::array<int, 5>{911, 905, 913, 907, 909}) {
+        mf::audio_catalog::kPlayerWinMusic != std::array<int, 5>{911, 905, 913, 907, 909} ||
+        mf::audio_catalog::primaryGameMusic(false, -1) != -1 ||
+        mf::audio_catalog::primaryGameMusic(false, 5) != -1 ||
+        mf::audio_catalog::playerWinMusic(false, -1) != -1 ||
+        mf::audio_catalog::playerWinMusic(false, 5) != -1) {
         throw std::runtime_error("native music routing table does not match the source SONG map");
+    }
+    for (int gameIndex = 0; gameIndex < 5; ++gameIndex) {
+        if (mf::audio_catalog::primaryGameMusic(false, gameIndex) !=
+                mf::audio_catalog::kPrimaryGameMusic[static_cast<std::size_t>(gameIndex)] ||
+            mf::audio_catalog::playerWinMusic(false, gameIndex) !=
+                mf::audio_catalog::kPlayerWinMusic[static_cast<std::size_t>(gameIndex)]) {
+            throw std::runtime_error("Macintosh game music route selection changed");
+        }
     }
     std::size_t soundBytes = 0;
     const auto soundIds = assets.ids("snd ");
@@ -216,6 +228,18 @@ int selfTest(HINSTANCE instance) {
     // Self-test constructs every game and therefore starts their opening host
     // movies.  Keep verification strictly silent even when launched manually.
     audio.setEnabled(false);
+    for (int gameIndex = 0; gameIndex < 5; ++gameIndex) {
+        audio.playMusic(mf::audio_catalog::playerWinMusic(false, gameIndex));
+        if (audio.requestedMusicResourceId() !=
+                mf::audio_catalog::kPlayerWinMusic[static_cast<std::size_t>(gameIndex)]) {
+            throw std::runtime_error("Macintosh player-win music request was not retained");
+        }
+        audio.playMusic(mf::audio_catalog::primaryGameMusic(false, gameIndex));
+        if (audio.requestedMusicResourceId() !=
+                mf::audio_catalog::kPrimaryGameMusic[static_cast<std::size_t>(gameIndex)]) {
+            throw std::runtime_error("Macintosh Play Again music request was not restored");
+        }
+    }
     mf::SourceFonts sourceFonts(instance);
     mf::SourceRandom random(0x4d415249U);
     mf::GameContext context{assets, graphics, audio, random, [] {}, L"PLAYER", true};
@@ -491,12 +515,27 @@ int selfTest(HINSTANCE instance) {
     const mf::Movie dominoesIntroRight(assets, 3002);
     const mf::Movie dominoesIntroMiddle(assets, 3003);
     const mf::Movie dominoesIntroLeft(assets, 3004);
+    const mf::Movie dominoesPlayerResult(assets, 3900);
     const mf::Rect dominoesRightFinal = dominoesIntroRight.activeVisualBounds(
         dominoesIntroRight.duration() - 1, 18, 220);
     const mf::Rect dominoesMiddleFinal = dominoesIntroMiddle.activeVisualBounds(
         dominoesIntroMiddle.duration() - 1, 18, 220);
     const mf::Rect dominoesLeftFinal = dominoesIntroLeft.activeVisualBounds(
         dominoesIntroLeft.duration() - 1, 22, 220);
+    const std::vector<int> dominoesPlayerResultSounds = dominoesPlayerResult.soundCues();
+    if (!dominoesPlayerResult.resolved() ||
+        dominoesPlayerResult.duration() != 2100 ||
+        dominoesPlayerResult.timeScale() != 600 ||
+        dominoesPlayerResult.commandCount() != 43 ||
+        dominoesPlayerResultSounds != std::vector<int>(6, 5069)) {
+        throw std::runtime_error(
+            "Macintosh Dominoes player-result movie audit changed: resolved=" +
+            std::to_string(dominoesPlayerResult.resolved()) + " duration=" +
+            std::to_string(dominoesPlayerResult.duration()) + " timescale=" +
+            std::to_string(dominoesPlayerResult.timeScale()) + " commands=" +
+            std::to_string(dominoesPlayerResult.commandCount()) + " sounds=" +
+            std::to_string(dominoesPlayerResultSounds.size()));
+    }
     const mf::Rect yachtUpperStart = yachtIntroUpper.imageBounds(0, -149, 0);
     const mf::Rect yachtLowerStart = yachtIntroLower.imageBounds(0, -208, 0);
     const mf::Rect yachtTalkingHead = mf::Movie(assets, 11411).imageBounds(3, 15, -1);
@@ -628,10 +667,14 @@ int selfTest(HINSTANCE instance) {
         throw std::runtime_error("Backgammon replay-state regression");
     auto backgammonHumanOutcome = std::make_unique<mf::BackgammonGame>(context);
     auto backgammonMarioOutcome = std::make_unique<mf::BackgammonGame>(context);
+    audio.playMusic(mf::audio_catalog::primaryGameMusic(false, 0));
     if (!backgammonHumanOutcome->sourceOutcomeRegressionTest(true) ||
-        !backgammonMarioOutcome->sourceOutcomeRegressionTest(false)) {
-        throw std::runtime_error("Backgammon source outcome sequence regression");
-    }
+        audio.requestedMusicResourceId() != mf::audio_catalog::playerWinMusic(false, 0))
+        throw std::runtime_error("Backgammon player outcome/music regression");
+    audio.playMusic(mf::audio_catalog::primaryGameMusic(false, 0));
+    if (!backgammonMarioOutcome->sourceOutcomeRegressionTest(false) ||
+        audio.requestedMusicResourceId() != mf::audio_catalog::primaryGameMusic(false, 0))
+        throw std::runtime_error("Backgammon Mario outcome/music regression");
     auto dominoes = std::make_unique<mf::DominoesGame>(context);
     if (!dominoes->sourceStrategyRegressionTest() ||
         !dominoes->sourceOpeningRegressionTest() ||
@@ -650,14 +693,27 @@ int selfTest(HINSTANCE instance) {
     auto dominoesBlockedHumanOutcome = std::make_unique<mf::DominoesGame>(context);
     auto dominoesBlockedMarioOutcome = std::make_unique<mf::DominoesGame>(context);
     auto dominoesBlockedTieOutcome = std::make_unique<mf::DominoesGame>(context);
+    audio.playMusic(mf::audio_catalog::primaryGameMusic(false, 1));
     if (!dominoesHumanOutcome->sourceOutcomeRegressionTest(1, false) ||
-        !dominoesMarioOutcome->sourceOutcomeRegressionTest(-1, false) ||
-        !dominoesBlockedHumanOutcome->sourceOutcomeRegressionTest(1, true) ||
-        !dominoesBlockedMarioOutcome->sourceOutcomeRegressionTest(-1, true) ||
-        !dominoesBlockedTieOutcome->sourceOutcomeRegressionTest(2, true) ||
-        !dominoes->sourceReplayRegressionTest()) {
-        throw std::runtime_error("Dominoes source outcome sequence regression");
-    }
+        audio.requestedMusicResourceId() != mf::audio_catalog::playerWinMusic(false, 1))
+        throw std::runtime_error("Dominoes last-tile player outcome/music regression");
+    audio.playMusic(mf::audio_catalog::primaryGameMusic(false, 1));
+    if (!dominoesMarioOutcome->sourceOutcomeRegressionTest(-1, false) ||
+        audio.requestedMusicResourceId() != mf::audio_catalog::primaryGameMusic(false, 1))
+        throw std::runtime_error("Dominoes last-tile Mario outcome/music regression");
+    audio.playMusic(mf::audio_catalog::primaryGameMusic(false, 1));
+    if (!dominoesBlockedHumanOutcome->sourceOutcomeRegressionTest(1, true) ||
+        audio.requestedMusicResourceId() != mf::audio_catalog::playerWinMusic(false, 1))
+        throw std::runtime_error("Dominoes blocked-player outcome/music regression");
+    audio.playMusic(mf::audio_catalog::primaryGameMusic(false, 1));
+    if (!dominoesBlockedMarioOutcome->sourceOutcomeRegressionTest(-1, true) ||
+        audio.requestedMusicResourceId() != mf::audio_catalog::primaryGameMusic(false, 1))
+        throw std::runtime_error("Dominoes blocked-Mario outcome/music regression");
+    audio.playMusic(mf::audio_catalog::primaryGameMusic(false, 1));
+    if (!dominoesBlockedTieOutcome->sourceOutcomeRegressionTest(2, true) ||
+        audio.requestedMusicResourceId() != mf::audio_catalog::primaryGameMusic(false, 1) ||
+        !dominoes->sourceReplayRegressionTest())
+        throw std::runtime_error("Dominoes blocked-tie/replay music regression");
     auto checkers = std::make_unique<mf::CheckersGame>(context);
     if (!checkers->sourceStrategyRegressionTest() ||
         !mf::CheckersGame::sourceIdleRegressionTest()) {
@@ -670,13 +726,23 @@ int selfTest(HINSTANCE instance) {
     auto checkersHumanStuckOutcome = std::make_unique<mf::CheckersGame>(context);
     auto checkersFirstMarioOutcome = std::make_unique<mf::CheckersGame>(context);
     auto checkersLaterMarioOutcome = std::make_unique<mf::CheckersGame>(context);
+    audio.playMusic(mf::audio_catalog::primaryGameMusic(false, 2));
     if (!checkersHumanEliminationOutcome->sourceOutcomeRegressionTest(1) ||
-        !checkersHumanStuckOutcome->sourceOutcomeRegressionTest(2) ||
-        !checkersFirstMarioOutcome->sourceOutcomeRegressionTest(-1) ||
-        !checkersLaterMarioOutcome->sourceOutcomeRegressionTest(-2) ||
-        !checkers->sourceReplayRegressionTest()) {
-        throw std::runtime_error("Checkers source outcome sequence regression");
-    }
+        audio.requestedMusicResourceId() != mf::audio_catalog::playerWinMusic(false, 2))
+        throw std::runtime_error("Checkers elimination outcome/music regression");
+    audio.playMusic(mf::audio_catalog::primaryGameMusic(false, 2));
+    if (!checkersHumanStuckOutcome->sourceOutcomeRegressionTest(2) ||
+        audio.requestedMusicResourceId() != mf::audio_catalog::primaryGameMusic(false, 2))
+        throw std::runtime_error("Checkers no-legal-move outcome/music regression");
+    audio.playMusic(mf::audio_catalog::primaryGameMusic(false, 2));
+    if (!checkersFirstMarioOutcome->sourceOutcomeRegressionTest(-1) ||
+        audio.requestedMusicResourceId() != mf::audio_catalog::primaryGameMusic(false, 2))
+        throw std::runtime_error("Checkers first Mario outcome/music regression");
+    audio.playMusic(mf::audio_catalog::primaryGameMusic(false, 2));
+    if (!checkersLaterMarioOutcome->sourceOutcomeRegressionTest(-2) ||
+        audio.requestedMusicResourceId() != mf::audio_catalog::primaryGameMusic(false, 2) ||
+        !checkers->sourceReplayRegressionTest())
+        throw std::runtime_error("Checkers later Mario/replay music regression");
     auto goFish = std::make_unique<mf::GoFishGame>(context);
     if (!goFish->sourceStrategyRegressionTest())
         throw std::runtime_error("Go Fish source strategy regression");
@@ -696,12 +762,19 @@ int selfTest(HINSTANCE instance) {
     auto goFishMarioOutcome = std::make_unique<mf::GoFishGame>(context);
     auto goFishTieOutcome = std::make_unique<mf::GoFishGame>(context);
     auto goFishReplay = std::make_unique<mf::GoFishGame>(context);
+    audio.playMusic(mf::audio_catalog::primaryGameMusic(false, 3));
     if (!goFishHumanOutcome->sourceOutcomeRegressionTest(1) ||
-        !goFishMarioOutcome->sourceOutcomeRegressionTest(-1) ||
-        !goFishTieOutcome->sourceOutcomeRegressionTest(2) ||
-        !goFishReplay->sourceReplayRegressionTest()) {
-        throw std::runtime_error("Go Fish source outcome sequence regression");
-    }
+        audio.requestedMusicResourceId() != mf::audio_catalog::playerWinMusic(false, 3))
+        throw std::runtime_error("Go Fish player outcome/music regression");
+    audio.playMusic(mf::audio_catalog::primaryGameMusic(false, 3));
+    if (!goFishMarioOutcome->sourceOutcomeRegressionTest(-1) ||
+        audio.requestedMusicResourceId() != mf::audio_catalog::primaryGameMusic(false, 3))
+        throw std::runtime_error("Go Fish Mario outcome/music regression");
+    audio.playMusic(mf::audio_catalog::primaryGameMusic(false, 3));
+    if (!goFishTieOutcome->sourceOutcomeRegressionTest(2) ||
+        audio.requestedMusicResourceId() != mf::audio_catalog::primaryGameMusic(false, 3) ||
+        !goFishReplay->sourceReplayRegressionTest())
+        throw std::runtime_error("Go Fish tie/replay music regression");
     auto yachtHumanOutcome = std::make_unique<mf::YachtGame>(context);
     auto yachtMarioOutcome = std::make_unique<mf::YachtGame>(context);
     auto yachtTieOutcome = std::make_unique<mf::YachtGame>(context);
@@ -716,12 +789,21 @@ int selfTest(HINSTANCE instance) {
         !yachtTurnOrder->sourceTurnOrderRegressionTest() ||
         !yachtCupPresentation->sourceCupPresentationRegressionTest() ||
         !yachtFullMatch->sourceFullMatchRegressionTest() ||
-        !yachtReplay->sourceReplayRegressionTest() ||
-        !yachtHumanOutcome->sourceOutcomeRegressionTest(1) ||
-        !yachtMarioOutcome->sourceOutcomeRegressionTest(-1) ||
-        !yachtTieOutcome->sourceOutcomeRegressionTest(2)) {
+        !yachtReplay->sourceReplayRegressionTest()) {
         throw std::runtime_error("Yacht source outcome sequence regression");
     }
+    audio.playMusic(mf::audio_catalog::primaryGameMusic(false, 4));
+    if (!yachtHumanOutcome->sourceOutcomeRegressionTest(1) ||
+        audio.requestedMusicResourceId() != mf::audio_catalog::playerWinMusic(false, 4))
+        throw std::runtime_error("Yacht player outcome/music regression");
+    audio.playMusic(mf::audio_catalog::primaryGameMusic(false, 4));
+    if (!yachtMarioOutcome->sourceOutcomeRegressionTest(-1) ||
+        audio.requestedMusicResourceId() != mf::audio_catalog::primaryGameMusic(false, 4))
+        throw std::runtime_error("Yacht Mario outcome/music regression");
+    audio.playMusic(mf::audio_catalog::primaryGameMusic(false, 4));
+    if (!yachtTieOutcome->sourceOutcomeRegressionTest(2) ||
+        audio.requestedMusicResourceId() != mf::audio_catalog::primaryGameMusic(false, 4))
+        throw std::runtime_error("Yacht tie outcome/music regression");
     std::array<std::unique_ptr<mf::Game>, 5> games{
         std::move(backgammon),
         std::move(dominoes),
@@ -817,6 +899,14 @@ int selfTest(HINSTANCE instance) {
         dosMissingMovieSoundIds != expectedDosMissingMovieSoundIds) {
         throw std::runtime_error("DOS movie sound-cue inventory changed");
     }
+    const mf::Movie dosDominoesPlayerResult(dosAssets, 3900);
+    if (!dosDominoesPlayerResult.resolved() ||
+        dosDominoesPlayerResult.duration() != 2100 ||
+        dosDominoesPlayerResult.timeScale() != 600 ||
+        dosDominoesPlayerResult.commandCount() != 42 ||
+        dosDominoesPlayerResult.soundCues() != std::vector<int>(6, 5069)) {
+        throw std::runtime_error("DOS Dominoes player-result movie audit changed");
+    }
     const mf::Movie dosCharacterQuestion(dosAssets, 11093);
     const mf::Rect dosCentredCharacterQuestion =
         dosCharacterQuestion.activeVisualBounds(600, 116, 1);
@@ -907,8 +997,20 @@ int selfTest(HINSTANCE instance) {
         mf::audio_catalog::kDosPrimaryGameMusic !=
             std::array<int, 5>{140, 134, 142, 136, 138} ||
         mf::audio_catalog::kDosPlayerWinMusic !=
-            std::array<int, 5>{141, 135, 143, 137, 139}) {
+            std::array<int, 5>{141, 135, 143, 137, 139} ||
+        mf::audio_catalog::primaryGameMusic(true, -1) != -1 ||
+        mf::audio_catalog::primaryGameMusic(true, 5) != -1 ||
+        mf::audio_catalog::playerWinMusic(true, -1) != -1 ||
+        mf::audio_catalog::playerWinMusic(true, 5) != -1) {
         throw std::runtime_error("DOS native music routing table changed");
+    }
+    for (int gameIndex = 0; gameIndex < 5; ++gameIndex) {
+        if (mf::audio_catalog::primaryGameMusic(true, gameIndex) !=
+                mf::audio_catalog::kDosPrimaryGameMusic[static_cast<std::size_t>(gameIndex)] ||
+            mf::audio_catalog::playerWinMusic(true, gameIndex) !=
+                mf::audio_catalog::kDosPlayerWinMusic[static_cast<std::size_t>(gameIndex)]) {
+            throw std::runtime_error("DOS game music route selection changed");
+        }
     }
     std::size_t dosSoundBytes = 0;
     for (int id : dosAssets.ids("SND ")) dosSoundBytes += dosAudio.soundWaveSize(id);
@@ -924,6 +1026,18 @@ int selfTest(HINSTANCE instance) {
             throw std::runtime_error("DOS native direct SFX/voice mapping is incomplete");
     }
     dosAudio.setEnabled(false);
+    for (int gameIndex = 0; gameIndex < 5; ++gameIndex) {
+        dosAudio.playMusic(mf::audio_catalog::playerWinMusic(true, gameIndex));
+        if (dosAudio.requestedMusicResourceId() !=
+                mf::audio_catalog::kDosPlayerWinMusic[static_cast<std::size_t>(gameIndex)]) {
+            throw std::runtime_error("DOS player-win music request was not retained");
+        }
+        dosAudio.playMusic(mf::audio_catalog::primaryGameMusic(true, gameIndex));
+        if (dosAudio.requestedMusicResourceId() !=
+                mf::audio_catalog::kDosPrimaryGameMusic[static_cast<std::size_t>(gameIndex)]) {
+            throw std::runtime_error("DOS Play Again music request was not restored");
+        }
+    }
     mf::SourceRandom dosRandom(0x4d474731U);
     mf::GameContext dosContext{dosAssets, dosGraphics, dosAudio, dosRandom,
                                [] {}, L"PLAYER", true};
@@ -937,17 +1051,21 @@ int selfTest(HINSTANCE instance) {
     if (!dosBackgammon->sourceStrategyRegressionTest() ||
         !dosBackgammon->sourceDialogueRegressionTest() ||
         !dosBackgammonStartup->sourceStartupRegressionTest() ||
-        !dosBackgammonSetup->sourceSetupRevealRegressionTest() ||
-        !dosBackgammonHumanOutcome->sourceOutcomeRegressionTest(true) ||
-        !dosBackgammonMarioOutcome->sourceOutcomeRegressionTest(false)) {
+        !dosBackgammonSetup->sourceSetupRevealRegressionTest()) {
         throw std::runtime_error("DOS Backgammon native behavior regression");
     }
     if (!dosBackgammonFullMatch->sourceFullMatchRegressionTest())
         throw std::runtime_error("DOS Backgammon full-match controller regression");
     if (!dosBackgammonReplay->sourceReplayRegressionTest())
         throw std::runtime_error("DOS Backgammon replay-state regression");
-    if (dosAudio.requestedMusicResourceId() != 141)
-        throw std::runtime_error("DOS Backgammon player-win XMI routing regression");
+    dosAudio.playMusic(mf::audio_catalog::primaryGameMusic(true, 0));
+    if (!dosBackgammonHumanOutcome->sourceOutcomeRegressionTest(true) ||
+        dosAudio.requestedMusicResourceId() != mf::audio_catalog::playerWinMusic(true, 0))
+        throw std::runtime_error("DOS Backgammon player outcome/music regression");
+    dosAudio.playMusic(mf::audio_catalog::primaryGameMusic(true, 0));
+    if (!dosBackgammonMarioOutcome->sourceOutcomeRegressionTest(false) ||
+        dosAudio.requestedMusicResourceId() != mf::audio_catalog::primaryGameMusic(true, 0))
+        throw std::runtime_error("DOS Backgammon Mario outcome/music regression");
     auto dosDominoes = std::make_unique<mf::DominoesGame>(dosContext);
     auto dosDominoesHumanOutcome = std::make_unique<mf::DominoesGame>(dosContext);
     auto dosDominoesMarioOutcome = std::make_unique<mf::DominoesGame>(dosContext);
@@ -964,38 +1082,56 @@ int selfTest(HINSTANCE instance) {
     if (!dosDominoes->sourceDragRegressionTest() ||
         !dosDominoes->sourceBoneyardHitboxRegressionTest())
         throw std::runtime_error("DOS Dominoes drag regression");
-    if (!dosDominoesHumanOutcome->sourceOutcomeRegressionTest(1, false))
-        throw std::runtime_error("DOS Dominoes player outcome regression");
-    if (!dosDominoesMarioOutcome->sourceOutcomeRegressionTest(-1, false))
-        throw std::runtime_error("DOS Dominoes Mario outcome regression");
-    if (!dosDominoesBlockedHumanOutcome->sourceOutcomeRegressionTest(1, true))
-        throw std::runtime_error("DOS Dominoes blocked-player outcome regression");
-    if (!dosDominoesBlockedMarioOutcome->sourceOutcomeRegressionTest(-1, true))
-        throw std::runtime_error("DOS Dominoes blocked-Mario outcome regression");
-    if (!dosDominoesBlockedTieOutcome->sourceOutcomeRegressionTest(2, true))
-        throw std::runtime_error("DOS Dominoes blocked-tie outcome regression");
+    dosAudio.playMusic(mf::audio_catalog::primaryGameMusic(true, 1));
+    if (!dosDominoesHumanOutcome->sourceOutcomeRegressionTest(1, false) ||
+        dosAudio.requestedMusicResourceId() != mf::audio_catalog::playerWinMusic(true, 1))
+        throw std::runtime_error("DOS Dominoes last-tile player outcome/music regression");
+    dosAudio.playMusic(mf::audio_catalog::primaryGameMusic(true, 1));
+    if (!dosDominoesMarioOutcome->sourceOutcomeRegressionTest(-1, false) ||
+        dosAudio.requestedMusicResourceId() != mf::audio_catalog::primaryGameMusic(true, 1))
+        throw std::runtime_error("DOS Dominoes last-tile Mario outcome/music regression");
+    dosAudio.playMusic(mf::audio_catalog::primaryGameMusic(true, 1));
+    if (!dosDominoesBlockedHumanOutcome->sourceOutcomeRegressionTest(1, true) ||
+        dosAudio.requestedMusicResourceId() != mf::audio_catalog::playerWinMusic(true, 1))
+        throw std::runtime_error("DOS Dominoes blocked-player outcome/music regression");
+    dosAudio.playMusic(mf::audio_catalog::primaryGameMusic(true, 1));
+    if (!dosDominoesBlockedMarioOutcome->sourceOutcomeRegressionTest(-1, true) ||
+        dosAudio.requestedMusicResourceId() != mf::audio_catalog::primaryGameMusic(true, 1))
+        throw std::runtime_error("DOS Dominoes blocked-Mario outcome/music regression");
+    dosAudio.playMusic(mf::audio_catalog::primaryGameMusic(true, 1));
+    if (!dosDominoesBlockedTieOutcome->sourceOutcomeRegressionTest(2, true) ||
+        dosAudio.requestedMusicResourceId() != mf::audio_catalog::primaryGameMusic(true, 1))
+        throw std::runtime_error("DOS Dominoes blocked-tie outcome/music regression");
     if (!dosDominoes->sourceReplayRegressionTest())
         throw std::runtime_error("DOS Dominoes replay regression");
-    if (dosAudio.requestedMusicResourceId() != 135)
-        throw std::runtime_error("DOS Dominoes player-win XMI routing regression");
     auto dosCheckers = std::make_unique<mf::CheckersGame>(dosContext);
     auto dosCheckersHumanElimination = std::make_unique<mf::CheckersGame>(dosContext);
     auto dosCheckersHumanStuck = std::make_unique<mf::CheckersGame>(dosContext);
     auto dosCheckersFirstMario = std::make_unique<mf::CheckersGame>(dosContext);
     auto dosCheckersLaterMario = std::make_unique<mf::CheckersGame>(dosContext);
     if (!dosCheckers->sourceStrategyRegressionTest() ||
-        !dosCheckersHumanElimination->sourceOutcomeRegressionTest(1) ||
-        !dosCheckersHumanStuck->sourceOutcomeRegressionTest(2) ||
-        !dosCheckersFirstMario->sourceOutcomeRegressionTest(-1) ||
-        !dosCheckersLaterMario->sourceOutcomeRegressionTest(-2) ||
         !dosCheckers->sourceReplayRegressionTest()) {
         throw std::runtime_error("DOS Checkers native behavior regression");
     }
     auto dosCheckersFullMatch = std::make_unique<mf::CheckersGame>(dosContext);
     if (!dosCheckersFullMatch->sourceFullMatchRegressionTest())
         throw std::runtime_error("DOS Checkers full-match controller regression");
-    if (dosAudio.requestedMusicResourceId() != 143)
-        throw std::runtime_error("DOS Checkers player-win XMI routing regression");
+    dosAudio.playMusic(mf::audio_catalog::primaryGameMusic(true, 2));
+    if (!dosCheckersHumanElimination->sourceOutcomeRegressionTest(1) ||
+        dosAudio.requestedMusicResourceId() != mf::audio_catalog::playerWinMusic(true, 2))
+        throw std::runtime_error("DOS Checkers elimination outcome/music regression");
+    dosAudio.playMusic(mf::audio_catalog::primaryGameMusic(true, 2));
+    if (!dosCheckersHumanStuck->sourceOutcomeRegressionTest(2) ||
+        dosAudio.requestedMusicResourceId() != mf::audio_catalog::primaryGameMusic(true, 2))
+        throw std::runtime_error("DOS Checkers no-legal-move outcome/music regression");
+    dosAudio.playMusic(mf::audio_catalog::primaryGameMusic(true, 2));
+    if (!dosCheckersFirstMario->sourceOutcomeRegressionTest(-1) ||
+        dosAudio.requestedMusicResourceId() != mf::audio_catalog::primaryGameMusic(true, 2))
+        throw std::runtime_error("DOS Checkers first Mario outcome/music regression");
+    dosAudio.playMusic(mf::audio_catalog::primaryGameMusic(true, 2));
+    if (!dosCheckersLaterMario->sourceOutcomeRegressionTest(-2) ||
+        dosAudio.requestedMusicResourceId() != mf::audio_catalog::primaryGameMusic(true, 2))
+        throw std::runtime_error("DOS Checkers later Mario outcome/music regression");
     auto dosGoFish = std::make_unique<mf::GoFishGame>(dosContext);
     auto dosGoFishHumanOutcome = std::make_unique<mf::GoFishGame>(dosContext);
     auto dosGoFishMarioOutcome = std::make_unique<mf::GoFishGame>(dosContext);
@@ -1015,16 +1151,20 @@ int selfTest(HINSTANCE instance) {
     auto dosGoFishFullMatch = std::make_unique<mf::GoFishGame>(dosContext);
     if (!dosGoFishFullMatch->sourceFullMatchRegressionTest())
         throw std::runtime_error("DOS Go Fish full-match controller regression");
-    if (!dosGoFishHumanOutcome->sourceOutcomeRegressionTest(1))
-        throw std::runtime_error("DOS Go Fish player outcome regression");
-    if (!dosGoFishMarioOutcome->sourceOutcomeRegressionTest(-1))
-        throw std::runtime_error("DOS Go Fish Mario outcome regression");
-    if (!dosGoFishTieOutcome->sourceOutcomeRegressionTest(2))
-        throw std::runtime_error("DOS Go Fish tie outcome regression");
+    dosAudio.playMusic(mf::audio_catalog::primaryGameMusic(true, 3));
+    if (!dosGoFishHumanOutcome->sourceOutcomeRegressionTest(1) ||
+        dosAudio.requestedMusicResourceId() != mf::audio_catalog::playerWinMusic(true, 3))
+        throw std::runtime_error("DOS Go Fish player outcome/music regression");
+    dosAudio.playMusic(mf::audio_catalog::primaryGameMusic(true, 3));
+    if (!dosGoFishMarioOutcome->sourceOutcomeRegressionTest(-1) ||
+        dosAudio.requestedMusicResourceId() != mf::audio_catalog::primaryGameMusic(true, 3))
+        throw std::runtime_error("DOS Go Fish Mario outcome/music regression");
+    dosAudio.playMusic(mf::audio_catalog::primaryGameMusic(true, 3));
+    if (!dosGoFishTieOutcome->sourceOutcomeRegressionTest(2) ||
+        dosAudio.requestedMusicResourceId() != mf::audio_catalog::primaryGameMusic(true, 3))
+        throw std::runtime_error("DOS Go Fish tie outcome/music regression");
     if (!dosGoFishReplay->sourceReplayRegressionTest())
         throw std::runtime_error("DOS Go Fish replay-state regression");
-    if (dosAudio.requestedMusicResourceId() != 137)
-        throw std::runtime_error("DOS Go Fish player-win XMI routing regression");
     auto dosYachtSelection = std::make_unique<mf::YachtGame>(dosContext);
     auto dosYachtTurnOrder = std::make_unique<mf::YachtGame>(dosContext);
     auto dosYachtHumanOutcome = std::make_unique<mf::YachtGame>(dosContext);
@@ -1037,14 +1177,21 @@ int selfTest(HINSTANCE instance) {
         !dosYachtTurnOrder->sourceTurnOrderRegressionTest() ||
         !dosYachtCupPresentation->sourceCupPresentationRegressionTest() ||
         !dosYachtFullMatch->sourceFullMatchRegressionTest() ||
-        !dosYachtReplay->sourceReplayRegressionTest() ||
-        !dosYachtHumanOutcome->sourceOutcomeRegressionTest(1) ||
-        !dosYachtMarioOutcome->sourceOutcomeRegressionTest(-1) ||
-        !dosYachtTieOutcome->sourceOutcomeRegressionTest(2)) {
+        !dosYachtReplay->sourceReplayRegressionTest()) {
         throw std::runtime_error("DOS Yacht native behavior regression");
     }
-    if (dosAudio.requestedMusicResourceId() != 139)
-        throw std::runtime_error("DOS Yacht player-win XMI routing regression");
+    dosAudio.playMusic(mf::audio_catalog::primaryGameMusic(true, 4));
+    if (!dosYachtHumanOutcome->sourceOutcomeRegressionTest(1) ||
+        dosAudio.requestedMusicResourceId() != mf::audio_catalog::playerWinMusic(true, 4))
+        throw std::runtime_error("DOS Yacht player outcome/music regression");
+    dosAudio.playMusic(mf::audio_catalog::primaryGameMusic(true, 4));
+    if (!dosYachtMarioOutcome->sourceOutcomeRegressionTest(-1) ||
+        dosAudio.requestedMusicResourceId() != mf::audio_catalog::primaryGameMusic(true, 4))
+        throw std::runtime_error("DOS Yacht Mario outcome/music regression");
+    dosAudio.playMusic(mf::audio_catalog::primaryGameMusic(true, 4));
+    if (!dosYachtTieOutcome->sourceOutcomeRegressionTest(2) ||
+        dosAudio.requestedMusicResourceId() != mf::audio_catalog::primaryGameMusic(true, 4))
+        throw std::runtime_error("DOS Yacht tie outcome/music regression");
     mf::Canvas dosCanvas(mf::kDosLogicalWidth, mf::kDosLogicalHeight);
     std::array<std::unique_ptr<mf::Game>, 5> dosGames{
         std::make_unique<mf::BackgammonGame>(dosContext),

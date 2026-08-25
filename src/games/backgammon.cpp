@@ -680,8 +680,7 @@ void BackgammonGame::updateWinner() {
     if (state_.humanOff == 15) {
         winner_ = 1;
         status_ = L"Congratulations! Looks like you won!";
-        context_.audio.playMusic(dosEdition() ? audio_catalog::kDosPlayerWinMusic[0]
-                                              : audio_catalog::kPlayerWinMusic[0]);
+        context_.audio.playMusic(audio_catalog::playerWinMusic(dosEdition(), 0));
         // CODE 11 $3BB6 chooses indices 42/46 with equal probability.
         const int movie = context_.random.below(200) / 100 == 0 ? 11642 : 11646;
         if (host_.active()) host_.queue(movie); else host_.play(movie, -11, -1);

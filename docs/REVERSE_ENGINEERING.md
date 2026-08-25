@@ -595,8 +595,14 @@ implementations remain evidence-backed rather than inferred from modern versions
   49/45/46 (Mario), 50/42/44 (player), or fixed 51 (tie), with the source's 15/15/30/15-tick
   pauses. A last-tile Mario win uses 47/45/46; a player win uses the six-line
   20/20/20/20/10/10 selector and then a first- or later-game four-line comment pool. Every path
-  converges on the equal 60/61 replay selector. The native state machine and five branch
-  regressions preserve these paths and gate the Play Again dialog until the replay line drains.
+  converges on the equal 60/61 replay selector. Before that convergence, every source result two
+  call at `$C18` enters common routine `$14C6`: `$1504` starts direct effect 5023, `$1528` drains
+  it, `$1538` selects SONG 135 and starts movie 3900, the controller waits for all 2,100 source
+  units (including six 5069 cues), and `$15A4` holds three passes. Thus a blocked-hand player win
+  uses the same result actor and music as a last-tile player win. Macintosh registers this actor
+  at `(231,-13)`; DOS overlay 12's vertical/horizontal Point arithmetic resolves to `(-2,-17)` and
+  routes XMI 135. The native state machine and five branch regressions preserve these paths and
+  gate the Play Again dialog until the replay line drains.
 - Checkers CODE 16 stores the 32 playable squares in row-major order and gives every square four
   one-step and four two-step links ordered up-left, up-right, down-left, down-right (`$47F0`).
   `$3FBE` recursively enumerates complete jump paths before `$3DC4` makes a second board pass for
@@ -613,7 +619,9 @@ implementations remain evidence-backed rather than inferred from modern versions
   per controller pass with sound 5003. If Mario still has pieces but no legal move, `$1164` uses
   fixed index 49 (`MuV ` 11636, “I can't move anywhere”) and skips that wipe. A first Mario win at
   `$113C` uses index 48 (`MuV ` 11058, “I won”); later wins select 48/57/47/52/46 equally. All paths
-  wait six ticks and `$1196` chooses replay index 59 or 58 (`MuV ` 11074/11073). The native ending
+  wait six ticks and `$1196` chooses replay index 59 or 58 (`MuV ` 11074/11073). SONG 143 is
+  selected at `$10BC` only after the player-elimination wipe; the fixed no-legal-move path bypasses
+  that call and retains SONG 142. The native ending
   controller covers all four branch variants, and the earlier 80-quiet-ply draw rule—absent from
   the shipped controller—has been removed. With Forced Jumps disabled, the source generator exposes
   both a partial capture and the completed multi-jump path rather than forcing continuation. The

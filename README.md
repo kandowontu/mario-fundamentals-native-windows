@@ -115,7 +115,10 @@ original executable, emulator, installer, DOS driver, or loose asset file at run
   one-time thinking line and delay, repeated-draw RNG consumption, four-way pass comments,
   first/later player-draw behavior, move-comment repeat suppression, and the exact timed idle
   prompts/four-joke cycle. Its complete last-tile and blocked-game result controller uses the
-  source's weighted speech pools, score/tie branches, delays, and two replay questions. Drawn
+  source's weighted speech pools, score/tie branches, delays, and two replay questions. Either
+  kind of player win follows CODE 14's common effect-5023 gate, SONG/XMI 135 switch, authored
+  movie-3900 result actor, and three-pass hold before replay; all other branches retain gameplay
+  music. Drawn
   bones remain visible and draggable through all fourteen Macintosh or sixteen DOS hand records;
   at capacity minus one, the source `$5744`/DOS `$5367` boneyard swap guarantees that the final
   permitted draw is playable instead of leaving a full-hand softlock. A 128-seed live match sweep
@@ -148,7 +151,9 @@ original executable, emulator, installer, DOS driver, or loose asset file at run
 - In-memory WinMM sequencing for all 11 standard MIDI resources with the recovered non-sequential
   `SONG` routing for menu, gameplay, and player-win tracks—no temporary files. The Windows MIDI
   mapper is prewarmed asynchronously, so a slow software-synth initialization cannot freeze the
-  startup transition between the publisher card and Mario's title sequence.
+  startup transition between the publisher card and Mario's title sequence. Every Macintosh and
+  DOS outcome branch is regression-tested for its exact primary/win route, and Play Again must
+  restore the selected game's primary track.
 - Original title, credits, icon, startup, menu, title-sequence, and gameplay art in the native UI.
 - All nine source-authored help pages and the game-specific File/Edit/Options menu functions are
   restored, together with the PICT 128 About and PICT 129 Credits presentations and their original
@@ -201,7 +206,7 @@ The release script configures a static C++ runtime build, compiles the resources
 executable's full hidden/silent self-test, verifies the PE architecture and dependency set, proves
 both deterministic asset packs occur exactly once, proves all 1,707 Macintosh and 1,806 DOS ripped
 resources against their extraction manifests when those local audit records are present, reruns the
-self-test from an empty working directory, regenerates 231 Macintosh and 232 DOS no-window
+self-test from an empty working directory, regenerates 232 Macintosh and 233 DOS no-window
 presentation frames at the exact 512×384 and 320×200 logical sizes, inventories all 225 retained
 vanilla captures, compares 52 independent original-output cases (publisher/title states and the
 terminal open-hand cel, pressed-menu feedback, exact pointer traversal/retargeting and selection

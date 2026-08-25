@@ -19,7 +19,7 @@ All notable native-port changes are documented here.
 - Silent, no-window Macintosh presentation output covering startup, title skip, four board-flip
   positions, every menu pose, 21 points across each game intro, eight opening states per game, and
   stationary/contact cup plus seven Yacht roll/settle states. The release gate regenerates and
-  validates all 231 Macintosh and 232 DOS frames at each edition's exact logical dimensions.
+  validates all 232 Macintosh and 233 DOS frames at each edition's exact logical dimensions.
 - A fail-closed 225-file vanilla-capture inventory and 52 independent pixel/edge comparisons,
   including the title silhouette/open hand, four menu selections, Go Fish question/transfer, and
   Yacht dice/marker/composed-hand states.
@@ -51,6 +51,10 @@ All notable native-port changes are documented here.
 - Replaced Dominoes' fixed aggregate opening delay with CODE 14's seven channel-gated 5044 deal
   passes and two-pass inter-pair cadence, revealing exactly one player/computer pair at a time in
   both editions.
+- Restored CODE 14 `$14C6`'s common player-result sequence for both last-tile and blocked-hand
+  Dominoes wins: drain effect 5023, switch to SONG/XMI 135, play authored movie 3900 at each
+  edition's recovered registration, hold three controller passes, then ask to play again. Exact
+  outcome-music and Play Again restoration checks now cover every result branch in both editions.
 - Restored Dominoes' complete drawn-hand controller: all fourteen Macintosh and sixteen DOS source
   records now render and accept drag input, DOS no longer inherits the Macintosh hand cap, and
   CODE 14 `$5744`/DOS overlay `$5367` moves an endpoint-matching bone into the last legal draw slot
