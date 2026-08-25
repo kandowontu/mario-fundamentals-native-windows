@@ -179,6 +179,29 @@ void Canvas::sprite(const Sprite& source, int x, int y, bool includeOrigin) {
     }
 }
 
+void Canvas::spriteSilhouette(const Sprite& source, int x, int y,
+                              std::uint32_t color, bool includeOrigin) {
+    if (includeOrigin) {
+        x += source.originX;
+        y += source.originY;
+    }
+    for (int sourceY = 0; sourceY < source.height; ++sourceY) {
+        const int destinationY = y + sourceY;
+        if (destinationY < 0 || destinationY >= height_) continue;
+        for (int sourceX = 0; sourceX < source.width; ++sourceX) {
+            const int destinationX = x + sourceX;
+            if (destinationX < 0 || destinationX >= width_) continue;
+            const std::size_t sourceOffset = static_cast<std::size_t>(sourceY) *
+                                             static_cast<std::size_t>(source.width) +
+                                             static_cast<std::size_t>(sourceX);
+            if (!source.alpha[sourceOffset]) continue;
+            pixels_[static_cast<std::size_t>(destinationY) *
+                    static_cast<std::size_t>(width_) +
+                    static_cast<std::size_t>(destinationX)] = color;
+        }
+    }
+}
+
 void Canvas::spriteRegion(const Sprite& sprite, Rect source, int x, int y) {
     source.left = std::clamp(source.left, 0, sprite.width);
     source.right = std::clamp(source.right, source.left, sprite.width);

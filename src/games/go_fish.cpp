@@ -922,7 +922,11 @@ void GoFishGame::setQaHandSlotsPresentation(bool afterTransfer) {
     openingFirstSpeechPlaying_ = false;
     directSpeechMilliseconds_ = 0;
     moviesAfterDirectSpeech_.clear();
-    pendingComputerRank_ = afterTransfer ? 5 : -1;
+    // The retained source sequence first asks for rank 5 (Luigi), transfers
+    // that card, then asks for rank 10 (Yoshi). Pak 5007 follows the same
+    // rank ordering as Pak 5005; keep the QA state source-accurate so it also
+    // verifies the held question-card actor instead of merely its position.
+    pendingComputerRank_ = afterTransfer ? 10 : -1;
     computerTurnWaiting_ = false;
     winner_ = 0;
     outcomePhase_ = OutcomePhase::None;
@@ -944,6 +948,12 @@ void GoFishGame::setQaHandSlotsPresentation(bool afterTransfer) {
     } else {
         status_ = L"Nice to see you again!";
     }
+}
+
+void GoFishGame::setQaQuestionPresentation() {
+    setQaHandSlotsPresentation(false);
+    pendingComputerRank_ = 5;
+    status_ = L"I'd like to have your Luigis.";
 }
 
 void GoFishGame::checkEnd() {

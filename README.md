@@ -189,12 +189,13 @@ The release script configures a static C++ runtime build, compiles the resources
 executable's full hidden/silent self-test, verifies the PE architecture and dependency set, proves
 both deterministic asset packs occur exactly once, proves all 1,707 Macintosh and 1,806 DOS ripped
 resources against their extraction manifests when those local audit records are present, reruns the
-self-test from an empty working directory, regenerates 219 Macintosh and 220 DOS no-window
-presentation frames at the exact 512×384 and 320×200 logical sizes, compares 39 independent
-original-output references (publisher/title states, stable layouts, source-timed game intros,
-first-use panels, Go Fish hand transfers, exact Dominoes portrait registration, and focused
-Macintosh Yacht actor/gesture/cup checks) when the unshipped local captures are present, and copies
-the result to `dist`.
+self-test from an empty working directory, regenerates 221 Macintosh and 222 DOS no-window
+presentation frames at the exact 512×384 and 320×200 logical sizes, inventories all 219 retained
+vanilla captures, compares 47 independent original-output cases (publisher/title states, selected
+menus, stable layouts, source-timed game intros, first-use panels, Backgammon setup, Go Fish
+questions/transfers, exact Dominoes portrait registration, and focused Macintosh Yacht
+actor/dice/marker/gesture/cup checks) when those unshipped local captures are present, and copies the
+result to `dist`.
 
 The dual-edition artifact produced here is an unreleased QA candidate. Its build-specific checksum
 is written to `dist/SHA256SUMS.txt`; no candidate should be redistributed as a 2.0 release until the

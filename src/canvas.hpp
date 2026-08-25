@@ -30,6 +30,8 @@ public:
                  unsigned format = DT_CENTER | DT_VCENTER | DT_SINGLELINE,
                  std::size_t maxCharacters = 128);
     void sprite(const Sprite& sprite, int x, int y, bool includeOrigin = true);
+    void spriteSilhouette(const Sprite& sprite, int x, int y,
+                          std::uint32_t color, bool includeOrigin = true);
     void spriteRegion(const Sprite& sprite, Rect source, int x, int y);
     void bitmap(HBITMAP bitmap, int x, int y);
     void bitmap(HBITMAP bitmap, Rect destination);

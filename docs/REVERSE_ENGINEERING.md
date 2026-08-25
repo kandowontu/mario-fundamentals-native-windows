@@ -181,7 +181,9 @@ small `PLAYER` = 68, and small `10 20` = 39) and the eleven-character display li
 Go Fish's small red card multiplicities are another authored bitmap path, not text. CODE 17
 `$3416/$349A/$3588/$36EC` selects Pak 5006 frames 0–3 for counts 1–4 and places each frame at the
 same origin as its Pak 5005 rank card. Native deal and live-hand rendering use those exact 12x14
-frames; their combined raster is pinned by the executable self-test.
+frames; their combined raster is pinned by the executable self-test. Pak 5007's thirteen small
+held-question actors use the same rank indices. Independent source frames now verify rank 5 Luigi
+before a successful transfer and rank 10 Yoshi on Mario's immediate extra question afterward.
 
 ## Movie resources
 
@@ -243,6 +245,12 @@ five-count pause begins only after sound 5001 finishes; movie 12091 then owns th
 stage, and sound 5011 plus the 1.5-second movie 1125 wipe run together after that movie completes.
 This ordering avoids folding voice duration into the authored pause or holding movie 1125's first
 title-picture frame over the live menu.
+
+The controller constructs Pak 709 and 710 before the opening fifteen-count title hold, but Pak 710
+remains under its black cast during that first stable frame. The retained run shows both Mario and
+the complete board/easel outline as silhouettes. The native renderer therefore applies Pak 710's
+alpha as an opaque black mask until the greeting begins; drawing its source colors at this point
+would expose the finished board artwork before the authored reveal.
 
 The same controller's mouse-down branch at `$1DDC` and Escape branch at `$1E14` clear the live-stage
 flag and post callback `$2E0`; its natural completion at `$217A` posts that identical callback. The

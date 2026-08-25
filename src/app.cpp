@@ -165,6 +165,12 @@ void App::renderQaFrames(std::wstring_view outputDirectory) {
         introPhaseMilliseconds_ = phase == IntroPhase::TalkingHead ? 600U : 0U;
         if (phase >= IntroPhase::Greeting) introHandMilliseconds_ = 600U;
         save(name);
+        if (phase == IntroPhase::Silhouette &&
+            canvas_.pixelHash({0, 0, kLogicalWidth, kLogicalHeight}) !=
+                0x1CAA563B9984B116ULL) {
+            throw std::runtime_error(
+                "Macintosh title board artwork appeared before the source reveal");
+        }
     }
 
     constexpr std::array<std::pair<std::uint32_t, std::wstring_view>, 4> revealFrames{{
@@ -350,6 +356,8 @@ void App::renderQaFrames(std::wstring_view outputDirectory) {
         save(L"35-gofish-hand.bmp");
         if (canvas_.pixelHash({230, 35, 283, 75}) != 0x6F80822EB2A44F3DULL)
             throw std::runtime_error("Macintosh Go Fish idle head is not the solid source actor");
+        goFish->setQaQuestionPresentation();
+        save(L"35-gofish-question.bmp");
         goFish->setQaHandSlotsPresentation(true);
         save(L"35-gofish-hand-transfer.bmp");
         if (canvas_.pixelHash({230, 35, 283, 75}) != 0x6F80822EB2A44F3DULL)
@@ -367,6 +375,8 @@ void App::renderQaFrames(std::wstring_view outputDirectory) {
     if (auto* yacht = dynamic_cast<YachtGame*>(game_.get())) {
         yacht->setQaScorecardPresentation();
         save(L"36-yacht-scorecard.bmp");
+        yacht->setQaComputerDicePresentation();
+        save(L"36-yacht-computer-dice.bmp");
         yacht->setQaDiceSelectionPresentation();
         save(L"36-yacht-dice-selection.bmp");
         yacht->setQaVictoryPresentation();
@@ -932,7 +942,13 @@ void App::renderIntro() {
     if (introPhase_ == IntroPhase::Silhouette) {
         drawTiledBackground(708);
         canvas_.sprite(graphics_.sprite(709), 176, 80, false);
-        canvas_.sprite(graphics_.sprite(710), 12, 107, false);
+        // CODE 12 creates both title actors before its fifteen-count opening
+        // pause, but the easel actor is still under the source black cast.
+        // The retained vanilla run shows the complete board/easel outline in
+        // black; its colored artwork is revealed only when the greeting state
+        // begins. Drawing Pak 710 in full color here exposed the board early.
+        canvas_.spriteSilhouette(graphics_.sprite(710), 12, 107,
+                                 rgb(0, 0, 0), false);
         return;
     }
 

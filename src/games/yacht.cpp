@@ -1285,6 +1285,20 @@ void YachtGame::setQaStationaryCupPresentation() {
     cancelSourceIdle();
 }
 
+void YachtGame::setQaComputerDicePresentation() {
+    setQaStationaryCupPresentation();
+    // Retained vanilla trace 7: Mario has completed his first roll, two
+    // small remaining-roll markers are visible, and all five dice are still
+    // white. This is a stable frame immediately before his reroll gesture.
+    humanScores_.fill(-1);
+    computerScores_.fill(-1);
+    computerAttempt_ = 1;
+    showComputerDice_ = true;
+    dice_ = {4, 2, 2, 3, 4};
+    held_.fill(false);
+    status_.clear();
+}
+
 void YachtGame::setQaRerollGesturePresentation(std::uint32_t sourceTime) {
     setQaStationaryCupPresentation();
     // Match the independently captured vanilla third-attempt gesture: two

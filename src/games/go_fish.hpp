@@ -21,6 +21,7 @@ public:
     [[nodiscard]] bool sourceOutcomeRegressionTest(int expectedWinner);
     void setQaVictoryPresentation(int letterCount);
     void setQaHandSlotsPresentation(bool afterTransfer);
+    void setQaQuestionPresentation();
 
 private:
     enum class IdlePhase {

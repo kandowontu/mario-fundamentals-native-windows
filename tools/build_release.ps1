@@ -101,10 +101,10 @@ function Invoke-PresentationQa {
 
 Invoke-PresentationQa -Argument "--render-mac-qa" `
     -OutputDirectory (Join-Path $projectRoot "work/qa/mac") -Label "macintosh" `
-    -ExpectedFrames 219 -ExpectedBytes 786486
+    -ExpectedFrames 221 -ExpectedBytes 786486
 Invoke-PresentationQa -Argument "--render-dos-qa" `
     -OutputDirectory (Join-Path $projectRoot "work/qa/dos") -Label "dos" `
-    -ExpectedFrames 220 -ExpectedBytes 256054
+    -ExpectedFrames 222 -ExpectedBytes 256054
 
 # When the locally retained independent reference sets are available, compare
 # original output with representative native gameplay frames. The captures
@@ -112,6 +112,20 @@ Invoke-PresentationQa -Argument "--render-dos-qa" `
 $visualReferenceRoot = Join-Path $projectRoot "work/references/original_startup"
 if (Test-Path -LiteralPath $visualReferenceRoot) {
     $dosVisualReferenceRoot = Join-Path $projectRoot "work/references/mariowiki"
+    $inventoryArguments = @(
+        (Join-Path $PSScriptRoot "verify_visual_reference_inventory.py"),
+        $visualReferenceRoot,
+        "--json-output",
+        (Join-Path $auditRoot "visual-reference-inventory.json")
+    )
+    if (Test-Path -LiteralPath $dosVisualReferenceRoot) {
+        $inventoryArguments += @(
+            "--dos-reference-directory", $dosVisualReferenceRoot
+        )
+    }
+    python @inventoryArguments
+    if ($LASTEXITCODE -ne 0) { throw "Visual-reference inventory has unaccounted captures." }
+
     $visualReferenceArguments = @(
         (Join-Path $PSScriptRoot "verify_visual_references.py"),
         $visualReferenceRoot,

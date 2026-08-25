@@ -14,14 +14,16 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   terminal hand/easel pose before the menu, matching CODE 12 `$1E14`/`$217A`.
 - Macintosh title-stage mouse-down now follows CODE 12's completion callback: clicking the live
   board skips the remaining voice/animation and lands on the fully revealed menu.
+- The first stable Macintosh title frame now keeps Pak 710 under the source black cast. The easel
+  artwork appears only when the greeting begins instead of being exposed during the silhouette hold.
 - The live Macintosh menu now gives its right-hand layer exclusively to the selected-game actor;
   the completed title hand is no longer composited beneath it as a second glove/object.
-- The no-window presentation sweeps now emit 219 exact 512×384 Macintosh frames and 220 exact
+- The no-window presentation sweeps now emit 221 exact 512×384 Macintosh frames and 222 exact
   320×200 DOS frames. They cover both Macintosh title/board mouse-down completion paths, all five
   source-specific selected-game intro input routes, DOS menu/help contexts, all intros/openings,
-  Backgammon setup reveal, Dominoes drag/endings, Checkers endings, Go Fish hand transfer/victory,
-  Yacht scoring/selection/victory, both Yacht roll/settle timelines, and the complete movie-6021
-  reroll-gesture cycle in both editions.
+  Backgammon setup reveal, Dominoes drag/endings, Checkers endings, Go Fish
+  hand/question/transfer/victory, Yacht scoring/computer-dice/selection/victory, both Yacht
+  roll/settle timelines, and the complete movie-6021 reroll-gesture cycle in both editions.
 - The DOS source's eight-pixel `File / Options / Help` bar is restored exactly over main-menu and
   gameplay frames, with context-specific commands and the Pak 8000/8001 two-page instruction UI.
 - Dominoes now follows CODE 14's exact first/later deal and highest-double dialogue tables. The
@@ -33,11 +35,13 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   The supporting DOS discovery ledger no longer leaves 1,923 heuristic candidates generically
   pending: 77 overlay rows defer to the exact export/prologue ledger and 1,846 resident rows are
   explicitly dispositioned to the replaced platform/runtime/media family.
-- The local release gate now compares 39 representative native frames/regions against independently
-  captured original Macintosh/DOS output. Coverage includes publisher/title states, stable game
-  geometry, seven Macintosh and all five DOS source-timed intro instants, the complete post-intro
-  first-use character/name panels, Go Fish grouped/transfer hands, exact Dominoes portrait
-  registration, and Yacht actor/gesture/cup regions.
+- The local release gate now compares 47 representative native frames/regions against independently
+  captured original Macintosh/DOS output. Coverage includes publisher/title states, four selected
+  menu poses, stable game geometry, seven Macintosh and all five DOS source-timed intro instants,
+  complete post-intro first-use panels, Backgammon's setup reveal, Go Fish
+  grouped/question/transfer hands, exact Dominoes portrait registration, and Yacht
+  actor/dice/marker/gesture/cup regions. A separate inventory accounts for all 219 retained captures
+  and fails on any unknown file.
 - The Dominoes score portrait now uses its independently captured edition-specific origin:
   Macintosh `(11,11)` and DOS `(7,15)`, safely below the DOS menu bar.
 - DOS Backgammon, Checkers, and Go Fish intro actors now resolve the registered points supplied by
@@ -61,6 +65,8 @@ media, executable, emulator, installer, sound driver, or loose asset files.
 - Go Fish now uses complete Pak 11000 for neutral Mario. Pak 5090 frame zero is only movie 5090's
   transparent base layer, so using it alone exposed the page through his eyes; idle and question-
   card-transfer face regions are now hash-regressed in both editions.
+- Go Fish's source-matched question QA now verifies the Luigi request before transfer and the Yoshi
+  request afterward, including Pak 5007's rank-specific held card and the 7-to-8 card-count change.
 - DOS MuV/Img geometry now uses its proven conventional x/y field order instead of Macintosh
   QuickDraw ordering. All 1,213 same-ID Img/Pak records are exact, eliminating clipped cels,
   displaced board-flip layers, and incomplete talking heads.

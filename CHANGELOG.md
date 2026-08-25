@@ -19,7 +19,10 @@ All notable native-port changes are documented here.
 - Silent, no-window Macintosh presentation output covering startup, title skip, four board-flip
   positions, every menu pose, 21 points across each game intro, eight opening states per game, and
   stationary/contact cup plus seven Yacht roll/settle states. The release gate regenerates and
-  validates all 202 frames plus the DOS sweep at each edition's exact logical dimensions.
+  validates all 221 Macintosh and 222 DOS frames at each edition's exact logical dimensions.
+- A fail-closed 219-file vanilla-capture inventory and 47 independent pixel/edge comparisons,
+  including title silhouette, four menu selections, Go Fish question/transfer, and Yacht
+  dice/marker states.
 
 ### Changed
 
@@ -29,6 +32,11 @@ All notable native-port changes are documented here.
   packs and rejects DOS source/build paths in the finished PE.
 
 ### Fixed
+
+- Kept the Macintosh easel under its source black cast during the initial title silhouette hold;
+  the finished board artwork is no longer revealed before Mario's greeting.
+- Corrected Go Fish's post-transfer QA actor from the Luigi question card to the source Yoshi card,
+  and added the preceding Luigi-question state as an independent comparison.
 
 - Moved the Dominoes score portrait to the independently captured vanilla position in each
   edition: `(11,11)` on Macintosh and `(7,15)` below the DOS menu bar.

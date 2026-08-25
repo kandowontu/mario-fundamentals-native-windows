@@ -21,16 +21,24 @@ are used only for local preservation QA.
 
 The comparison uses Gaussian-smoothed regional RGB root-mean-square error after normalizing each
 image to its edition's logical resolution. Stable-layout checks exclude regions with random pieces,
-cards, speech-mouth frames, or the captured mouse cursor. Four publisher states and two
-title-speaking states compare complete Macintosh frames. Seven Macintosh and five DOS cases
-compare complete game-intro frames at independently identified source times. Three complete frames
-cover the Backgammon/Checkers first-use panels, and two more cover Go Fish's grouped hand and
-question-card transfer. Edge-only cases pin both Dominoes score portraits and the Macintosh Yacht
-reroll gesture to their source registrations. Three focused Macintosh Yacht cases verify the idle
-actor, full-body gesture, and roll-contact cup. Together the 39 cases cover startup colors, title
-composition, scorecards, boards, status bars, tiled backgrounds, menus, prompt ordering, hand
-transfers, and moving-actor registration without treating different random gameplay states as
-failures.
+cards, speech-mouth frames, or the captured mouse cursor. Four publisher states, the black-cast
+title silhouette, two title-speaking states, and four selected-menu poses compare complete
+Macintosh frames. Seven Macintosh and five DOS cases compare complete game-intro frames at
+independently identified source times. Complete frames also cover the Backgammon setup reveal,
+Backgammon/Checkers first-use panels, three Go Fish grouped/question/transfer states, and Yacht's
+post-roll dice/marker state. Edge-only cases pin both Dominoes score portraits and the Macintosh
+Yacht reroll gesture to their source registrations. Together the 47 cases cover startup colors,
+title reveal order, title composition, scorecards, boards, status bars, tiled backgrounds, menus,
+prompt ordering, hand transfers, and moving-actor registration without treating different random
+gameplay states as failures.
+
+`tools/verify_visual_reference_inventory.py` separately accounts for every retained capture before
+pixel comparison. The current 219-file inventory contains 44 unique files used directly by one or
+more comparisons, 75 redundant sequence frames, 43 external pre-launch frames, 41 blank/host
+repaints, eight incomplete QuickDraw/browser repaints, seven stochastic gameplay alternates, and
+one cross-edition supplemental screenshot. Unknown captures fail the gate. Partial repaints are
+preserved as evidence but deliberately are not reproduced: the native renderer presents a completed
+back buffer so the source/browser's black flicker cannot become a port feature.
 
 | Edition | Reference case | Current RMSE | Maximum |
 | --- | --- | ---: | ---: |
@@ -38,8 +46,13 @@ failures.
 | Macintosh | Brainstorm fade | 0.380 | 1.0 |
 | Macintosh | Stepping Stone | 1.330 | 2.0 |
 | Macintosh | Stepping Stone fade | 1.014 | 2.0 |
+| Macintosh | Title silhouette | 3.588 | 5.0 |
 | Macintosh | Title greeting | 8.268 | 10.0 |
 | Macintosh | Title talking | 8.482 | 10.0 |
+| Macintosh | Menu, Backgammon selected | 8.303 | 10.0 |
+| Macintosh | Menu, Dominoes selected | 8.240 | 10.0 |
+| Macintosh | Menu, Go Fish selected | 8.599 | 10.0 |
+| Macintosh | Menu, Yacht selected | 11.412 | 13.0 |
 | Macintosh | Dominoes intro | 13.549 | 15.0 |
 | Macintosh | Checkers intro | 11.196 | 12.5 |
 | Macintosh | Go Fish intro, early | 5.228 | 6.0 |
@@ -49,22 +62,25 @@ failures.
 | Macintosh | Yacht intro, late | 5.212 | 7.0 |
 | Macintosh | Backgammon board | 12.674 | 16.0 |
 | Macintosh | Backgammon character choice | 11.069 | 13.0 |
+| Macintosh | Backgammon setup reveal | 13.142 | 15.0 |
 | Macintosh | Dominoes table | 2.335 | 4.0 |
-| Macintosh | Dominoes score/portrait registration (edge) | 37.255 | 38.0 |
+| Macintosh | Dominoes score/portrait registration (edge) | 37.429 | 38.0 |
 | Macintosh | Checkers chrome | 10.620 | 14.0 |
-| Macintosh | Checkers character choice | 10.093 | 12.0 |
+| Macintosh | Checkers character choice | 10.073 | 12.0 |
 | Macintosh | Checkers name prompt | 13.793 | 16.0 |
 | Macintosh | Go Fish table | 12.639 | 16.0 |
 | Macintosh | Go Fish grouped hand | 20.561 | 22.0 |
-| Macintosh | Go Fish question-card transfer | 13.146 | 15.0 |
+| Macintosh | Go Fish Luigi question | 12.472 | 14.0 |
+| Macintosh | Go Fish question-card transfer | 12.649 | 15.0 |
 | Macintosh | Yacht scorecards | 6.110 | 10.0 |
 | Macintosh | Yacht center actor | 27.293 | 30.0 |
+| Macintosh | Yacht computer dice/markers | 9.712 | 12.0 |
 | Macintosh | Yacht reroll gesture registration (edge) | 14.250 | 16.0 |
 | Macintosh | Yacht roll-contact cup | 1.311 | 3.0 |
 | DOS | Main menu | 8.191 | 11.0 |
 | DOS | Backgammon chrome | 30.693 | 34.0 |
 | DOS | Dominoes table | 2.068 | 3.0 |
-| DOS | Dominoes score/portrait registration (edge) | 52.998 | 60.0 |
+| DOS | Dominoes score/portrait registration (edge) | 53.172 | 60.0 |
 | DOS | Checkers chrome | 22.418 | 27.0 |
 | DOS | Go Fish table | 24.395 | 28.0 |
 | DOS | Yacht scorecards | 8.509 | 12.0 |

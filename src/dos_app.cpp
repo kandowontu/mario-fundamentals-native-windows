@@ -356,6 +356,8 @@ void DosApp::renderQaFrames(std::wstring_view outputDirectory) {
         save(L"35-gofish-hand.bmp");
         if (canvas_.pixelHash({145, 20, 177, 42}) != 0x5E37997BB4C35C26ULL)
             throw std::runtime_error("DOS Go Fish idle head is not the solid source actor");
+        goFish->setQaQuestionPresentation();
+        save(L"35-gofish-question.bmp");
         goFish->setQaHandSlotsPresentation(true);
         save(L"35-gofish-hand-transfer.bmp");
         if (canvas_.pixelHash({145, 20, 177, 42}) != 0x5E37997BB4C35C26ULL)
@@ -373,6 +375,8 @@ void DosApp::renderQaFrames(std::wstring_view outputDirectory) {
     if (auto* yacht = dynamic_cast<YachtGame*>(game_.get())) {
         yacht->setQaScorecardPresentation();
         save(L"36-yacht-scorecard.bmp");
+        yacht->setQaComputerDicePresentation();
+        save(L"36-yacht-computer-dice.bmp");
         yacht->setQaDiceSelectionPresentation();
         save(L"36-yacht-dice-selection.bmp");
         yacht->setQaVictoryPresentation();

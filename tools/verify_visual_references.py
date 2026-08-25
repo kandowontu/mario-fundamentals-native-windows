@@ -84,6 +84,15 @@ MAC_SAMPLES = (
         2.0,
     ),
     Sample(
+        "title-silhouette",
+        "run-00.png",
+        "04-title-silhouette.bmp",
+        ((0, 0, 512, 384),),
+        5.0,
+        MAC_RUN_CAPTURE_SIZE,
+        MAC_RUN_CAPTURE_CROP,
+    ),
+    Sample(
         "title-greeting",
         "run-06.png",
         "05-title-greeting.bmp",
@@ -100,6 +109,36 @@ MAC_SAMPLES = (
         10.0,
         MAC_RUN_CAPTURE_SIZE,
         MAC_RUN_CAPTURE_CROP,
+    ),
+    # Stable source menu selections independently cover four of the five
+    # button rows, pointer endpoints, hand poses, and held game-piece actors.
+    Sample(
+        "menu-backgammon-selected",
+        "original-dominoes-flow-0.png",
+        "10-menu-selection-4.bmp",
+        ((0, 0, 512, 384),),
+        10.0,
+    ),
+    Sample(
+        "menu-dominoes-selected",
+        "original-dominoes-flow-1.png",
+        "10-menu-selection-3.bmp",
+        ((0, 0, 512, 384),),
+        10.0,
+    ),
+    Sample(
+        "menu-go-fish-selected",
+        "original-gofish-trace-0.png",
+        "10-menu-selection-2.bmp",
+        ((0, 0, 512, 384),),
+        10.0,
+    ),
+    Sample(
+        "menu-yacht-selected",
+        "original-yacht-trace-0.png",
+        "10-menu-selection-5.bmp",
+        ((0, 0, 512, 384),),
+        13.0,
     ),
     # Whole-frame dynamic captures catch source actor registration and staging
     # errors that board/chrome-only comparisons deliberately exclude.
@@ -167,6 +206,13 @@ MAC_SAMPLES = (
         13.0,
     ),
     Sample(
+        "backgammon-setup-reveal",
+        "original-backgammon-name.png",
+        "31-backgammon-setup-10.bmp",
+        ((0, 0, 512, 384),),
+        15.0,
+    ),
+    Sample(
         "dominoes-table",
         "original-dominoes-trace-4.png",
         "21-opening-0.bmp",
@@ -190,7 +236,7 @@ MAC_SAMPLES = (
     ),
     Sample(
         "checkers-character-choice",
-        "original-checkers-game.png",
+        "original-checkers-intro-3s.png",
         "12-character-choice-2.bmp",
         ((0, 0, 512, 384),),
         12.0,
@@ -217,6 +263,13 @@ MAC_SAMPLES = (
         22.0,
     ),
     Sample(
+        "go-fish-luigi-question",
+        "original-gofish-trace-7.png",
+        "35-gofish-question.bmp",
+        ((0, 0, 512, 384),),
+        14.0,
+    ),
+    Sample(
         "go-fish-question-transfer",
         "original-gofish-trace-8.png",
         "35-gofish-hand-transfer.bmp",
@@ -236,6 +289,13 @@ MAC_SAMPLES = (
         "24-opening-32.bmp",
         ((145, 0, 367, 220),),
         30.0,
+    ),
+    Sample(
+        "yacht-computer-dice-and-markers",
+        "original-yacht-trace-7.png",
+        "36-yacht-computer-dice.bmp",
+        ((0, 0, 512, 384),),
+        12.0,
     ),
     Sample(
         "yacht-reroll-gesture-registration",
@@ -500,10 +560,11 @@ def main() -> int:
         "method": (
             "Gaussian-smoothed 64x64 regional RGB RMSE; the Macintosh browser capture is "
             "reduced to its stable game surface; random actor/card/piece/cursor regions are "
-            "excluded from stable-layout cases; four Macintosh publisher states, two title "
-            "states, seven source-timed Macintosh game intros, and five source-timed DOS game "
-            "intros compare complete frames; three first-use panel frames and two Go Fish hand "
-            "states are checked as complete frames; edge-only registration checks pin both "
+            "excluded from stable-layout cases; four Macintosh publisher states, three title "
+            "states, four Macintosh menu selections, seven source-timed Macintosh game intros, "
+            "and five source-timed DOS game intros compare complete frames; three first-use "
+            "panel frames, a Backgammon setup reveal, three Go Fish hand/question states, and a "
+            "Yacht dice/marker state are checked as complete frames; edge-only checks pin both "
             "Dominoes score portraits and the Macintosh Yacht reroll gesture; three Macintosh Yacht "
             "regions independently verify the idle actor, full-body gesture, and roll-contact cup"
         ),
