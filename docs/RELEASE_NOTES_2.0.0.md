@@ -32,6 +32,11 @@ media, executable, emulator, installer, sound driver, or loose asset files.
 - CODE 1 `$B22`/`$CAA` direct-sound arbitration is now retained separately from tracked speech.
   The 1,152-sample snd 5003 menu click occupies the source channel for 105 ms, preventing adjacent
   33 ms pointer steps from launching several overlapping copies during a long selection move.
+- CODE 1 `$A18` now retains `$99C/$A44`'s stop-and-replace behavior instead of overlapping prior
+  samples. The release gate scans all 65 absolute sample calls and requires the source split of 45
+  tracked `$A18` requests and 20 `$CAA` direct effects, including all ten table/register arguments.
+  Go Fish card responses, Yacht score reactions, and Backgammon post-move dialogue are separated
+  from their preceding tracked cue rather than canceling it in the same native event.
 - The complete fifteen-caller `$B22` audit now covers the remaining title and menu-launch waits,
   Dominoes deal/result/reset/selection states, and Go Fish's standalone 26015 continuation. The
   native query unions tracked speech and direct effects just like the original shared channel.

@@ -9,6 +9,8 @@
 
 namespace mf {
 
+enum class SampleRequestRoute { None, Tracked, DirectEffect };
+
 class Audio {
 public:
     explicit Audio(const AssetStore& assets) : assets_(assets) {}
@@ -48,6 +50,9 @@ public:
     }
     [[nodiscard]] int requestedEffectResourceId() const noexcept {
         return requestedEffectResourceId_;
+    }
+    [[nodiscard]] SampleRequestRoute lastSampleRequestRoute() const noexcept {
+        return lastSampleRequestRoute_;
     }
 
 private:
@@ -89,6 +94,7 @@ private:
     int requestedMusicResourceId_{-1};
     int requestedSoundResourceId_{-1};
     int requestedEffectResourceId_{-1};
+    SampleRequestRoute lastSampleRequestRoute_{SampleRequestRoute::None};
     bool requestedMusicLoop_{true};
     bool midiLoop_{};
     bool soundEnabled_{true};

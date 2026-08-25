@@ -22,11 +22,23 @@ runtime.
 The release self-test checks all of these counts, validates every sampled sound and MIDI file, and
 asserts that the dangling-cue set is exactly `{23019, 23020, 23021, 23022, 23023}`.
 
+CODE 1 exposes two materially different sampled-sound paths. `$A18` enters `$99C`, which calls
+`$A44` to stop and close the previous tracked sample before starting its replacement. `$CAA`
+submits a priority direct effect without that tracked-sample replacement step. The native
+`Audio::playSound` and `Audio::playEffect` paths now preserve this distinction instead of allowing
+every controller cue to overlap.
+
+An instruction-level audit covers all 65 absolute calls to those entry points: 45 route through
+tracked `$A18` and 20 through direct-effect `$CAA`. Fifty-five pass immediate resource IDs and ten
+use decoded tables/registers. The immediate sets are independently pinned, including the three IDs
+(5003, 5024, and 5042) that legitimately use different routes in different controller contexts.
+`tools/verify_mac_audio_routes.py` checks every CODE resource/address, route, dynamic call site, and
+immediate-ID set and writes `work/audit/mac-audio-route-audit.json` during the release gate.
+
 CODE 1 `$B22` is the direct-sound channel busy query used before guarded UI effects; `$CAA` queues
 the effect and keeps that channel occupied for the sample's integer-ceiling duration. The native
-audio layer tracks direct-effect lifetime separately from speech lifetime, then unions both for the
-source busy query because tracked `$A18` speech and priority `$CAA` effects occupy the same original
-Sound Manager channel. Movie voices can remain concurrent, but a controller using `$B22` cannot
+audio layer tracks direct-effect lifetime separately from tracked-sample lifetime, then unions both
+for the source busy query. Movie voices can remain concurrent, but a controller using `$B22` cannot
 stack the same effect every 33 ms while the preceding sample is still draining. A silent executable
 regression pins the 105 ms busy window of the 1,152-sample/11,025 Hz `snd ` 5003 menu click.
 
@@ -144,10 +156,10 @@ Stepping Stone voice cue; a timed executable regression guards both foreground c
 | Mario right-shoe idle | direct effect 5004 on CODE 12 `$1032` actor-500 show cycles and its terminal cue; Pak 1011 is composited at source point `(313,288)` |
 | Mario bow-tie idle | direct effect 5006 when CODE 12 `$1032` hides actor 1500 and starts the 1.8-second movie 1101 spin at `(270,174)`; the static Pak 1100 bow tie is restored when it ends |
 | Mario blink idle | no sound call; CODE 12 `$12F8` briefly shows actor 471/Pak 1014 at `(283,79)` independently of the sound-bearing idle controller |
-| Valid name character | effect 9201 |
-| Invalid/full/empty edit | effect 9202 |
-| Delete character | effect 9203 |
-| Modal OK/Cancel/Yes/No and character choice | effect 9204 |
+| Valid name character | tracked sound 9201 through `$A18` |
+| Invalid/full/empty edit | tracked sound 9202 through `$A18` |
+| Delete character | tracked table sound 9203 through `$A18` |
+| Modal OK/Cancel/Yes/No and character choice | tracked sound 9204 through `$A18` |
 
 The third `$1032` random branch posts either operation 21 or the word 12061 through CODE 16's
 shared 23-entry movie controller. The decoded A5 table record for operation 21 contains movie ID 0
@@ -160,18 +172,17 @@ there is no missing third menu-idle sound route.
 Movie-authored sounds are handled automatically, including multi-cue dice, movement, speech, and
 celebration timelines. The remaining direct CODE calls are routed as follows:
 
-An instruction-level scan of immediate resource IDs passed through the shared CODE `$A18` and
-`$CAA` sound entry points finds 29 unique direct IDs. Every one now has a native route; CODE 6's
-9203 delete-key cue is stored through its modal state table instead of either immediate-call form
-and is routed as well.
+The 65-call instruction scan finds 29 unique immediate IDs across `$A18` and `$CAA`. Every one now
+has a native route; CODE 6's 9203 delete-key cue is stored through its modal state table instead of
+either immediate-call form and is routed as well.
 
 | Game | Recovered direct sound routes |
 | --- | --- |
-| Backgammon | 5042 once at the start of each of `$F78`'s eight progressively painted checker stacks; 5024 roll-control press; movie 4020's ten authored 5069 rattles; 5019 roll settle; 5053 checker selection; 5054 invalid destination; 5072 bar entry; 5034 checker movement for both players; 5010 hit response; movie 4022/4023's authored player-win cues |
-| Dominoes | 5044 for each of seven opening deals; 5003 on every player draw and Mario's repeated-draw decision; 5043 tile selection; 5042 tile transit; delayed 5017 placement commit; 9202 at the Macintosh fourteen-bone or DOS sixteen-bone hand limit; 5024 empty-boneyard cue; 5023 chain re-layout and player-result reset; blocked-result 5034 for Mario or 5057 for player/tie; movie 3900's six authored 5069 cues after SONG/XMI 135 on either player-win route |
-| Checkers | 5003 for checker movement and the source-order player-win board wipe; remaining host speech/effects come from the authored movie timelines |
-| Go Fish | tracked 5032 through CODE 1 `$A18` for each of seven opening deals; concurrent 5010 requested-card motion; 5013 draws, both forced empty-hand refill entries, and player-win card transit; standalone 26015 on the failed Mario request; all question, response, refill (movie 11538), idle, and outcome speech from their source movies |
-| Yacht | 5018 pipe/dice roll start; 5019 for each settling white die; 5028 for every player or sequential Mario white/red die-retention toggle; 5010 hand gesture plus movie 6021's authored 5044 cue before every Mario roll; 5003 score entry and scorecard clear |
+| Backgammon | All direct controller calls use tracked `$A18`: 5042 once at the start of each of `$F78`'s eight progressively painted checker stacks; 5024 roll-control press; 5019 roll settle; 5053 checker selection; 5054 invalid destination; 5072 for the separate bar-entry actor; 5034 for ordinary checker movement by either player; and 5010 after a completed hit move. Post-move speech waits for those tracked cues instead of replacing them in the same native event. Movie 4020 supplies ten authored 5069 rattles, while movies 4022/4023 supply the player-win cues. |
+| Dominoes | Direct `$CAA` effects: 5044 for each opening deal, player-draw 5003, 5043 selection, 5042 transit, delayed 5017 placement, empty-boneyard 5024, and 5023 re-layout/result reset. Tracked `$A18` calls: Mario's repeated-draw 5003, hand-limit 9202, and blocked-result 5034/5057. Movie 3900 supplies six authored 5069 cues after SONG/XMI 135 on either player-win route. |
+| Checkers | Ordinary checker movement uses direct `$CAA` 5003. The source-order player-win board wipe uses tracked `$A18` 5003, replacing the preceding wipe click once per occupied-square pass. Remaining host speech/effects come from authored movie timelines. |
+| Go Fish | Direct controller calls for 5032 opening deals, 5010 requested-card motion, and 5013 draws/refills/player-win card transit all use tracked `$A18`. Conversation movies are deferred until their preceding card cue drains. A failed Mario draw then starts standalone direct-scheduler sound 26015 and waits through CODE 17 `$139A`'s `$B22` query before queued response movies. All other question, response, refill (movie 11538), idle, and outcome speech comes from source movies. |
+| Yacht | All direct controller calls use tracked `$A18`: 5018 pipe/dice roll start, 5019 for each settling white die, 5028 for every player or sequential Mario retention toggle, 5010 before each Mario roll, and 5003 score entry/scorecard clear. The score reaction movie begins only after 5003 drains, so its time-zero voice cannot erase the click. Movie 6021 independently supplies its authored delayed 5044 cue. |
 
 Backgammon's recovered startup and ordinary-roll speech remains movie-authored, not a replacement
 direct sound call. Executable cue checks bind 11600/11603/11604 to 6019/6023/6024, fixed roll prompt

@@ -145,9 +145,10 @@ original executable, emulator, installer, DOS driver, or loose asset file at run
 - Runtime decoders for all 180 proprietary `Pak ` resources (3,166 frames).
 - Runtime support for 467 `MuV `/`Ply `/`Img ` movies (8,586 commands), including layered images, offsets, timing, and sound events.
 - Runtime conversion/playback for all 313 classic Mac `snd ` resources, including concurrent voices;
-  all 666 movie sound events and direct startup/gameplay effect routes are audited. CODE 1's
-  `$B22` direct-channel busy gate is retained separately from tracked speech, preventing the
-  104 ms menu-selection click from overlapping itself on 33 ms pointer steps.
+  all 666 movie sound events and direct startup/gameplay routes are audited. A fail-closed source
+  scan pins all 65 absolute calls as 45 tracked `$A18` replacements and 20 `$CAA` direct effects.
+  CODE 1's `$B22` direct-channel busy gate prevents the 105 ms menu-selection click from
+  overlapping itself on 33 ms pointer steps.
 - In-memory WinMM sequencing for all 11 standard MIDI resources with the recovered non-sequential
   `SONG` routing for menu, gameplay, and player-win tracks—no temporary files. The Windows MIDI
   mapper is prewarmed asynchronously, so a slow software-synth initialization cannot freeze the

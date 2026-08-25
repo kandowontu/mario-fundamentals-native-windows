@@ -104,6 +104,9 @@ private:
     void rememberHumanQuestion(int rank);
     void beginConversation(std::span<const int> movies);
     void appendConversation(std::span<const int> movies);
+    void beginAfterTrackedSpeech(int sound, std::span<const int> movies);
+    void beginAfterTrackedThenDirectSpeech(int trackedSound, int directSound,
+                                           std::span<const int> movies);
     void beginAfterDirectSpeech(int sound, std::span<const int> movies);
     void resetSourceIdle();
     void cancelSourceIdle();
@@ -142,6 +145,7 @@ private:
     int openingDelayControllerPasses_{};
     int openingDealCount_{};
     bool directSpeechPending_{};
+    int directSpeechAfterTracked_{-1};
     std::vector<int> moviesAfterDirectSpeech_;
     std::array<int, 200> humanQuestionMemory_{};
     std::array<int, 30> computerQuestionHistory_{};

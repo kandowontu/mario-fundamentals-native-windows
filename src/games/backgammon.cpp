@@ -175,6 +175,9 @@ void BackgammonGame::reset(bool preserveSession) {
     qaSetupRevealPresentation_ = false;
     startupPhase_ = StartupPhase::PreGreeting;
     pieceAnimation_ = {};
+    postMoveGate_ = false;
+    postMoveHitSound_ = false;
+    postMoveMovies_.clear();
     outcomePhase_ = OutcomePhase::None;
     opening_ = true;
     status_ = L"Let's roll to see who goes first.";
@@ -615,7 +618,7 @@ void BackgammonGame::resolveRoll() {
     pendingRoll_ = 0;
     // The source roll controller adds its settle sound after the authored
     // movie-4020 rattles have drained.
-    context_.audio.playEffect(5019);
+    context_.audio.playSound(5019);
     if (kind == 2) {
         const int humanDie = pendingFirst_;
         const int marioDie = pendingSecond_;
@@ -683,7 +686,9 @@ void BackgammonGame::updateWinner() {
         context_.audio.playMusic(audio_catalog::playerWinMusic(dosEdition(), 0));
         // CODE 11 $3BB6 chooses indices 42/46 with equal probability.
         const int movie = context_.random.below(200) / 100 == 0 ? 11642 : 11646;
-        if (host_.active()) host_.queue(movie); else host_.play(movie, -11, -1);
+        if (pieceAnimation_.active || postMoveAudioPending()) queuePostMoveMovie(movie);
+        else if (host_.active()) host_.queue(movie);
+        else host_.play(movie, -11, -1);
         outcomePhase_ = OutcomePhase::Announcement;
     }
     if (state_.computerOff == 15) {
@@ -691,7 +696,9 @@ void BackgammonGame::updateWinner() {
         status_ = L"Looks like Mario wins this time.";
         // CODE 11 $3B88 similarly chooses indices 43/44 for Mario's win.
         const int movie = context_.random.below(200) / 100 == 0 ? 11643 : 11644;
-        if (host_.active()) host_.queue(movie); else host_.play(movie, -11, -1);
+        if (pieceAnimation_.active || postMoveAudioPending()) queuePostMoveMovie(movie);
+        else if (host_.active()) host_.queue(movie);
+        else host_.play(movie, -11, -1);
         outcomePhase_ = OutcomePhase::Announcement;
     }
 }
@@ -807,7 +814,8 @@ bool BackgammonGame::sourceFullMatchRegressionTest() {
             host_.stop();
             const bool playerCanAct = startupPhase_ == StartupPhase::Complete && !winner_ &&
                 !characterChooser_ && pendingRoll_ == 0 && !computerRollPending_ &&
-                !computerMovesPending_ && !pieceAnimation_.active && !diceRoll_.active() &&
+                !computerMovesPending_ && !pieceAnimation_.active && !postMoveAudioPending() &&
+                !diceRoll_.active() &&
                 !secondDiceRoll_.active() && !host_.active();
             if (playerCanAct) {
                 if (!rolled_) {
@@ -869,6 +877,9 @@ bool BackgammonGame::sourceFullMatchRegressionTest() {
                     click(center(chosen.to));
                     if (!sameState(state_, expected) || dice_ != expectedDice || selected_ != -99)
                         return fail();
+                    if (context_.audio.lastSampleRequestRoute() != SampleRequestRoute::Tracked ||
+                        context_.audio.requestedSoundResourceId() !=
+                            (chosen.from == 24 ? 5072 : 5034)) return fail();
                     sawHumanMove = matchSawHumanMove = true;
                     sawFriendlyPointBuild |= chosen.to >= 0 && chosen.to < 24 &&
                                              before.points[chosen.to] > 0;
@@ -896,6 +907,9 @@ bool BackgammonGame::sourceFullMatchRegressionTest() {
                 State expected = beforeTick;
                 apply(expected, -1, expectedComputerMove);
                 if (!sameState(state_, expected)) return fail();
+                if (context_.audio.lastSampleRequestRoute() != SampleRequestRoute::Tracked ||
+                    context_.audio.requestedSoundResourceId() !=
+                        (expectedComputerMove.from == -1 ? 5072 : 5034)) return fail();
                 sawMarioMove = matchSawMarioMove = true;
                 sawHit |= state_.humanBar > beforeTick.humanBar;
                 sawBarEntry |= state_.computerBar < beforeTick.computerBar;
@@ -974,7 +988,7 @@ bool BackgammonGame::tickOutcome() {
 
     switch (outcomePhase_) {
     case OutcomePhase::Announcement:
-        if (host_.active()) return false;
+        if (host_.active() || postMoveAudioPending()) return false;
         if (winner_ > 0) {
             // CODE 11 $3C2C starts MuV 4022 and 4023 together. The source
             // adds (0,15)/(414,47) to their intrinsic origins and halves
@@ -1057,7 +1071,10 @@ void BackgammonGame::computerStep() {
     apply(state_, -1, move);
     const auto die = std::find(dice_.begin(), dice_.end(), move.die);
     if (die != dice_.end()) dice_.erase(die);
-    if (hitHuman) host_.play(11625, -11, -1);
+    if (hitHuman) {
+        postMoveHitSound_ = true;
+        queuePostMoveMovie(11625);
+    }
     if (computerMoveIndex_ < computerMoves_.size()) {
         status_ = L"Mario can still move.";
         computerDelayMilliseconds_ = 450;
@@ -1073,8 +1090,7 @@ void BackgammonGame::computerStep() {
         // CODE 11 $15B4 draws below 200 and divides by 100, producing the
         // source's equal choice between movie indices 11 and 16.
         const int handoffMovie = context_.random.below(200) / 100 == 1 ? 11611 : 11616;
-        if (host_.active()) host_.queue(handoffMovie);
-        else host_.play(handoffMovie, -11, -1);
+        queuePostMoveMovie(handoffMovie);
     }
 }
 
@@ -1097,8 +1113,28 @@ bool BackgammonGame::tick() {
         if (pieceAnimation_.elapsedMilliseconds >= 360U) pieceAnimation_.active = false;
         changed = true;
     }
+    if (!pieceAnimation_.active && postMoveAudioPending()) {
+        if (!context_.audio.directSoundBusy()) {
+            if (postMoveHitSound_) {
+                // CODE 11's hit state reaches tracked 5010 only after the
+                // checker actor has completed its movement.
+                postMoveHitSound_ = false;
+                context_.audio.playSound(5010);
+            } else if (!postMoveMovies_.empty()) {
+                const std::vector<int> movies = std::move(postMoveMovies_);
+                postMoveMovies_.clear();
+                postMoveGate_ = false;
+                host_.play(movies.front(), -11, -1);
+                for (std::size_t index = 1; index < movies.size(); ++index)
+                    host_.queue(movies[index]);
+            } else {
+                postMoveGate_ = false;
+            }
+        }
+        changed = true;
+    }
     if (!host_.active() && !diceRoll_.active() && !secondDiceRoll_.active() &&
-        !pieceAnimation_.active) {
+        !pieceAnimation_.active && !postMoveAudioPending()) {
         if (computerRollPending_) {
             if (computerDelayMilliseconds_ > 0) {
                 computerDelayMilliseconds_ = std::max(0, computerDelayMilliseconds_ - 33);
@@ -1123,6 +1159,7 @@ bool BackgammonGame::tick() {
     const bool waitingForPlayer = startupPhase_ == StartupPhase::Complete && !winner_ &&
         !characterChooser_ && pendingRoll_ == 0 &&
         !computerRollPending_ && !computerMovesPending_ && !pieceAnimation_.active &&
+        !postMoveAudioPending() &&
         !diceRoll_.active() && !secondDiceRoll_.active();
     changed |= tickSourceIdle(waitingForPlayer);
     return changed;
@@ -1268,7 +1305,8 @@ void BackgammonGame::click(Point point) {
     idleElapsedSourceTicks_ = 0;
     if (startupPhase_ != StartupPhase::Complete || winner_ || host_.active() ||
         diceRoll_.active() || secondDiceRoll_.active() ||
-        computerRollPending_ || computerMovesPending_ || pieceAnimation_.active) return;
+        computerRollPending_ || computerMovesPending_ || pieceAnimation_.active ||
+        postMoveAudioPending()) return;
     const Rect roll = dosEdition()
         ? Rect{dosX(rollButton_.left), dosY(rollButton_.top),
                dosX(rollButton_.right), dosY(rollButton_.bottom)}
@@ -1289,12 +1327,12 @@ void BackgammonGame::click(Point point) {
     if (selected_ == -99) {
         if (target == 24 && state_.humanBar > 0) {
             selected_ = 24;
-            context_.audio.playEffect(5053);
+            context_.audio.playSound(5053);
             status_ = L"Choose an entry point.";
         } else if (target >= 0 && target < 24 && state_.points[target] > 0 &&
                    state_.humanBar == 0) {
             selected_ = target;
-            context_.audio.playEffect(5053);
+            context_.audio.playSound(5053);
             status_ = L"Choose where to move.";
         }
         return;
@@ -1306,7 +1344,7 @@ void BackgammonGame::click(Point point) {
     // selection made legal point-building moves impossible through the UI.
     if (target == selected_) {
         selected_ = -99;
-        context_.audio.playEffect(5053);
+        context_.audio.playSound(5053);
         status_ = L"Select a piece.";
         return;
     }
@@ -1314,15 +1352,17 @@ void BackgammonGame::click(Point point) {
         return move.from == selected_ && move.to == target;
     });
     if (found == legal.end()) {
-        context_.audio.playEffect(5054);
+        context_.audio.playSound(5054);
         status_ = L"That move is blocked or does not use the dice correctly.";
         return;
     }
     const bool hitMario = found->to >= 0 && found->to < 24 && state_.points[found->to] == -1;
     beginPieceAnimation(1, *found);
     apply(state_, 1, *found);
-    if (hitMario) context_.audio.playEffect(5010);
-    if (hitMario) host_.play(11654, -11, -1);
+    if (hitMario) {
+        postMoveHitSound_ = true;
+        queuePostMoveMovie(11654);
+    }
     const auto die = std::find(dice_.begin(), dice_.end(), found->die);
     if (die != dice_.end()) dice_.erase(die);
     selected_ = -99; updateWinner();
@@ -1330,7 +1370,7 @@ void BackgammonGame::click(Point point) {
     if (dice_.empty() || legalFirstMoves().empty()) finishHumanTurn();
     else {
         status_ = L"You can still move. Select another piece.";
-        if (hitMario) host_.queue(11622); else host_.play(11622, -11, -1);
+        queuePostMoveMovie(11622);
     }
 }
 
@@ -1432,6 +1472,8 @@ bool BackgammonGame::sourceSetupRevealRegressionTest() {
 
         if (!wasRevealing && setupStackRevealing_ &&
             setupStackSoundIndex_ == priorStack) {
+            if (context_.audio.lastSampleRequestRoute() != SampleRequestRoute::Tracked ||
+                context_.audio.requestedSoundResourceId() != 5042) return false;
             soundStartTicks.push_back(tickCount);
         }
         for (int point = 0; point < 24; ++point) {
@@ -1604,12 +1646,15 @@ Point BackgammonGame::checkerPosition(int point, int player, int stackIndex,
 }
 
 void BackgammonGame::beginPieceAnimation(int player, const Move& move) {
+    postMoveGate_ = true;
     if (move.from == 24 || move.from == -1) {
         // $17C8 removes the entering checker from the bar and starts 5072.
         context_.audio.playSound(5072);
+    } else {
+        // $4AAA is the ordinary checker-motion path and starts snd 5034 for
+        // either side. The bar-entry actor above is its separate source path.
+        context_.audio.playSound(5034);
     }
-    // $4AAA is the shared checker-motion path and starts snd 5034 for either side.
-    context_.audio.playEffect(5034);
     if (!animatedPieces_) {
         pieceAnimation_ = {};
         return;
@@ -1626,6 +1671,14 @@ void BackgammonGame::beginPieceAnimation(int player, const Move& move) {
     pieceAnimation_ = {true, player, move.to, frame,
                        checkerPosition(move.from, player, sourceIndex, sprite),
                        checkerPosition(move.to, player, destinationIndex, sprite), 0};
+}
+
+void BackgammonGame::queuePostMoveMovie(int resourceId) {
+    postMoveMovies_.push_back(resourceId);
+}
+
+bool BackgammonGame::postMoveAudioPending() const noexcept {
+    return postMoveGate_ || postMoveHitSound_ || !postMoveMovies_.empty();
 }
 
 }  // namespace mf

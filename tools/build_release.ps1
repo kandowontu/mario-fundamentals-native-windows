@@ -44,6 +44,14 @@ if (Test-Path -LiteralPath $macFunctionSummary) {
     if ($LASTEXITCODE -ne 0) { throw "Macintosh function traceability audit failed." }
 }
 
+$macCodeDisassembly = Join-Path $projectRoot "work/disassembly/CODE_01.asm"
+if (Test-Path -LiteralPath $macCodeDisassembly) {
+    python (Join-Path $PSScriptRoot "verify_mac_audio_routes.py") `
+        (Join-Path $projectRoot "work/disassembly") `
+        (Join-Path $auditRoot "mac-audio-route-audit.json")
+    if ($LASTEXITCODE -ne 0) { throw "Macintosh tracked/direct audio-route audit failed." }
+}
+
 $dosExecutableManifestPath = Join-Path $auditRoot "dos-executable-manifest.json"
 $dosRadareFunctions = Join-Path $projectRoot "work/disassembly/dos/radare-functions.json"
 $dosRadareSections = Join-Path $projectRoot "work/disassembly/dos/radare-sections.json"

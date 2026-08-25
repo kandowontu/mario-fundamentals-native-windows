@@ -84,6 +84,8 @@ private:
     bool tickSetupReveal();
     [[nodiscard]] bool tickSourceIdle(bool eligible);
     void beginPieceAnimation(int player, const Move& move);
+    void queuePostMoveMovie(int resourceId);
+    [[nodiscard]] bool postMoveAudioPending() const noexcept;
     [[nodiscard]] Point checkerPosition(int point, int player, int stackIndex,
                                         const Sprite& sprite) const;
     [[nodiscard]] Rect pointRect(int point) const;
@@ -133,6 +135,9 @@ private:
         Point to{};
         unsigned elapsedMilliseconds{};
     } pieceAnimation_;
+    bool postMoveGate_{};
+    bool postMoveHitSound_{};
+    std::vector<int> postMoveMovies_;
     std::wstring status_;
     HostAnimation host_;
     HostAnimation diceRoll_;

@@ -228,6 +228,14 @@ int selfTest(HINSTANCE instance) {
     // Self-test constructs every game and therefore starts their opening host
     // movies.  Keep verification strictly silent even when launched manually.
     audio.setEnabled(false);
+    audio.playSound(5057);
+    if (audio.lastSampleRequestRoute() != mf::SampleRequestRoute::Tracked ||
+        audio.requestedSoundResourceId() != 5057)
+        throw std::runtime_error("Macintosh CODE 1 $A18 tracked-sample route changed");
+    audio.playEffect(5003);
+    if (audio.lastSampleRequestRoute() != mf::SampleRequestRoute::DirectEffect ||
+        audio.requestedEffectResourceId() != 5003)
+        throw std::runtime_error("Macintosh CODE 1 $CAA direct-effect route changed");
     for (int gameIndex = 0; gameIndex < 5; ++gameIndex) {
         audio.playMusic(mf::audio_catalog::playerWinMusic(false, gameIndex));
         if (audio.requestedMusicResourceId() !=
@@ -1026,6 +1034,14 @@ int selfTest(HINSTANCE instance) {
             throw std::runtime_error("DOS native direct SFX/voice mapping is incomplete");
     }
     dosAudio.setEnabled(false);
+    dosAudio.playSound(5057);
+    if (dosAudio.lastSampleRequestRoute() != mf::SampleRequestRoute::Tracked ||
+        dosAudio.requestedSoundResourceId() != 5057)
+        throw std::runtime_error("DOS tracked-sample route changed");
+    dosAudio.playEffect(5003);
+    if (dosAudio.lastSampleRequestRoute() != mf::SampleRequestRoute::DirectEffect ||
+        dosAudio.requestedEffectResourceId() != 5003)
+        throw std::runtime_error("DOS direct-effect route changed");
     for (int gameIndex = 0; gameIndex < 5; ++gameIndex) {
         dosAudio.playMusic(mf::audio_catalog::playerWinMusic(true, gameIndex));
         if (dosAudio.requestedMusicResourceId() !=

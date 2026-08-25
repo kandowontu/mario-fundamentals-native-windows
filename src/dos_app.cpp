@@ -1124,7 +1124,7 @@ void DosApp::clickDialog(Point point) {
     const Rect no{panelX + panel.width - 58, panelY + 62,
                   panelX + panel.width - 9, panelY + 82};
     if (!yes.contains(point) && !no.contains(point)) return;
-    audio_.playEffect(9204);
+    audio_.playSound(9204);
     const Dialog responseTo = dialog_;
     dialog_ = Dialog::None;
     if (yes.contains(point)) {
@@ -1167,7 +1167,7 @@ void DosApp::click(Point point) {
         if (characterConfirmed_) {
             characterQuestion_.stop();
             audio_.stop();
-            audio_.playEffect(9204);
+            audio_.playSound(9204);
             if (nameConfirmed_) startPreviewedGame(pendingGameIndex_);
             else if (window_) InvalidateRect(window_, nullptr, FALSE);
         }
@@ -1175,7 +1175,7 @@ void DosApp::click(Point point) {
         if (Rect{79, 113, 128, 127}.contains(point)) {
             if (playerName_.empty()) return;
             nameConfirmed_ = true;
-            audio_.playEffect(9204);
+            audio_.playSound(9204);
             if (changingName_) {
                 changingName_ = false;
                 if (game_) game_->setPlayerName(playerName_);
@@ -1298,7 +1298,7 @@ void DosApp::key(unsigned virtualKey) {
             characterConfirmed_ = true;
             characterQuestion_.stop();
             audio_.stop();
-            audio_.playEffect(9204);
+            audio_.playSound(9204);
             screen_ = nameConfirmed_ ? Screen::Game : Screen::Name;
             if (nameConfirmed_) startPreviewedGame(pendingGameIndex_);
             else if (window_) InvalidateRect(window_, nullptr, FALSE);
@@ -1310,7 +1310,7 @@ void DosApp::key(unsigned virtualKey) {
             if (game_) game_->setPlayerName(playerName_);
             screen_ = nameReturnScreen_;
         } else {
-            audio_.playEffect(9204);
+            audio_.playSound(9204);
             startPreviewedGame(pendingGameIndex_);
         }
     } else if (screen_ == Screen::Game && game_ && dialog_ == Dialog::None) {

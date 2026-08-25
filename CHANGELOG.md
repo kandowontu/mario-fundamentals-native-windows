@@ -46,6 +46,11 @@ All notable native-port changes are documented here.
 - Restored CODE 1 `$B22`/`$CAA` direct-sound arbitration. The 105 ms Macintosh menu click now keeps
   the source channel busy across adjacent 33 ms pointer steps instead of launching overlapping
   copies during a multi-row selection change.
+- Restored CODE 1 `$A18`'s tracked replacement semantics across UI and game controllers instead of
+  treating those calls as overlapping effects. A fail-closed disassembly audit now pins all 65
+  absolute calls: 45 `$A18`, 20 `$CAA`, ten dynamic arguments, and both immediate resource sets.
+  Go Fish card responses, Yacht score reactions, and Backgammon post-move/hit dialogue now enter
+  their later controller states only after the preceding tracked cue drains.
 - Dispositioned all fifteen original `$B22` call sites and restored their shared speech/effect
   waits across the Macintosh title, menu launch, Dominoes, and Go Fish controllers.
 - Replaced Dominoes' fixed aggregate opening delay with CODE 14's seven channel-gated 5044 deal

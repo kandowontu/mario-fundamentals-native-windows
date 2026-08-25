@@ -86,7 +86,7 @@ one-bit screen strikes. CODE 5 About metrics and the complete composed raster ar
 
 | File | Bytes | SHA-256 |
 |---|---:|---|
-| `dist/MarioFundamentals.exe` | 25,186,792 | `C3B39CA992A5AE35976F6686B1F1CA538DBA1411F5189206EA219978420CEB5F` |
+| `dist/MarioFundamentals.exe` | 25,191,049 | `9EE2C91FEF99CDEA813FF10C361CB463F448A5BF2E6569E1F781597442EDC7BB` |
 
 This local candidate is not published. The release verifiers require both deterministic asset packs to occur exactly once in the
 executable. They separately prove all 1,707 Macintosh and 1,806 DOS manifest entries against the

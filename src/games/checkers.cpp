@@ -362,7 +362,10 @@ bool CheckersGame::tickOutcome() {
             const int square = outcomeWipeSquare_++;
             if (!board_[square]) continue;
             board_[square] = 0;
-            context_.audio.playEffect(5003);
+            // CODE 16 $1036 calls CODE 1 $A18, whose $99C path first stops
+            // the prior tracked sample. This wipe click is not a concurrent
+            // $CAA effect like ordinary checker movement.
+            context_.audio.playSound(5003);
             return true;
         }
         selected_ = continuation_ = -1;
@@ -890,9 +893,21 @@ bool CheckersGame::sourceOutcomeRegressionTest(int outcomeVariant) {
     beginOutcome(kind);
 
     bool sawBoardWipe = false;
+    int wipedPieceCount = 0;
+    bool wipeUsedTrackedSourceRoute = true;
     for (int tickIndex = 0; tickIndex < 2400 && !finished(); ++tickIndex) {
         sawBoardWipe |= outcomePhase_ == OutcomePhase::PlayerBoardWipe;
+        const int piecesBefore = static_cast<int>(std::count_if(
+            board_.begin(), board_.end(), [](int piece) { return piece != 0; }));
         (void)tick();
+        const int piecesAfter = static_cast<int>(std::count_if(
+            board_.begin(), board_.end(), [](int piece) { return piece != 0; }));
+        if (piecesAfter < piecesBefore) {
+            wipedPieceCount += piecesBefore - piecesAfter;
+            wipeUsedTrackedSourceRoute &= piecesBefore - piecesAfter == 1 &&
+                context_.audio.lastSampleRequestRoute() == SampleRequestRoute::Tracked &&
+                context_.audio.requestedSoundResourceId() == 5003;
+        }
     }
     if (!finished() || outcomeMoviesPlayed_.size() != 2 ||
         (outcomeMoviesPlayed_.back() != 11073 && outcomeMoviesPlayed_.back() != 11074)) {
@@ -906,6 +921,7 @@ bool CheckersGame::sourceOutcomeRegressionTest(int outcomeVariant) {
             11063, 11064, 11065, 11067, 11068,
             11069, 11071, 11072, 11053, 11055};
         return sawBoardWipe && in(outcomeMoviesPlayed_.front(), playerPool) &&
+               wipedPieceCount == 24 && wipeUsedTrackedSourceRoute &&
                std::none_of(board_.begin(), board_.end(), [](int piece) { return piece != 0; });
     }
     if (outcomeVariant == 2) {

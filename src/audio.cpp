@@ -141,12 +141,14 @@ bool Audio::playSound(int resourceId) {
     // controller regressions distinguish tracked Sound Manager calls from
     // concurrent direct effects.
     requestedSoundResourceId_ = resourceId;
+    lastSampleRequestRoute_ = SampleRequestRoute::Tracked;
     stopTrackedSound();
     return startVoice(resourceId, true);
 }
 
 bool Audio::playEffect(int resourceId) {
     requestedEffectResourceId_ = resourceId;
+    lastSampleRequestRoute_ = SampleRequestRoute::DirectEffect;
     return startVoice(resourceId, false);
 }
 

@@ -1246,7 +1246,7 @@ void DominoesGame::click(Point point) {
         // $2350 reserves 9202 for Macintosh's fourteen-bone limit; the DOS
         // overlay performs the same check at sixteen records.
         if (!boneyard_.empty() && human_.size() >= handCapacity) {
-            context_.audio.playEffect(9202);
+            context_.audio.playSound(9202);
             status_ = L"You can't hold any more dominoes."; return;
         }
         if (boneyard_.empty()) {
@@ -1554,7 +1554,9 @@ bool DominoesGame::sourceBoneyardHitboxRegressionTest() {
     const std::size_t fullBoneyard = boneyard_.size();
     click(button);
     const bool fullHandRejected = human_.size() == capacity &&
-        boneyard_.size() == fullBoneyard;
+        boneyard_.size() == fullBoneyard &&
+        context_.audio.lastSampleRequestRoute() == SampleRequestRoute::Tracked &&
+        context_.audio.requestedSoundResourceId() == 9202;
     return ordinaryDraw && forcedPlayableDraw && finalRecordRendered &&
            finalRecordHittable && fullHandRejected;
 }

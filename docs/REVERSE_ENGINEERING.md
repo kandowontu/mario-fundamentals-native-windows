@@ -324,6 +324,16 @@ BrainStorm transition and sound 8042 accompanies Stepping Stone. Its main-menu `
 also routes sound 5004 with actor 500's Pak-1011 shoe cycle and sound 5006 when actor 1500 is hidden
 for movie 1101's bow-tie spin; `$12F8` schedules the separate silent actor-471 blink overlay.
 
+CODE 1 `$A18` enters `$99C`, and `$99C` first calls `$A44` to stop, close, and clear the prior
+tracked sample. It is not interchangeable with `$CAA`, which submits an independently scheduled
+priority effect. The complete absolute-call scan contains exactly 65 sites: 45 `$A18` tracked
+requests and 20 `$CAA` direct effects, of which ten receive a resource through a decoded table or
+register. A fail-closed gate records every CODE resource/address and checks the two immediate-ID
+sets. The native routes consequently keep Backgammon, Go Fish, Yacht, the Checkers board wipe,
+Dominoes' tracked result/limit/computer-draw cases, and CODE 6's modal sounds on the replacement
+path while leaving movie cues, menu actors, checker movement, and the other Dominoes effects
+concurrent as authored.
+
 CODE 1 `$B22` tests the Sound Manager enable flag and the current direct channel before returning
 busy; `$CAA` submits a priority-`$8000` effect to that scheduler. CODE 12 `$EE4-$F00` uses this pair
 for snd 5003 after a pointer row changes. The sample contains 1,152 frames at 11,025 Hz, which rounds
@@ -348,9 +358,10 @@ a machine-dependent UI-thread stall at the publisher-to-title transition.
 The 467 movie timelines contain 666 authored sound events. Five reference absent source sounds
 23019-23023; the shipped resource fork contains none of them. Movie 11093 instead contains valid
 sound 8046 ("Yoshi or Koopa?"), which the native first-game chooser uses. Direct gameplay calls are
-also mapped to their recovered resource IDs: Backgammon selection/movement/roll effects, Dominoes
-deal/place/draw/error effects, Go Fish deal/request/draw effects, Checkers move/wipe effects, and
-Yacht roll/settle/select/score effects. The full mapping and verification boundary are recorded in
+also mapped to their recovered resource IDs and tracked/direct lifetime: Backgammon
+selection/movement/roll calls, Dominoes deal/place/draw/error calls, Go Fish deal/request/draw
+calls, the two distinct Checkers 5003 contexts, and Yacht roll/settle/select/score calls. The full
+mapping and verification boundary are recorded in
 [`AUDIO_AUDIT.md`](AUDIO_AUDIT.md).
 
 ## PICT resources

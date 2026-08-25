@@ -188,6 +188,7 @@ void YachtGame::reset() {
     openingDelayMilliseconds_ = 1;
     showComputerDice_ = false;
     pendingComputerAfterSpeech_ = false;
+    pendingScoreReactionMovie_ = -1;
     pendingComputerRerollSpeech_ = false;
     pendingRollPlayer_ = 0;
     settlingDieIndex_ = 0;
@@ -217,10 +218,22 @@ bool YachtGame::tick() {
         return changed;
     }
 
+    if (pendingScoreReactionMovie_ >= 0) {
+        // CODE 18 records the score click through tracked $A18 sound 5003,
+        // then reaches the reaction movie on a later controller state. Keep
+        // the movie's time-zero voice from replacing the click in the same
+        // native event.
+        if (!context_.audio.directSoundBusy()) {
+            const int movie = std::exchange(pendingScoreReactionMovie_, -1);
+            host_.play(movie, kMacYachtHostAnchor.x, kMacYachtHostAnchor.y);
+        }
+        return true;
+    }
+
     const auto beginComputerRerollGesture = [this]() {
         status_.clear();
         gestureAnimation_.play(6021, kMacYachtHostAnchor.x, kMacYachtHostAnchor.y);
-        context_.audio.playEffect(5010);
+        context_.audio.playSound(5010);
         computerRerollStage_ = 6;
     };
 
@@ -236,7 +249,7 @@ bool YachtGame::tick() {
                 dice_[index] = context_.random.below(30000) / 5000 + 1;
                 // $192C skips held flags in the same pass; $196E settles one
                 // regenerated white die per controller pass.
-                context_.audio.playEffect(5019);
+                context_.audio.playSound(5019);
                 settled = true;
             }
         } else {
@@ -274,7 +287,7 @@ bool YachtGame::tick() {
                 held_[index] = computerTargetHeld_[index];
                 // $164E/$168C changes one control, plays 5028, and waits five
                 // source ticks before asking the adviser for the next index.
-                context_.audio.playEffect(5028);
+                context_.audio.playSound(5028);
                 computerSelectionDelaySourceTicks_ = 5;
             } else if (yachtComputerRerollSpeechEligible(3 - computerAttempt_, held_) &&
                        context_.random.below(4000) / 1000 < 1) {
@@ -318,7 +331,7 @@ bool YachtGame::tick() {
             if (category >= 0 && category < static_cast<int>(computerScores_.size())) {
                 computerScores_[static_cast<std::size_t>(category)] =
                     yachtCategoryScore(category, dice_);
-                context_.audio.playEffect(5003);
+                context_.audio.playSound(5003);
             }
             computerRerollStage_ = 8;
         }
@@ -499,7 +512,7 @@ void YachtGame::roll() {
                         dosEdition() ? 53 : kMacYachtRollMovieAnchor.y);
     pendingRollPlayer_ = 1;
     settlingDieIndex_ = 0;
-    context_.audio.playEffect(5018);
+    context_.audio.playSound(5018);
     status_.clear();
 }
 
@@ -526,7 +539,7 @@ void YachtGame::beginComputerRoll() {
     // Computer controller $D84 creates movie 6021 before every roll. Its
     // authored 5044 cue and the direct 5010 effect precede pipe movie 6020.
     gestureAnimation_.play(6021, kMacYachtHostAnchor.x, kMacYachtHostAnchor.y);
-    context_.audio.playEffect(5010);
+    context_.audio.playSound(5010);
     computerRerollStage_ = 6;
 }
 
@@ -821,7 +834,7 @@ void YachtGame::scoreHuman(int category) {
 
     const int score = yachtCategoryScore(category, dice_);
     humanScores_[category] = score;
-    context_.audio.playEffect(5003);
+    context_.audio.playSound(5003);
 
     int movie = 11422;  // $1226: the source's low/zero-score "Okay!"
     if (category == 11 && score == 50) {
@@ -840,8 +853,8 @@ void YachtGame::scoreHuman(int category) {
         }
     }
     status_ = sourceYachtMovieText(movie);
-    host_.play(movie, kMacYachtHostAnchor.x, kMacYachtHostAnchor.y);
     pendingComputerAfterSpeech_ = true;
+    pendingScoreReactionMovie_ = movie;
 }
 
 void YachtGame::resolveComputerRoll() {
@@ -899,7 +912,7 @@ void YachtGame::continueComputerReroll() {
                         dosEdition() ? 53 : kMacYachtRollMovieAnchor.y);
     pendingRollPlayer_ = -1;
     settlingDieIndex_ = 0;
-    context_.audio.playEffect(5018);
+    context_.audio.playSound(5018);
     status_.clear();
 }
 
@@ -1002,7 +1015,7 @@ bool YachtGame::tickOutcome() {
             const int category = outcomeClearTick_ / 2;
             humanScores_[category] = -1;
             computerScores_[category] = -1;
-            if ((category & 1) == 0) context_.audio.playEffect(5003);
+            if ((category & 1) == 0) context_.audio.playSound(5003);
             ++outcomeClearTick_;
             return true;
         }
@@ -1027,6 +1040,7 @@ bool YachtGame::sourceOutcomeRegressionTest(int expectedWinner) {
     introPhase_ = IntroPhase::Complete;
     pendingRollPlayer_ = 0;
     pendingComputerAfterSpeech_ = false;
+    pendingScoreReactionMovie_ = -1;
     computerRerollStage_ = 0;
     winner_ = expectedWinner;
     humanScores_.fill(3);
@@ -1090,6 +1104,7 @@ bool YachtGame::sourceComputerSelectionRegressionTest() {
     outcomePhase_ = OutcomePhase::None;
     pendingRollPlayer_ = 0;
     pendingComputerAfterSpeech_ = false;
+    pendingScoreReactionMovie_ = -1;
     computerAttempt_ = 1;
     computerRerollStage_ = 1;
     held_ = {false, false, false, false, false};
@@ -1122,6 +1137,7 @@ bool YachtGame::sourceTurnOrderRegressionTest() {
     winner_ = round_ = 0;
     pendingRollPlayer_ = 0;
     pendingComputerAfterSpeech_ = false;
+    pendingScoreReactionMovie_ = -1;
     humanScores_.fill(-1);
     computerScores_.fill(-1);
     dice_ = {1, 1, 1, 1, 1};
@@ -1188,7 +1204,9 @@ bool YachtGame::sourceCupPresentationRegressionTest() {
     if (!shouldDrawStationaryCup()) return false;
     roll();
     if (pendingRollPlayer_ != 1 || !rollAnimation_.active() ||
-        shouldDrawStationaryCup()) return false;
+        shouldDrawStationaryCup() ||
+        context_.audio.lastSampleRequestRoute() != SampleRequestRoute::Tracked ||
+        context_.audio.requestedSoundResourceId() != 5018) return false;
 
     // Exercise the complete live path rather than manufacturing its terminal
     // state. The movie can finish before the five sequential die-settle
@@ -1203,8 +1221,11 @@ bool YachtGame::sourceCupPresentationRegressionTest() {
         sawMovie = sawMovie || rollAnimation_.active();
         const int previousSettlingIndex = settlingDieIndex_;
         (void)tick();
-        if (settlingDieIndex_ > previousSettlingIndex)
+        if (settlingDieIndex_ > previousSettlingIndex) {
+            if (context_.audio.lastSampleRequestRoute() != SampleRequestRoute::Tracked ||
+                context_.audio.requestedSoundResourceId() != 5019) return false;
             settledDice += settlingDieIndex_ - previousSettlingIndex;
+        }
         if ((pendingRollPlayer_ != 0 || rollAnimation_.active()) &&
             shouldDrawStationaryCup()) return false;
     }
@@ -1343,7 +1364,9 @@ bool YachtGame::sourceFullMatchRegressionTest() {
                     if (dosEdition()) point = {dosX(point.x), dosY(point.y)};
                     click(point);
                     if (humanScores_[static_cast<std::size_t>(category)] != bestScore ||
-                        !pendingComputerAfterSpeech_) return fail();
+                        !pendingComputerAfterSpeech_ || pendingScoreReactionMovie_ < 0 ||
+                        context_.audio.lastSampleRequestRoute() != SampleRequestRoute::Tracked ||
+                        context_.audio.requestedSoundResourceId() != 5003) return fail();
                     sawPlayerScore = matchSawPlayerScore = true;
                 }
             }
@@ -1440,6 +1463,7 @@ void YachtGame::setQaVictoryPresentation() {
     introPhase_ = IntroPhase::Complete;
     pendingRollPlayer_ = 0;
     pendingComputerAfterSpeech_ = false;
+    pendingScoreReactionMovie_ = -1;
     computerRerollStage_ = 0;
     winner_ = 1;
     humanScores_.fill(12);
@@ -1463,6 +1487,7 @@ void YachtGame::setQaScorecardPresentation() {
     introPhase_ = IntroPhase::Complete;
     pendingRollPlayer_ = 0;
     pendingComputerAfterSpeech_ = false;
+    pendingScoreReactionMovie_ = -1;
     pendingComputerRerollSpeech_ = false;
     computerAttempt_ = 0;
     computerRerollStage_ = 0;
@@ -1507,6 +1532,7 @@ void YachtGame::setQaStationaryCupPresentation() {
     introGapSourceTicks_ = 0;
     showComputerDice_ = false;
     pendingComputerAfterSpeech_ = false;
+    pendingScoreReactionMovie_ = -1;
     pendingComputerRerollSpeech_ = false;
     rolls_ = 0;
     round_ = 0;
@@ -1560,7 +1586,7 @@ void YachtGame::setQaRollPresentation() {
 void YachtGame::click(Point point) {
     cancelSourceIdle();
     if (winner_ || openingDelayMilliseconds_ > 0 || pendingRollPlayer_ ||
-        pendingComputerAfterSpeech_ || rollAnimation_.active() ||
+        pendingComputerAfterSpeech_ || pendingScoreReactionMovie_ >= 0 || rollAnimation_.active() ||
         gestureAnimation_.active() || host_.active() ||
         computerRerollStage_ != 0) return;
     if (rolls_ > 0 && rolls_ < 3) {
@@ -1571,7 +1597,7 @@ void YachtGame::click(Point point) {
             }
             if (die.contains(point)) {
                 held_[index] = !held_[index];
-                context_.audio.playEffect(5028);
+                context_.audio.playSound(5028);
                 return;
             }
         }

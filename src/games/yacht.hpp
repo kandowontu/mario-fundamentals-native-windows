@@ -110,6 +110,7 @@ private:
     int introGapSourceTicks_{};
     bool showComputerDice_{};
     bool pendingComputerAfterSpeech_{};
+    int pendingScoreReactionMovie_{-1};
     bool pendingComputerRerollSpeech_{};
     std::wstring status_;
     HostAnimation host_;

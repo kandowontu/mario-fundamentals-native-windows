@@ -1471,7 +1471,7 @@ void App::typeCharacter(wchar_t character) {
     if (character == L'\r') {
         if (!playerName_.empty()) {
             // CODE 6 $C42 uses the modal-confirm sound for Return and buttons.
-            audio_.playEffect(9204);
+            audio_.playSound(9204);
             if (screen_ == Screen::GameName && changingName_) {
                 changingName_ = false;
                 nameConfirmed_ = true;
@@ -1494,18 +1494,18 @@ void App::typeCharacter(wchar_t character) {
     if (character == L'\b') {
         if (!playerName_.empty()) {
             playerName_.pop_back();
-            audio_.playEffect(9203);
+            audio_.playSound(9203);
         } else {
-            audio_.playEffect(9202);
+            audio_.playSound(9202);
         }
         return;
     }
     if (character >= L' ' && character != 0x7f) {
         if (playerName_.size() < kMaximumPlayerNameLength) {
             playerName_.push_back(character);
-            audio_.playEffect(9201);
+            audio_.playSound(9201);
         } else {
-            audio_.playEffect(9202);
+            audio_.playSound(9202);
         }
     }
 }
@@ -1632,25 +1632,25 @@ void App::click(Point logical) {
             changingName_ = false;
             nameConfirmed_ = true;
             if (game_) game_->setPlayerName(playerName_);
-            audio_.playEffect(9204);
+            audio_.playSound(9204);
             screen_ = nameReturnScreen_;
         } else if (okay.contains(logical) && !playerName_.empty() && nameGameIndex_ >= 0) {
             const int index = nameGameIndex_;
             nameGameIndex_ = -1;
             nameConfirmed_ = true;
-            audio_.playEffect(9204);
+            audio_.playSound(9204);
             startPreviewedGame(index);
         } else if (cancel.contains(logical) && changingName_) {
             changingName_ = false;
             playerName_ = nameBeforeEdit_;
-            audio_.playEffect(9204);
+            audio_.playSound(9204);
             screen_ = nameReturnScreen_;
         } else if (cancel.contains(logical) && nameGameIndex_ >= 0) {
             const int index = nameGameIndex_;
             nameGameIndex_ = -1;
             playerName_ = nameBeforeEdit_;
             nameConfirmed_ = true;
-            audio_.playEffect(9204);
+            audio_.playSound(9204);
             startPreviewedGame(index);
         }
         return;
@@ -1670,7 +1670,7 @@ void App::click(Point logical) {
         if (selected) {
             characterConfirmed_ = true;
             if (screen_ == Screen::GameCharacter) audio_.stop();
-            audio_.playEffect(9204);
+            audio_.playSound(9204);
             if (screen_ == Screen::GameCharacter && characterGameIndex_ >= 0) {
                 const int index = characterGameIndex_;
                 characterGameIndex_ = -1;
@@ -2080,7 +2080,7 @@ void App::clickDialog(Point logical) {
     const Rect no{panelX + noX, panelY + buttonY,
                   panelX + noX + 79, panelY + buttonY + 38};
     if (!yes.contains(logical) && !no.contains(logical)) return;
-    audio_.playEffect(9204);
+    audio_.playSound(9204);
     const Dialog responseTo = dialog_;
     dialog_ = Dialog::None;
     if (yes.contains(logical)) {

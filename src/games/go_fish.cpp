@@ -104,7 +104,40 @@ void GoFishGame::appendConversation(std::span<const int> movies) {
     for (int movie : movies) host_.queue(movie);
 }
 
+void GoFishGame::beginAfterTrackedSpeech(int sound, std::span<const int> movies) {
+    context_.audio.playSound(sound);
+    directSpeechAfterTracked_ = -1;
+    directSpeechPending_ = context_.audio.directSoundBusy();
+    if (directSpeechPending_) {
+        moviesAfterDirectSpeech_.assign(movies.begin(), movies.end());
+    } else {
+        moviesAfterDirectSpeech_.clear();
+        beginConversation(movies);
+    }
+}
+
+void GoFishGame::beginAfterTrackedThenDirectSpeech(
+    int trackedSound, int directSound, std::span<const int> movies) {
+    context_.audio.playSound(trackedSound);
+    moviesAfterDirectSpeech_.assign(movies.begin(), movies.end());
+    if (context_.audio.directSoundBusy()) {
+        directSpeechAfterTracked_ = directSound;
+        directSpeechPending_ = true;
+        return;
+    }
+    directSpeechAfterTracked_ = -1;
+    context_.audio.playEffect(directSound);
+    directSpeechPending_ = context_.audio.directSoundBusy();
+    if (!directSpeechPending_) {
+        const std::vector<int> queued = std::move(moviesAfterDirectSpeech_);
+        moviesAfterDirectSpeech_.clear();
+        beginConversation(queued);
+    }
+}
+
 void GoFishGame::beginAfterDirectSpeech(int sound, std::span<const int> movies) {
+    // CODE 17 $1378 creates this standalone line through the direct sample
+    // scheduler and state $139A waits on CODE 1 $B22 before continuing.
     context_.audio.playEffect(sound);
     directSpeechPending_ = context_.audio.directSoundBusy();
     if (directSpeechPending_) {
@@ -142,6 +175,7 @@ void GoFishGame::reset() {
     openingDelayControllerPasses_ = 0;
     openingDealCount_ = 0;
     directSpeechPending_ = false;
+    directSpeechAfterTracked_ = -1;
     moviesAfterDirectSpeech_.clear();
     humanQuestionMemory_.fill(99);
     computerQuestionHistory_.fill(99);
@@ -707,6 +741,7 @@ bool GoFishGame::sourceHandSlotRegressionTest() const {
 bool GoFishGame::sourceOpeningDealRegressionTest() {
     host_.stop();
     directSpeechPending_ = false;
+    directSpeechAfterTracked_ = -1;
     moviesAfterDirectSpeech_.clear();
     openingPresentationSlots_.fill({});
     constexpr std::array openingRanks{7, 12, 8, 8, 5, 3, 12};
@@ -726,7 +761,8 @@ bool GoFishGame::sourceOpeningDealRegressionTest() {
         (void)tick();
         if (openingDealCount_ != dealsBefore) {
             if (openingDealCount_ != dealsBefore + 1) return false;
-            if (context_.audio.requestedSoundResourceId() != 5032) return false;
+            if (context_.audio.lastSampleRequestRoute() != SampleRequestRoute::Tracked ||
+                context_.audio.requestedSoundResourceId() != 5032) return false;
             dealTicks.push_back(tickIndex);
         }
         if (openingCardMotion_.active && openingCardMotion_.elapsedPasses == 0) {
@@ -756,7 +792,6 @@ bool GoFishGame::sourceOpeningDealRegressionTest() {
 }
 
 void GoFishGame::ask(bool human, int requestedRank) {
-    context_.audio.playEffect(5010);
     auto& asking = human ? human_ : computer_;
     auto& giving = human ? computer_ : human_;
     int& books = human ? humanBooks_ : computerBooks_;
@@ -780,7 +815,7 @@ void GoFishGame::ask(bool human, int requestedRank) {
             if (made) movies.push_back(booksBefore == 0 ? 11547 : 11548);
             movies.push_back(drawPool(marioSuccessPool_, marioSuccessPoolCursor_));
         }
-        beginConversation(movies);
+        beginAfterTrackedSpeech(5010, movies);
         humanTurn_ = human;
         status_ = human ? L"You got what you wanted - you get another turn!" :
                           L"Mario got what he asked for and gets another turn!";
@@ -797,7 +832,6 @@ void GoFishGame::ask(bool human, int requestedRank) {
     deck_.pop_back();
     asking.push_back(drawn);
     if (human) addHumanCardsToDisplay(std::span{&drawn, std::size_t{1}});
-    context_.audio.playEffect(5013);
     const bool gotRequestedRank = rank(drawn) == requestedRank;
     const int made = removeBooks(asking, books, human);
     std::vector<int> movies;
@@ -813,7 +847,7 @@ void GoFishGame::ask(bool human, int requestedRank) {
             humanTurn_ = false;
             status_ = L"Go fish! Now it's Mario's turn.";
         }
-        beginConversation(movies);
+        beginAfterTrackedSpeech(5013, movies);
     } else {
         const int fishingMovie = marioHasFished_ ?
             drawPool(marioFishingPool_, marioFishingPoolCursor_) : 11551;
@@ -832,7 +866,7 @@ void GoFishGame::ask(bool human, int requestedRank) {
             movies.push_back(drawPool(humanTurnPool_, humanTurnPoolCursor_));
         }
         // This line is a standalone sound in the original resource stream.
-        beginAfterDirectSpeech(26015, movies);
+        beginAfterTrackedThenDirectSpeech(5013, 26015, movies);
     }
     checkEnd();
 }
@@ -855,12 +889,11 @@ bool GoFishGame::refillHumanHand(bool marioContinues) {
     human_.push_back(deck_.back());
     addHumanCardsToDisplay(std::span{&human_.back(), std::size_t{1}});
     deck_.pop_back();
-    context_.audio.playEffect(5013);
     const int booksBefore = humanBooks_;
     const int made = removeBooks(human_, humanBooks_, true);
     std::vector<int> movies{11538};
     if (made) movies.push_back(booksBefore == 0 ? 11531 : 11532);
-    beginConversation(movies);
+    beginAfterTrackedSpeech(5013, movies);
     status_ = L"You need another card.";
     // CODE 17 reaches this refill from both turn controllers. When Mario's
     // successful request emptied the player, he continues after the line;
@@ -879,12 +912,11 @@ void GoFishGame::computerTurn() {
         if (deck_.empty()) { checkEnd(); return; }
         computer_.push_back(deck_.back());
         deck_.pop_back();
-        context_.audio.playEffect(5013);
         const int booksBefore = computerBooks_;
         const int made = removeBooks(computer_, computerBooks_);
         std::vector<int> movies{11553};
         if (made) movies.push_back(booksBefore == 0 ? 11547 : 11548);
-        beginConversation(movies);
+        beginAfterTrackedSpeech(5013, movies);
         status_ = L"Mario needs another card.";
         computerTurnWaiting_ = true;
         checkEnd();
@@ -932,7 +964,12 @@ bool GoFishGame::tick() {
         // CODE 17 state 51 ($139A) waits on CODE 1 $B22. A hard-coded WAV
         // duration kept this delay even with sound disabled and could drift
         // from the actual output channel.
-        if (!context_.audio.directSoundBusy()) directSpeechPending_ = false;
+        if (directSpeechAfterTracked_ >= 0 && !context_.audio.soundPlaying()) {
+            const int sound = std::exchange(directSpeechAfterTracked_, -1);
+            context_.audio.playEffect(sound);
+        }
+        if (directSpeechAfterTracked_ < 0 && !context_.audio.directSoundBusy())
+            directSpeechPending_ = false;
         if (!directSpeechPending_ && !moviesAfterDirectSpeech_.empty()) {
             const std::vector<int> movies = std::move(moviesAfterDirectSpeech_);
             moviesAfterDirectSpeech_.clear();
@@ -975,6 +1012,7 @@ bool GoFishGame::sourceEmptyHandRefillRegressionTest() {
     openingPhase_ = OpeningPhase::Complete;
     openingCardMotion_ = {};
     directSpeechPending_ = false;
+    directSpeechAfterTracked_ = -1;
     moviesAfterDirectSpeech_.clear();
     pendingComputerRank_ = -1;
     computerTurnWaiting_ = false;
@@ -1003,7 +1041,7 @@ bool GoFishGame::sourceEmptyHandRefillRegressionTest() {
     if (!tick() || !humanTurn_ || human_.size() != 1 || human_[0] != 24 ||
         deck_ != std::vector<int>({16, 20}) || computerTurnWaiting_ ||
         humanHandSlots_[0].rank != 6 || humanHandSlots_[0].count != 1 ||
-        context_.audio.requestedEffectResourceId() != 5013 ||
+        context_.audio.lastSampleRequestRoute() != SampleRequestRoute::Tracked ||
         host_.activeResourceId() != 11538 || status_ != L"You need another card.") {
         return false;
     }
@@ -1248,7 +1286,7 @@ bool GoFishGame::tickOutcome() {
         if (winner_ == 1) {
             // CODE 17 $209E-$2218 deals Pak 5211's seven Y-O-U-W-I-N-!
             // faces one at a time after the player's outcome line.
-            context_.audio.playEffect(5013);
+            context_.audio.playSound(5013);
             outcomeDelayTicks_ = 5;
             victoryLetterCount_ = 0;
             victoryMusicStarted_ = false;
@@ -1342,6 +1380,7 @@ void GoFishGame::setQaVictoryPresentation(int letterCount) {
     openingPhase_ = OpeningPhase::Complete;
     openingCardMotion_ = {};
     directSpeechPending_ = false;
+    directSpeechAfterTracked_ = -1;
     moviesAfterDirectSpeech_.clear();
     winner_ = 1;
     victoryLetterCount_ = std::clamp(letterCount, 0, 7);
@@ -1356,6 +1395,7 @@ void GoFishGame::setQaHandSlotsPresentation(bool afterTransfer) {
     openingCardMotion_ = {};
     openingDealCount_ = 7;
     directSpeechPending_ = false;
+    directSpeechAfterTracked_ = -1;
     moviesAfterDirectSpeech_.clear();
     // The retained source sequence first asks for rank 5 (Luigi), transfers
     // that card, then asks for rank 10 (Yoshi). Pak 5007 follows the same
