@@ -136,6 +136,11 @@ std::vector<std::uint8_t> Audio::makeWave(std::span<const std::uint8_t> sound,
 }
 
 bool Audio::playSound(int resourceId) {
+    // Preserve the requested source route even when verification has disabled
+    // physical output. This mirrors requestedMusicResourceId_ and lets silent
+    // controller regressions distinguish tracked Sound Manager calls from
+    // concurrent direct effects.
+    requestedSoundResourceId_ = resourceId;
     stopTrackedSound();
     return startVoice(resourceId, true);
 }

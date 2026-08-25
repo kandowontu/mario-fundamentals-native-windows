@@ -666,12 +666,14 @@ int selfTest(HINSTANCE instance) {
         throw std::runtime_error("Checkers source outcome sequence regression");
     }
     auto goFish = std::make_unique<mf::GoFishGame>(context);
-    if (!goFish->sourceStrategyRegressionTest() ||
-        !goFish->sourceDialogueRegressionTest() ||
-        !goFish->sourceHandSlotRegressionTest() ||
-        !goFish->sourceOpeningDealRegressionTest()) {
+    if (!goFish->sourceStrategyRegressionTest())
         throw std::runtime_error("Go Fish source strategy regression");
-    }
+    if (!goFish->sourceDialogueRegressionTest())
+        throw std::runtime_error("Go Fish source dialogue regression");
+    if (!goFish->sourceHandSlotRegressionTest())
+        throw std::runtime_error("Go Fish source hand-slot regression");
+    if (!goFish->sourceOpeningDealRegressionTest())
+        throw std::runtime_error("Go Fish source opening-controller regression");
     auto goFishHumanOutcome = std::make_unique<mf::GoFishGame>(context);
     auto goFishMarioOutcome = std::make_unique<mf::GoFishGame>(context);
     auto goFishTieOutcome = std::make_unique<mf::GoFishGame>(context);
@@ -966,9 +968,10 @@ int selfTest(HINSTANCE instance) {
         throw std::runtime_error("DOS Go Fish strategy regression");
     if (!dosGoFish->sourceDialogueRegressionTest())
         throw std::runtime_error("DOS Go Fish dialogue regression");
-    if (!dosGoFish->sourceHandSlotRegressionTest() ||
-        !dosGoFish->sourceOpeningDealRegressionTest())
+    if (!dosGoFish->sourceHandSlotRegressionTest())
         throw std::runtime_error("DOS Go Fish hand-slot regression");
+    if (!dosGoFish->sourceOpeningDealRegressionTest())
+        throw std::runtime_error("DOS Go Fish opening-controller regression");
     if (!dosGoFishHumanOutcome->sourceOutcomeRegressionTest(1))
         throw std::runtime_error("DOS Go Fish player outcome regression");
     if (!dosGoFishMarioOutcome->sourceOutcomeRegressionTest(-1))

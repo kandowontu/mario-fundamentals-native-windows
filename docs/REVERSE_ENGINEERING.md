@@ -385,6 +385,15 @@ implementations remain evidence-backed rather than inferred from modern versions
   leaves that pool untouched. The failed Mario request also uses standalone sound 26015 before its
   fishing animation. The reachable pools and their queue order are reproduced natively instead of
   substituting generic lines.
+- Go Fish's opening is not one four-second wait. CODE 17 `$756-$8B2` is a thirteen-state
+  controller: it drains the greeting, applies an old-value five-count pause, exposes one of seven
+  cards per pass, calls tracked snd 5032 through `$A18`, applies the two separate one-count tails,
+  and enters `$30F6/$3862` only after the deal. Each duplicate merge or hole settlement performs
+  one `$316E` transfer, waits for that actor, and re-enters the duplicate scan. `$3022` derives the
+  moving card's controller passes from the largest axis distance divided by fourteen. Only after
+  the hand is stable does fixed movie 11529 play, followed by its old-value ten-count pause and
+  Mario's first question. Native state and rendering retain every intermediate raw, grouped, and
+  moving-card presentation instead of swapping directly to the finished hand.
 - Go Fish CODE 17 `$4616` numbers the 52-card deck as four consecutive cards per character rank.
   `$467A` then performs 300 pairs of `Random(5200) / 100` index draws and swaps. Positions 0–6 are
   dealt to the player, 7–13 to Mario, and 14 onward become the forward draw pile. The native deck
@@ -395,12 +404,13 @@ implementations remain evidence-backed rather than inferred from modern versions
   point. Pak 5005 is 54x76. The seven primary records use the rotated source positions
   `(104,281)`, `(163,281)`, `(222,281)`, `(281,281)`, `(340,281)`, `(399,281)`, `(45,281)`;
   records 7–12 form the overflow row at y=200. `$30F6/$316E/$3862` merge later opening duplicates
-  into first occurrences and settle the surviving records. Later transfers and books clear their
+  into first occurrences and visibly settle the surviving records one actor at a time. Later transfers and books clear their
   record without recentering the other ranks, and `$308A` adds a new distinct rank to the first
   inactive record. Native rendering and hit testing now use those records directly. Deterministic
-  tests cover merging, four-card removal, first-free reuse, overflow coordinates, exact 54x76
-  boundaries, and holes; muted captures cover both the grouped opening hand and the post-transfer
-  gap seen in the source trace.
+  tests cover deal pass indices, tracked sound routing, merge/move order and duration, four-card
+  removal, first-free reuse, overflow coordinates, exact 54x76 boundaries, and holes; muted
+  captures cover raw dealing, live grouping, the settled hand, and the post-transfer gap seen in
+  the source trace.
 - Go Fish's neutral head cannot be drawn from Pak 5090 frame zero alone. That image is movie 5090's
   base layer and deliberately leaves transparent eye/eyebrow holes for its subsequent animation
   layers. The complete neutral head is Pak 11000 frame zero, placed at Macintosh `(202,18)` or DOS

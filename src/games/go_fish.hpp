@@ -42,11 +42,35 @@ private:
         Complete,
     };
 
+    enum class OpeningPhase {
+        Greeting,
+        DealGap,
+        Deal,
+        PostDealGap,
+        WaitForMotion,
+        Consolidate,
+        Stabilize,
+        FirstTurnSpeech,
+        FirstTurnGap,
+        Complete,
+    };
+
     struct HumanHandSlot {
         int rank{-1};
         int count{};
     };
     using HumanHandSlots = std::array<HumanHandSlot, 13>;
+
+    struct OpeningCardMotion {
+        bool active{};
+        bool destinationWasOccupied{};
+        int sourceSlot{-1};
+        int destinationSlot{-1};
+        int rank{-1};
+        int count{};
+        int elapsedPasses{};
+        int totalPasses{};
+    };
 
     void reset();
     int removeBooks(std::vector<int>& hand, int& books, bool updateHumanDisplay = false);
@@ -55,7 +79,20 @@ private:
     void clearHumanRankDisplay(int rank);
     static void addHumanRankToSlots(HumanHandSlots& slots, int rank, int count = 1);
     static void clearHumanRankFromSlots(HumanHandSlots& slots, int rank);
+    static bool mergeOneOpeningDuplicate(
+        HumanHandSlots& slots, int& sourceSlot, int& destinationSlot,
+        HumanHandSlot& movingCard);
+    static bool settleOneOpeningHole(
+        HumanHandSlots& slots, int& sourceSlot, int& destinationSlot,
+        HumanHandSlot& movingCard);
     static void consolidateOpeningSlots(HumanHandSlots& slots);
+    void beginOpeningCardMotion(int sourceSlot, int destinationSlot,
+                                HumanHandSlot movingCard, bool destinationWasOccupied);
+    [[nodiscard]] bool tickOpeningCardMotion();
+    [[nodiscard]] bool tickOpeningController();
+    [[nodiscard]] bool openingActive() const noexcept {
+        return openingPhase_ != OpeningPhase::Complete;
+    }
     [[nodiscard]] int humanRankAtPoint(const HumanHandSlots& slots, Point point) const;
     void ask(bool human, int rank);
     void computerTurn();
@@ -86,7 +123,7 @@ private:
     std::vector<int> computer_;
     std::vector<int> deck_;
     HumanHandSlots humanHandSlots_{};
-    std::array<int, 7> openingHumanRanks_{};
+    HumanHandSlots openingPresentationSlots_{};
     int humanBooks_{};
     int computerBooks_{};
     int winner_{};
@@ -96,10 +133,10 @@ private:
     bool humanTurn_{true};
     int pendingComputerRank_{-1};
     bool computerTurnWaiting_{};
-    int openingDelayMilliseconds_{};
-    int openingDealSoundDelayMilliseconds_{};
-    int openingDealSoundCount_{};
-    bool openingFirstSpeechPlaying_{};
+    OpeningPhase openingPhase_{OpeningPhase::Complete};
+    OpeningCardMotion openingCardMotion_{};
+    int openingDelayControllerPasses_{};
+    int openingDealCount_{};
     bool directSpeechPending_{};
     std::vector<int> moviesAfterDirectSpeech_;
     std::array<int, 200> humanQuestionMemory_{};

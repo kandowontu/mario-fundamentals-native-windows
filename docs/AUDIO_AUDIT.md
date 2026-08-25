@@ -161,17 +161,21 @@ An instruction-level scan of immediate resource IDs passed through the shared CO
 9203 delete-key cue is stored through its modal state table instead of either immediate-call form
 and is routed as well.
 
-| Game | Recovered direct effects |
+| Game | Recovered direct sound routes |
 | --- | --- |
 | Backgammon | 5042 once at the start of each of `$F78`'s eight progressively painted checker stacks; 5024 roll-control press; movie 4020's ten authored 5069 rattles; 5019 roll settle; 5053 checker selection; 5054 invalid destination; 5072 bar entry; 5034 checker movement for both players; 5010 hit response; movie 4022/4023's authored player-win cues |
 | Dominoes | 5044 for each of seven opening deals; 5003 on every player draw and Mario's repeated-draw decision; 5043 tile selection; 5042 tile transit; delayed 5017 placement commit; 9202 at the fourteen-bone hand limit; 5024 empty-boneyard cue; 5023 chain re-layout and player-result reset; blocked-result 5034 for Mario or 5057 for player/tie |
 | Checkers | 5003 for checker movement and the source-order player-win board wipe; remaining host speech/effects come from the authored movie timelines |
-| Go Fish | 5032 for each of seven opening deals; 5010 requested-card motion; 5013 draws and player-win card transit; standalone 26015 on the failed Mario request; all question, response, idle, and outcome speech from their source movies |
+| Go Fish | tracked 5032 through CODE 1 `$A18` for each of seven opening deals; concurrent 5010 requested-card motion; 5013 draws and player-win card transit; standalone 26015 on the failed Mario request; all question, response, idle, and outcome speech from their source movies |
 | Yacht | 5018 pipe/dice roll start; 5019 for each settling white die; 5028 for every player or sequential Mario white/red die-retention toggle; 5010 hand gesture plus movie 6021's authored 5044 cue before every Mario roll; 5003 score entry and scorecard clear |
 
 Backgammon's recovered startup and ordinary-roll speech remains movie-authored, not a replacement
 direct sound call. Executable cue checks bind 11600/11603/11604 to 6019/6023/6024, fixed roll prompt
 11618 to 25000, and `$1320`'s live 11630/11631/11632 thinking pool to 6033/6037/6078.
+
+Go Fish CODE 17 `$7DA` calls `$A18`, so each opening 5032 is a tracked sound rather than a
+concurrent effect. The silent controller regression records the requested tracked resource at all
+seven old-value deal instants; physical output remains disabled during verification.
 
 Yacht dialogue movie 11416 is routed only from `$113C`'s invalid all-red/zero-white reroll path.
 Normal first and second rolls do not play it; their later prompts come from the 80-tick idle controller.

@@ -137,7 +137,10 @@ void GoFishGame::reset() {
     humanTurn_ = false;
     pendingComputerRank_ = -1;
     computerTurnWaiting_ = false;
-    openingFirstSpeechPlaying_ = false;
+    openingPhase_ = OpeningPhase::Greeting;
+    openingCardMotion_ = {};
+    openingDelayControllerPasses_ = 0;
+    openingDealCount_ = 0;
     directSpeechPending_ = false;
     moviesAfterDirectSpeech_.clear();
     humanQuestionMemory_.fill(99);
@@ -161,10 +164,9 @@ void GoFishGame::reset() {
         idleAlternationCounter_ = 0;
     }
 
-    // CODE 17 chooses one greeting from this shuffled pool, performs the deal,
-    // then always says "I'm-a go first!" before Mario's first question.
-    openingDelayMilliseconds_ = 4000;
-    openingDealSoundDelayMilliseconds_ = openingDealSoundCount_ = 0;
+    // CODE 17 $756-$8B2 chooses one greeting, then advances its thirteen-state
+    // deal/group controller. The controller state is retained directly below;
+    // there is no aggregate wall-clock delay hiding the intermediate cards.
     const int greeting = drawPool(openingPool_, openingPoolCursor_);
     status_ = greeting == 11600 ? L"Nice to see you again!" :
               greeting == 11603 ? L"Let's play!" :
@@ -264,41 +266,184 @@ void GoFishGame::clearHumanRankFromSlots(HumanHandSlots& slots, int value) {
     }
 }
 
-void GoFishGame::consolidateOpeningSlots(HumanHandSlots& slots) {
-    // $30F6 searches the seven opening records from left to right. A later
-    // duplicate is merged into the first record; its own slot becomes a hole.
+bool GoFishGame::mergeOneOpeningDuplicate(
+    HumanHandSlots& slots, int& sourceSlot, int& destinationSlot,
+    HumanHandSlot& movingCard) {
+    // CODE 17 $30F6 returns after the first later duplicate. $316E then moves
+    // that one card actor into the first occurrence and clears its old record.
     for (std::size_t first = 0; first < 7; ++first) {
         if (slots[first].count == 0) continue;
         for (std::size_t later = first + 1; later < 7; ++later) {
             if (slots[later].count == 0 || slots[later].rank != slots[first].rank) continue;
+            sourceSlot = static_cast<int>(later);
+            destinationSlot = static_cast<int>(first);
+            movingCard = slots[later];
             slots[first].count += slots[later].count;
             slots[later] = {};
+            return true;
         }
     }
-    // The following $3862 state runs until stable during the opening. It moves
-    // surviving first occurrences into the earliest records, while record 6's
-    // rotated x=45 position remains the wraparound end of the row.
-    std::size_t destination = 0;
-    for (std::size_t source = 0; source < 7; ++source) {
-        if (slots[source].count == 0) continue;
-        if (source != destination) {
-            slots[destination] = slots[source];
-            slots[source] = {};
-        }
-        ++destination;
+    return false;
+}
+
+bool GoFishGame::settleOneOpeningHole(
+    HumanHandSlots& slots, int& sourceSlot, int& destinationSlot,
+    HumanHandSlot& movingCard) {
+    // $3862 likewise performs no more than one $316E transfer per invocation.
+    // In the seven-card opening this settles the first surviving card after a
+    // hole into that hole; later records retain their order. The controller
+    // re-enters $30F6 after every completed transfer before looking again.
+    for (std::size_t destination = 0; destination < 7; ++destination) {
+        if (slots[destination].count != 0) continue;
+        const auto next = std::find_if(
+            slots.begin() + static_cast<std::ptrdiff_t>(destination + 1),
+            slots.begin() + 7,
+            [](const HumanHandSlot& slot) { return slot.count != 0; });
+        if (next == slots.begin() + 7) return false;
+        const std::size_t source = static_cast<std::size_t>(next - slots.begin());
+        sourceSlot = static_cast<int>(source);
+        destinationSlot = static_cast<int>(destination);
+        movingCard = slots[source];
+        slots[destination] = slots[source];
+        slots[source] = {};
+        return true;
     }
+    return false;
+}
+
+void GoFishGame::consolidateOpeningSlots(HumanHandSlots& slots) {
+    int sourceSlot = -1;
+    int destinationSlot = -1;
+    HumanHandSlot movingCard;
+    while (mergeOneOpeningDuplicate(
+        slots, sourceSlot, destinationSlot, movingCard)) {}
+    while (settleOneOpeningHole(
+        slots, sourceSlot, destinationSlot, movingCard)) {}
 }
 
 void GoFishGame::initializeHumanHandSlots(std::span<const int> cards) {
     humanHandSlots_.fill({});
-    openingHumanRanks_.fill(-1);
+    openingPresentationSlots_.fill({});
     const std::size_t openingCount = std::min<std::size_t>(7, cards.size());
     for (std::size_t index = 0; index < openingCount; ++index) {
         const int value = rank(cards[index]);
-        openingHumanRanks_[index] = value;
         humanHandSlots_[index] = HumanHandSlot{value, 1};
+        openingPresentationSlots_[index] = HumanHandSlot{value, 1};
     }
     consolidateOpeningSlots(humanHandSlots_);
+}
+
+void GoFishGame::beginOpeningCardMotion(
+    int sourceSlot, int destinationSlot, HumanHandSlot movingCard,
+    bool destinationWasOccupied) {
+    const Point source = humanSlotPositions[static_cast<std::size_t>(sourceSlot)];
+    const Point destination = humanSlotPositions[static_cast<std::size_t>(destinationSlot)];
+    // CODE 17 $3022 divides the largest axis distance by fourteen and supplies
+    // that pass count to the shared actor constructor at $698.
+    const int distance = std::max(
+        std::abs(destination.x - source.x), std::abs(destination.y - source.y));
+    openingCardMotion_ = {
+        true, destinationWasOccupied, sourceSlot, destinationSlot,
+        movingCard.rank, movingCard.count, 0, std::max(1, distance / 14)};
+}
+
+bool GoFishGame::tickOpeningCardMotion() {
+    if (!openingCardMotion_.active) return false;
+    ++openingCardMotion_.elapsedPasses;
+    if (openingCardMotion_.elapsedPasses >= openingCardMotion_.totalPasses)
+        openingCardMotion_.active = false;
+    return true;
+}
+
+bool GoFishGame::tickOpeningController() {
+    if (!openingActive()) return false;
+
+    switch (openingPhase_) {
+    case OpeningPhase::Greeting:
+        // State 3 ($78C) drains and closes the greeting actor, then arms the
+        // five-count state-4 pause.
+        if (host_.active()) return false;
+        openingDelayControllerPasses_ = 5;
+        openingPhase_ = OpeningPhase::DealGap;
+        return true;
+    case OpeningPhase::DealGap:
+        // The 68k tests the old counter value: a value of N therefore consumes
+        // N decrementing calls and one final zero-valued call.
+        if (openingDelayControllerPasses_-- > 0) return false;
+        openingDelayControllerPasses_ = 0;
+        openingPhase_ = OpeningPhase::Deal;
+        return true;
+    case OpeningPhase::Deal:
+        if (openingDealCount_ < 7) {
+            // $7C2/$7DA exposes exactly one prepared record and routes snd 5032
+            // through CODE 1 $A18's tracked channel on every pass.
+            ++openingDealCount_;
+            context_.audio.playSound(5032);
+            openingDelayControllerPasses_ = 1;
+            openingPhase_ = OpeningPhase::DealGap;
+        } else {
+            // State 5 is visited once more after the seventh state-4 gap, then
+            // state 6 contributes its own one-count pause.
+            openingDelayControllerPasses_ = 1;
+            openingPhase_ = OpeningPhase::PostDealGap;
+        }
+        return true;
+    case OpeningPhase::PostDealGap:
+        if (openingDelayControllerPasses_-- > 0) return false;
+        openingDelayControllerPasses_ = 0;
+        openingPhase_ = OpeningPhase::WaitForMotion;
+        return true;
+    case OpeningPhase::WaitForMotion:
+        // State 7 ($820) waits on the shared actor-busy query. Every completed
+        // $316E move re-enters the duplicate scan at state 8.
+        if (openingCardMotion_.active) return false;
+        openingPhase_ = OpeningPhase::Consolidate;
+        return true;
+    case OpeningPhase::Consolidate: {
+        int sourceSlot = -1;
+        int destinationSlot = -1;
+        HumanHandSlot movingCard;
+        if (mergeOneOpeningDuplicate(
+                openingPresentationSlots_, sourceSlot, destinationSlot, movingCard)) {
+            beginOpeningCardMotion(
+                sourceSlot, destinationSlot, movingCard, true);
+            openingPhase_ = OpeningPhase::WaitForMotion;
+        } else {
+            openingPhase_ = OpeningPhase::Stabilize;
+        }
+        return true;
+    }
+    case OpeningPhase::Stabilize: {
+        int sourceSlot = -1;
+        int destinationSlot = -1;
+        HumanHandSlot movingCard;
+        if (settleOneOpeningHole(
+                openingPresentationSlots_, sourceSlot, destinationSlot, movingCard)) {
+            beginOpeningCardMotion(
+                sourceSlot, destinationSlot, movingCard, false);
+            openingPhase_ = OpeningPhase::WaitForMotion;
+        } else {
+            status_ = L"I'm-a go first!";
+            host_.play(11529, -11, 39);
+            openingPhase_ = OpeningPhase::FirstTurnSpeech;
+        }
+        return true;
+    }
+    case OpeningPhase::FirstTurnSpeech:
+        if (host_.active()) return false;
+        openingDelayControllerPasses_ = 10;
+        openingPhase_ = OpeningPhase::FirstTurnGap;
+        return true;
+    case OpeningPhase::FirstTurnGap:
+        if (openingDelayControllerPasses_-- > 0) return false;
+        openingDelayControllerPasses_ = 0;
+        openingPhase_ = OpeningPhase::Complete;
+        computerTurn();
+        return true;
+    case OpeningPhase::Complete:
+        return false;
+    }
+    return false;
 }
 
 void GoFishGame::addHumanCardsToDisplay(std::span<const int> cards) {
@@ -563,22 +708,51 @@ bool GoFishGame::sourceOpeningDealRegressionTest() {
     host_.stop();
     directSpeechPending_ = false;
     moviesAfterDirectSpeech_.clear();
-    openingFirstSpeechPlaying_ = false;
-    openingDelayMilliseconds_ = 4000;
-    openingDealSoundDelayMilliseconds_ = 0;
-    openingDealSoundCount_ = 0;
+    openingPresentationSlots_.fill({});
+    constexpr std::array openingRanks{7, 12, 8, 8, 5, 3, 12};
+    for (std::size_t index = 0; index < openingRanks.size(); ++index)
+        openingPresentationSlots_[index] = HumanHandSlot{openingRanks[index], 1};
+    openingPhase_ = OpeningPhase::DealGap;
+    openingCardMotion_ = {};
+    openingDelayControllerPasses_ = 5;
+    openingDealCount_ = 0;
 
-    std::array<int, 7> visibleCounts{};
-    int transitionCount = 0;
-    for (int tickIndex = 0; tickIndex < 200 && openingDealSoundCount_ < 7; ++tickIndex) {
-        const int before = openingDealSoundCount_;
-        if (!tick()) return false;
-        if (openingDealSoundCount_ == before) continue;
-        if (openingDealSoundCount_ != before + 1 || transitionCount >= 7) return false;
-        visibleCounts[static_cast<std::size_t>(transitionCount++)] = openingDealSoundCount_;
+    std::vector<int> dealTicks;
+    std::vector<std::pair<int, int>> motions;
+    std::vector<int> motionPasses;
+    std::vector<bool> occupiedDestinations;
+    for (int tickIndex = 0; tickIndex < 160; ++tickIndex) {
+        const int dealsBefore = openingDealCount_;
+        (void)tick();
+        if (openingDealCount_ != dealsBefore) {
+            if (openingDealCount_ != dealsBefore + 1) return false;
+            if (context_.audio.requestedSoundResourceId() != 5032) return false;
+            dealTicks.push_back(tickIndex);
+        }
+        if (openingCardMotion_.active && openingCardMotion_.elapsedPasses == 0) {
+            motions.emplace_back(
+                openingCardMotion_.sourceSlot, openingCardMotion_.destinationSlot);
+            motionPasses.push_back(openingCardMotion_.totalPasses);
+            occupiedDestinations.push_back(openingCardMotion_.destinationWasOccupied);
+        }
+        if (openingPhase_ == OpeningPhase::FirstTurnSpeech) break;
     }
-    return transitionCount == 7 &&
-           visibleCounts == std::array<int, 7>{1, 2, 3, 4, 5, 6, 7};
+
+    host_.stop();
+    const auto slotIs = [&](std::size_t index, int value, int count) {
+        return openingPresentationSlots_[index].rank == value &&
+               openingPresentationSlots_[index].count == count;
+    };
+    return openingPhase_ == OpeningPhase::FirstTurnSpeech &&
+           dealTicks == std::vector<int>{6, 9, 12, 15, 18, 21, 24} &&
+           motions == std::vector<std::pair<int, int>>{
+               {6, 1}, {3, 2}, {4, 3}, {5, 4}} &&
+           motionPasses == std::vector<int>{8, 4, 4, 4} &&
+           occupiedDestinations == std::vector<bool>{true, true, false, false} &&
+           slotIs(0, 7, 1) && slotIs(1, 12, 2) && slotIs(2, 8, 2) &&
+           slotIs(3, 5, 1) && slotIs(4, 3, 1) &&
+           openingPresentationSlots_[5].count == 0 &&
+           openingPresentationSlots_[6].count == 0;
 }
 
 void GoFishGame::ask(bool human, int requestedRank) {
@@ -673,8 +847,7 @@ void GoFishGame::appendHumanTurnAnnouncement() {
 
 void GoFishGame::computerTurn() {
     if (winner_ || humanTurn_ || pendingComputerRank_ >= 0 || computerTurnWaiting_ ||
-        host_.active() || directSpeechPending_ || openingDelayMilliseconds_ != 0 ||
-        openingFirstSpeechPlaying_) return;
+        host_.active() || directSpeechPending_ || openingActive()) return;
 
     if (computer_.empty()) {
         if (deck_.empty()) { checkEnd(); return; }
@@ -739,6 +912,7 @@ void GoFishGame::computerTurn() {
 bool GoFishGame::tick() {
     bool changed = host_.tick();
     for (const auto& flip : victoryCardFlips_) changed |= flip->tick();
+    changed |= tickOpeningCardMotion();
 
     if (directSpeechPending_) {
         // CODE 17 state 51 ($139A) waits on CODE 1 $B22. A hard-coded WAV
@@ -753,51 +927,23 @@ bool GoFishGame::tick() {
         changed = true;
     }
 
-    if (openingDelayMilliseconds_ > 0 && !host_.active() && !directSpeechPending_) {
-        // Every source deal advances the visible hand.  Without marking these
-        // controller ticks dirty, Windows presented the first card and then
-        // skipped directly to the consolidated hand even though all seven
-        // deal counters advanced internally.
-        changed = true;
-        if (openingDealSoundCount_ < 7) {
-            if (openingDealSoundDelayMilliseconds_ <= 0) {
-                // $7DA plays snd 5032 after each of the seven opening deals.
-                context_.audio.playEffect(5032);
-                ++openingDealSoundCount_;
-                openingDealSoundDelayMilliseconds_ = 250;
-            } else {
-                openingDealSoundDelayMilliseconds_ =
-                    std::max(0, openingDealSoundDelayMilliseconds_ - 33);
-            }
-        }
-        openingDelayMilliseconds_ = std::max(0, openingDelayMilliseconds_ - 33);
-        if (openingDelayMilliseconds_ == 0) {
-            status_ = L"I'm-a go first!";
-            const std::array movies{11529};
-            beginConversation(movies);
-            openingFirstSpeechPlaying_ = true;
-            changed = true;
-        }
-    } else if (openingFirstSpeechPlaying_ && !host_.active()) {
-        openingFirstSpeechPlaying_ = false;
-        computerTurn();
-        changed = true;
-    } else if (pendingComputerRank_ >= 0 && !host_.active() &&
-               !directSpeechPending_) {
+    changed |= tickOpeningController();
+    if (!openingActive() && pendingComputerRank_ >= 0 && !host_.active() &&
+        !directSpeechPending_) {
         const int requested = pendingComputerRank_;
         pendingComputerRank_ = -1;
         ask(false, requested);
         if (!winner_ && !humanTurn_) computerTurnWaiting_ = true;
         changed = true;
-    } else if (computerTurnWaiting_ && !host_.active() && !directSpeechPending_) {
+    } else if (!openingActive() && computerTurnWaiting_ && !host_.active() &&
+               !directSpeechPending_) {
         computerTurnWaiting_ = false;
         computerTurn();
         changed = true;
     }
     changed |= tickOutcome();
     const bool waitingForPlayer = !winner_ && humanTurn_ && pendingComputerRank_ < 0 &&
-        !computerTurnWaiting_ && openingDelayMilliseconds_ == 0 &&
-        !openingFirstSpeechPlaying_ && !directSpeechPending_ && !host_.active();
+        !computerTurnWaiting_ && !openingActive() && !directSpeechPending_ && !host_.active();
     changed |= tickSourceIdle(waitingForPlayer);
     return changed;
 }
@@ -884,8 +1030,8 @@ bool GoFishGame::tickOutcome() {
 
 bool GoFishGame::sourceOutcomeRegressionTest(int expectedWinner) {
     if (expectedWinner != -1 && expectedWinner != 1 && expectedWinner != 2) return false;
-    openingDelayMilliseconds_ = 0;
-    openingFirstSpeechPlaying_ = false;
+    openingPhase_ = OpeningPhase::Complete;
+    openingCardMotion_ = {};
     deck_.clear();
     humanBooks_ = expectedWinner == 1 ? 8 : expectedWinner == -1 ? 4 : 6;
     computerBooks_ = expectedWinner == 1 ? 4 : expectedWinner == -1 ? 8 : 6;
@@ -909,8 +1055,8 @@ bool GoFishGame::sourceOutcomeRegressionTest(int expectedWinner) {
 
 void GoFishGame::setQaVictoryPresentation(int letterCount) {
     host_.stop();
-    openingDelayMilliseconds_ = 0;
-    openingFirstSpeechPlaying_ = false;
+    openingPhase_ = OpeningPhase::Complete;
+    openingCardMotion_ = {};
     directSpeechPending_ = false;
     moviesAfterDirectSpeech_.clear();
     winner_ = 1;
@@ -922,10 +1068,9 @@ void GoFishGame::setQaVictoryPresentation(int letterCount) {
 
 void GoFishGame::setQaHandSlotsPresentation(bool afterTransfer) {
     host_.stop();
-    openingDelayMilliseconds_ = 0;
-    openingDealSoundDelayMilliseconds_ = 0;
-    openingDealSoundCount_ = 7;
-    openingFirstSpeechPlaying_ = false;
+    openingPhase_ = OpeningPhase::Complete;
+    openingCardMotion_ = {};
+    openingDealCount_ = 7;
     directSpeechPending_ = false;
     moviesAfterDirectSpeech_.clear();
     // The retained source sequence first asks for rank 5 (Luigi), transfers
@@ -980,8 +1125,7 @@ void GoFishGame::checkEnd() {
 
 void GoFishGame::click(Point point) {
     if (winner_ || !humanTurn_ || human_.empty() || host_.active() ||
-        directSpeechPending_ || openingDelayMilliseconds_ != 0 ||
-        openingFirstSpeechPlaying_) return;
+        directSpeechPending_ || openingActive()) return;
     cancelSourceIdle();
     const int requested = humanRankAtPoint(humanHandSlots_, point);
     if (requested < 0) return;
@@ -1053,30 +1197,46 @@ void GoFishGame::render(Canvas& canvas) {
     const bool victoryPresentation = winner_ == 1 &&
         outcomePhase_ != OutcomePhase::Announcement &&
         outcomePhase_ != OutcomePhase::None;
-    const bool showingOpeningDeal = openingDelayMilliseconds_ > 0 &&
-        (openingDealSoundCount_ < 7 || openingDealSoundDelayMilliseconds_ > 0);
-    if (!victoryPresentation && showingOpeningDeal) {
-        const int visibleDeals = std::clamp(openingDealSoundCount_, 0, 7);
-        for (int index = 0; index < visibleDeals; ++index) {
-            const int value = openingHumanRanks_[static_cast<std::size_t>(index)];
-            if (value < 0) continue;
-            Point position = humanSlotPositions[static_cast<std::size_t>(index)];
-            if (dosEdition()) position = {dosX(position.x), dosY(position.y)};
-            canvas.sprite(context_.graphics.sprite(5005, value), position.x, position.y, false);
-            // CODE 17 $3416/$349A/$3588/$36EC selects Pak 5006 frames
-            // zero through three for counts one through four. These are the
-            // authored red corner numerals, not system-font text.
-            canvas.sprite(context_.graphics.sprite(5006, 0),
-                          position.x, position.y, false);
-        }
-    } else if (!victoryPresentation) {
-        for (std::size_t index = 0; index < humanHandSlots_.size(); ++index) {
-            const HumanHandSlot& slot = humanHandSlots_[index];
+    if (!victoryPresentation) {
+        const bool openingPresentation = openingActive();
+        const HumanHandSlots& slots = openingPresentation
+            ? openingPresentationSlots_ : humanHandSlots_;
+        const bool stillDealing = openingPresentation &&
+            (openingPhase_ == OpeningPhase::Greeting ||
+             openingPhase_ == OpeningPhase::DealGap ||
+             openingPhase_ == OpeningPhase::Deal ||
+             openingPhase_ == OpeningPhase::PostDealGap);
+        for (std::size_t index = 0; index < slots.size(); ++index) {
+            if (stillDealing && index >= static_cast<std::size_t>(openingDealCount_)) continue;
+            if (openingCardMotion_.active && !openingCardMotion_.destinationWasOccupied &&
+                static_cast<int>(index) == openingCardMotion_.destinationSlot) continue;
+            const HumanHandSlot& slot = slots[index];
             if (slot.count == 0) continue;
             Point position = humanSlotPositions[index];
             if (dosEdition()) position = {dosX(position.x), dosY(position.y)};
             canvas.sprite(context_.graphics.sprite(5005, slot.rank), position.x, position.y, false);
+            // CODE 17 $3416/$349A/$3588/$36EC selects Pak 5006 frames
+            // zero through three for counts one through four. These are the
+            // authored red corner numerals, not system-font text.
             canvas.sprite(context_.graphics.sprite(5006, std::clamp(slot.count, 1, 4) - 1),
+                          position.x, position.y, false);
+        }
+        if (openingCardMotion_.active) {
+            const Point source = humanSlotPositions[
+                static_cast<std::size_t>(openingCardMotion_.sourceSlot)];
+            const Point destination = humanSlotPositions[
+                static_cast<std::size_t>(openingCardMotion_.destinationSlot)];
+            const int numerator = std::clamp(
+                openingCardMotion_.elapsedPasses, 0, openingCardMotion_.totalPasses);
+            const int denominator = std::max(1, openingCardMotion_.totalPasses);
+            Point position{
+                source.x + (destination.x - source.x) * numerator / denominator,
+                source.y + (destination.y - source.y) * numerator / denominator};
+            if (dosEdition()) position = {dosX(position.x), dosY(position.y)};
+            canvas.sprite(context_.graphics.sprite(5005, openingCardMotion_.rank),
+                          position.x, position.y, false);
+            canvas.sprite(context_.graphics.sprite(
+                              5006, std::clamp(openingCardMotion_.count, 1, 4) - 1),
                           position.x, position.y, false);
         }
     }
