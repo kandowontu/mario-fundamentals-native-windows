@@ -95,7 +95,8 @@ DosApp::DosApp(HINSTANCE instance)
       menuRevealMovie_(assets_, 1125),
       talkingTitle_(assets_, graphics_, audio_, false),
       menuReveal_(assets_, graphics_, audio_, false),
-      menuSelection_(assets_, graphics_, audio_, false) {
+      menuSelection_(assets_, graphics_, audio_, false),
+      characterQuestion_(assets_, graphics_, audio_, false) {
     const auto sourceTicks = static_cast<std::uint32_t>(GetTickCount64() * 60ULL / 1000ULL);
     random_.discard(sourceTicks & 0x3ffU);
 }
@@ -837,6 +838,12 @@ void DosApp::beginGameIntro(int gameIndex) {
 void DosApp::finishGameIntro() {
     gameIntroMovies_.clear();
     if (pendingGameIndex_ <= 2 && !characterConfirmed_) {
+        // Overlay 0 and the Checkers controller pass host-table entry 11093
+        // before the first Yoshi/Koopa choice. Its time-zero SND 8046 is the
+        // authored question. The DOS chooser is a Pak panel over the game
+        // page, so advance the movie host for its audio timeline without
+        // painting its Macintosh-sized head cel over that complete panel.
+        characterQuestion_.play(11093, 0, 0);
         screen_ = Screen::Character;
     } else if (!nameConfirmed_) {
         screen_ = Screen::Name;
@@ -868,6 +875,7 @@ void DosApp::startGame(int gameIndex) {
 }
 
 void DosApp::returnToMenu() {
+    characterQuestion_.stop();
     audio_.stop();
     game_.reset();
     activeGameIndex_ = -1;
@@ -1009,6 +1017,8 @@ void DosApp::click(Point point) {
             screen_ = nameConfirmed_ ? Screen::Game : Screen::Name;
         }
         if (characterConfirmed_) {
+            characterQuestion_.stop();
+            audio_.stop();
             audio_.playEffect(9204);
             if (nameConfirmed_) startGame(pendingGameIndex_);
             else if (window_) InvalidateRect(window_, nullptr, FALSE);
@@ -1137,6 +1147,9 @@ void DosApp::key(unsigned virtualKey) {
             if (window_) InvalidateRect(window_, nullptr, FALSE);
         } else if (virtualKey == VK_RETURN) {
             characterConfirmed_ = true;
+            characterQuestion_.stop();
+            audio_.stop();
+            audio_.playEffect(9204);
             screen_ = nameConfirmed_ ? Screen::Game : Screen::Name;
             if (nameConfirmed_) startGame(pendingGameIndex_);
             else if (window_) InvalidateRect(window_, nullptr, FALSE);
@@ -1211,6 +1224,10 @@ void DosApp::tick() {
         repaint = true;
     } else if (screen_ == Screen::Menu) {
         repaint |= menuSelection_.tick();
+    } else if (screen_ == Screen::Character) {
+        // Movie 11093 owns the chooser voice timing even though its visual cel
+        // is not part of the DOS Pak-backed chooser composition.
+        (void)characterQuestion_.tick();
     } else if (screen_ == Screen::GameIntro) {
         const std::uint32_t previousMilliseconds = gameIntroMilliseconds_;
         gameIntroMilliseconds_ += 33;

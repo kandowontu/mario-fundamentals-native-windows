@@ -12,6 +12,7 @@
 #include "movie.hpp"
 #include "resource_ids.h"
 
+#include <algorithm>
 #include <chrono>
 #include <cstdio>
 #include <cwchar>
@@ -722,10 +723,19 @@ int selfTest(HINSTANCE instance) {
     std::size_t dosMovieCommands = 0;
     std::size_t dosResolvedMovies = 0;
     std::size_t dosMovieImageGeometryChecks = 0;
+    std::size_t dosMovieSoundCues = 0;
+    std::size_t dosPresentMovieSoundCues = 0;
     std::vector<int> dosUnresolvedMovies;
+    std::vector<int> dosMissingMovieSoundIds;
     for (int id : dosAssets.ids("MuV ")) {
         mf::Movie movie(dosAssets, id);
         dosMovieCommands += movie.commandCount();
+        const std::vector<int> soundCues = movie.soundCues();
+        dosMovieSoundCues += soundCues.size();
+        for (const int soundId : soundCues) {
+            if (dosAssets.contains("SND ", soundId)) ++dosPresentMovieSoundCues;
+            else dosMissingMovieSoundIds.push_back(soundId);
+        }
         if (movie.resolved()) {
             ++dosResolvedMovies;
             for (std::size_t image = 0; image < movie.imageCount(); ++image) {
@@ -745,6 +755,30 @@ int selfTest(HINSTANCE instance) {
     if (dosMovieCommands != 10614 || dosResolvedMovies != 573 ||
         dosMovieImageGeometryChecks == 0 || dosUnresolvedMovies != std::vector<int>{10001}) {
         throw std::runtime_error("DOS movie audit differs from the extracted timelines");
+    }
+    std::ranges::sort(dosMissingMovieSoundIds);
+    dosMissingMovieSoundIds.erase(
+        std::unique(dosMissingMovieSoundIds.begin(), dosMissingMovieSoundIds.end()),
+        dosMissingMovieSoundIds.end());
+    const std::vector<int> expectedDosMissingMovieSoundIds{
+        8045, 8047, 8049, 8050, 8052,
+        9008, 9009, 9010, 9011, 9012, 9013, 9014, 9015, 9016, 9017, 9018, 9019,
+        9029, 9030, 9031, 9032, 9033, 9034, 9035, 9036, 9037, 9038, 9039, 9040,
+        23019, 23020, 23021, 23022, 23023,
+        24002, 24005, 24006, 24009,
+        25013, 25014, 25015, 25019, 25020, 25021, 25022, 25023, 25024,
+        25026, 25027, 25028, 25029,
+        26014, 26018, 26019, 26029, 26030, 26032, 26050, 26051, 26053,
+        27012, 27014, 27021,
+    };
+    if (dosMovieSoundCues != 743 || dosPresentMovieSoundCues != 650 ||
+        dosMissingMovieSoundIds != expectedDosMissingMovieSoundIds) {
+        throw std::runtime_error("DOS movie sound-cue inventory changed");
+    }
+    const mf::Movie dosCharacterQuestion(dosAssets, 11093);
+    if (dosCharacterQuestion.soundsAtStart() != std::vector<int>{8046} ||
+        !dosAssets.contains("SND ", 8046)) {
+        throw std::runtime_error("DOS character question lost its authored voice cue");
     }
     // DOS MuV/Img records are conventional x/y structures, not QuickDraw's
     // vertical-first records.  These exact bounds cover both the persistent
@@ -827,10 +861,10 @@ int selfTest(HINSTANCE instance) {
     if (dosMidiEvents == 0 || dosSoundBytes == 0) {
         throw std::runtime_error("DOS XMI/SND media did not pass the native parsers");
     }
-    constexpr std::array<int, 27> dosDirectSoundIds{
+    constexpr std::array<int, 28> dosDirectSoundIds{
         5000, 5001, 5003, 5010, 5011, 5012, 5013, 5017, 5018,
         5019, 5023, 5024, 5028, 5032, 5034, 5042, 5043, 5044,
-        5053, 5054, 5057, 5072, 8039, 8042, 9202, 9204, 26015};
+        5053, 5054, 5057, 5072, 8039, 8042, 8046, 9202, 9204, 26015};
     for (int id : dosDirectSoundIds) {
         if (!dosAssets.contains("SND ", id) || dosAudio.soundWaveSize(id) <= 44)
             throw std::runtime_error("DOS native direct SFX/voice mapping is incomplete");

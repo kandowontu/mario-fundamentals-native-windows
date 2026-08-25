@@ -30,13 +30,16 @@ asserts that the dangling-cue set is exactly `{23019, 23020, 23021, 23022, 23023
   native MIDI events, including generated note-offs. No shipped note-on uses zero velocity and no
   track contains an internal XMIDI loop controller; source-requested whole-track looping is used.
 - All 574 `MuV`/`Ply` timelines parse. Their 10,614 commands contain 743 opcode-7 sound references
-  covering 308 unique IDs. Of those, 245 resolve to shipped `SND` resources. The remaining 63 are
-  absent from the original PRS, not lost during extraction; they are recorded exactly in
-  `work/audit/dos-decoded-media-manifest.json` and retain the source runtime's missing-resource
-  no-op behavior.
+  covering 308 unique IDs. Of those, 650 cue occurrences resolve to 245 shipped `SND` resources;
+  93 occurrences cover 63 IDs absent from the original PRS, not lost during extraction. They are
+  recorded exactly in `work/audit/dos-decoded-media-manifest.json` and retain the source runtime's
+  missing-resource no-op behavior.
 - The release self-test decodes every `SND`, checks all 12 track event counts and exact durations,
-  and pins all direct publisher/title/menu/gameplay IDs used by the native DOS shell and shared game
-  controllers.
+  asserts the exact 743/650/93 cue inventory and 63-ID absent set, and pins all direct
+  publisher/title/menu/gameplay IDs used by the native DOS shell and shared game controllers.
+- The recovered Backgammon and Checkers host tables route the first DOS Yoshi/Koopa chooser through
+  movie 11093, whose time-zero SND 8046 asks the authored question. The DOS native chooser now
+  advances that host timeline, and both the table call sites and valid cue are release-gated.
 
 Miles XMIDI advances its delta units at a fixed 120 Hz. The native parser therefore models 60 PPQN
 at a forced 500,000 microseconds per quarter note and ignores the SMF-like tempo meta values stored

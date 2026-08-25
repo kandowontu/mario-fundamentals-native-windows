@@ -87,6 +87,7 @@ private:
     HostAnimation talkingTitle_;
     HostAnimation menuReveal_;
     HostAnimation menuSelection_;
+    HostAnimation characterQuestion_;
     std::unique_ptr<Game> game_;
     std::vector<IntroMovie> gameIntroMovies_;
     Screen screen_{Screen::Intro};

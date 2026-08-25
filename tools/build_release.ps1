@@ -63,6 +63,17 @@ if ((Test-Path -LiteralPath $dosExecutableManifestPath) -and
         --overlay-summary $dosOverlaySummary `
         --json-output (Join-Path $auditRoot "dos-function-traceability-summary.json")
     if ($LASTEXITCODE -ne 0) { throw "DOS resident/discovery function traceability audit failed." }
+
+    $dosOverlayZero = Get-ChildItem -LiteralPath (Join-Path $dosOverlayRoot "code") `
+        -Filter "overlay-00-*.bin" -File | Select-Object -First 1
+    if (-not $dosOverlayZero) {
+        throw "DOS dialogue-table evidence is present but overlay 0 is missing."
+    }
+    python (Join-Path $PSScriptRoot "verify_dos_dialogue_tables.py") `
+        $dosExecutableManifestPath $dosOriginalExecutable $dosOverlayZero.FullName `
+        --resource-manifest $dosFunctionResourceManifest `
+        --report (Join-Path $auditRoot "dos-dialogue-table-verification.json")
+    if ($LASTEXITCODE -ne 0) { throw "DOS host-dialogue table verification failed." }
 }
 
 function Invoke-PresentationQa {

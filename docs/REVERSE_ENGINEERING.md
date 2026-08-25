@@ -569,11 +569,17 @@ implementations remain evidence-backed rather than inferred from modern versions
 - Backgammon does not begin directly on a fully painted board. `$DD8` spends two controller passes
   installing and presenting the game, then lazily shuffles A5-`$3B52`'s indices `[3,4,0]` and starts
   one of `MuV ` 11603 (“Let's play!”), 11604 (“Good luck!”), or 11600 (“Nice to see you again!”)
-  on the third pass. Once that greeting finishes, `$EFE` starts fixed host-table index 58, recovered
-  as movie 11618 (“Let's roll to see who goes first”). `$F2C` tests the old value of its two-count
+  on the third pass. In the Macintosh CODE 11 table, `$EFE`'s fixed host-table index 58 resolves to
+  movie 11618 (“Let's roll to see who goes first”). `$F2C` tests the old value of its two-count
   word, so values 2, 1, and 0 occupy three more passes; `$F50` consumes a separate setup-initialize
   pass, and the following pass enters `$F78`. The native startup regression proves that entire order,
   the lazy shuffle's exact seed advance, and the absence of prematurely visible checkers.
+
+  DOS overlay 0 has a different 59-record table: indices 0-57 map in order to movies 11600-11657,
+  while index 58 is movie 11093 (“Do you want to play as a Yoshi, or as a Koopa?”). The overlay calls
+  index 58 at `$0C45` for the first character chooser and separately calls index 18, movie 11618, at
+  `$2BC9` during the opening-roll controller. `tools/verify_dos_dialogue_tables.py` pins the complete
+  table bytes and both call sites so the two edition-specific indices cannot be conflated.
 - Backgammon's initial board is not painted in one pass. `$F78` scans the eight nonzero six-byte
   records at A5-`$3ACE` in source-point order: `(1000,0,2)`, `(2000,5,5)`, `(2000,7,3)`,
   `(1000,11,5)`, `(2000,12,5)`, `(1000,16,3)`, `(1000,18,5)`, and `(2000,23,2)`.
