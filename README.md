@@ -1,11 +1,8 @@
 # Mario's Game Gallery / FUNdamentals — native Windows preservation collection
 
-[![Release](https://img.shields.io/github/v/release/kandowontu/mario-fundamentals-native-windows?display_name=tag)](https://github.com/kandowontu/mario-fundamentals-native-windows/releases/latest)
-
-Latest public release: [v1.0.0](https://github.com/kandowontu/mario-fundamentals-native-windows/releases/tag/v1.0.0)
-
-The dual-edition `v2.0.0` candidate is withdrawn and remains unpublished while DOS presentation
-QA continues. There is currently no endorsed public 2.0 executable or tag.
+There is currently no public release. The obsolete Mac-only `v1.0.0` artifact and the dual-edition
+`v2.0.0` candidate are both withdrawn drafts while presentation QA continues; neither executable
+is endorsed for redistribution.
 
 This repository contains clean native Win32 compatibility ports of Mario's Game Gallery DOS 1.0
 and Mario's FUNdamentals Macintosh 1.1. On boot, one self-contained executable offers either

@@ -2,7 +2,7 @@
 
 This matrix turns the reported defects and release requirements into explicit evidence. `Automated
 pass` means the current hidden gate proves the named invariant; it does not authorize publication.
-The `v2.0.0` release remains withdrawn until the replacement artifact is visually accepted.
+Both historical release entries remain withdrawn until the replacement artifact is visually accepted.
 
 | Requirement or reported defect | Current evidence | State |
 | --- | --- | --- |
@@ -32,7 +32,7 @@ The `v2.0.0` release remains withdrawn until the replacement artifact is visuall
 | Every recoverable original code entry is dispositioned | The Macintosh ledger maps 1,299 structural CODE entries with zero unaccounted. The DOS primary overlay ledger maps 591 exact/high/heuristic entries, including all 505 original INT 3F exports; the supporting radare2 ledger maps 77 overlay candidates to that exact ledger and 1,846 conservative resident candidates to the replaced DOS runtime/media family, with zero pending or unaccounted rows. | Automated pass |
 | Alt+Enter fullscreen works in both editions | `tools/test_fullscreen.ps1` exercises fullscreen entry and exact windowed restoration for each edition without changing the Windows display mode. | Automated pass |
 | Repository credits/rights are accurate | `CREDITS.md`, source/tooling license boundaries, source-media provenance, and the withdrawn-draft notice are present. Original game data is explicitly excluded from the source license. | Present |
-| No premature public release | GitHub `v2.0.0` is a withdrawn draft and has no public tag or downloadable public release artifact. | Enforced |
+| No premature public release | GitHub `v1.0.0` and `v2.0.0` are both withdrawn drafts with no public downloadable release artifact. | Enforced |
 
 ## Current gate
 
