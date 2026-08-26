@@ -230,6 +230,12 @@ Backgammon setup, Go Fish scoreboard captions/questions/transfers, exact Dominoe
 registration, and focused Macintosh Yacht actor/hand/dice/marker/gesture/cup checks) when those
 unshipped local captures are present, and copies the result to `dist`.
 
+Every push to `main` and every pull request also runs this dual-edition release gate on a clean
+GitHub-hosted Windows runner. The workflow is validation-only: it uploads no executable, creates no
+release, and cannot publish either withdrawn draft. Source-media preservation, disassembly, and
+independent-reference checks remain additional local requirements because their evidence is
+deliberately excluded from the repository.
+
 The dual-edition artifact produced here is an unreleased QA candidate. Its build-specific checksum
 is written to `dist/SHA256SUMS.txt`; no candidate should be redistributed as a 2.0 release until the
 corrected dual-edition presentation audit is explicitly accepted. The hidden self-test runs from an

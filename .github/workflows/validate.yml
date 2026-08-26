@@ -1,0 +1,58 @@
+name: Validate native port
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-release-gate:
+    name: Windows release gate
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Select the bundled MinGW-w64 toolchain
+        shell: pwsh
+        run: |
+          $toolchain = "C:\mingw64\bin"
+          if (-not (Test-Path -LiteralPath (Join-Path $toolchain "g++.exe"))) {
+            throw "GitHub's Windows runner does not contain the expected MinGW-w64 compiler."
+          }
+          $toolchain | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Build and run the dual-edition release gate
+        shell: pwsh
+        env:
+          CXX: C:\mingw64\bin\g++.exe
+          RC: C:\mingw64\bin\windres.exe
+        run: |
+          & .\tools\build_release.ps1 `
+            -BuildDirectory build-ci `
+            -DistributionDirectory dist-ci `
+            -CMakeGenerator Ninja
+
+      - name: Confirm validation-only policy
+        shell: pwsh
+        run: |
+          if (-not (Test-Path -LiteralPath .\dist-ci\MarioFundamentals.exe)) {
+            throw "The release gate did not produce its ephemeral validation candidate."
+          }
+          Write-Output "PASS validation_only=no_artifact_upload_or_release_step"

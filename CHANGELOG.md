@@ -117,6 +117,9 @@ All notable native-port changes are documented here.
 - Re-registered the Macintosh Yacht dialogue head, torso, idle actor, stationary cup, and roll
   movie against the preserved vanilla capture. The stationary and roll-contact cups now occupy the
   same `(218,129)-(296,228)` rectangle, with an exact regional hash preventing a jump or duplicate.
+- Added a validation-only GitHub Actions workflow for every `main` push and pull request. It runs
+  the complete packaged Windows gate and reproducible build but has read-only permissions and no
+  artifact-upload or release step; withdrawn releases cannot be republished by CI.
 - Restored CODE 14's shared Macintosh Dominoes title registration, joining all five dominoes and
   Yoshi instead of leaving a single scattered partial tile.
 - Decoded DOS `Ply` motion payloads in their retained vertical/horizontal order instead of the
