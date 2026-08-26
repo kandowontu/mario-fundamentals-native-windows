@@ -61,7 +61,35 @@ Write-Output "PASS dos_selected_game_intro_input"
 # Regenerate the static function traceability ledgers whenever the local
 # disassembly/source evidence is available. This prevents a green runtime
 # build from silently relying on stale code-audit CSV/JSON files.
-$macFunctionSummary = Join-Path $projectRoot "work/disassembly/summary.json"
+$macResourceManifest = Join-Path $projectRoot "work/rip/manifest.json"
+$macCodeResourceRoot = Join-Path $projectRoot "work/rip/resources/CODE"
+$macDataResource = Join-Path $projectRoot "work/rip/resources/DATA/+00000.bin"
+$macDecodedDataRoot = Join-Path $projectRoot "work/decoded-data"
+$macDisassemblyRoot = Join-Path $projectRoot "work/disassembly"
+$macFunctionSummary = Join-Path $macDisassemblyRoot "summary.json"
+if (Test-Path -LiteralPath $macResourceManifest) {
+    if (-not (Test-Path -LiteralPath $macCodeResourceRoot) -or
+        -not (Test-Path -LiteralPath $macDataResource)) {
+        throw "Macintosh resource evidence is present but its CODE/DATA inputs are missing."
+    }
+    python (Join-Path $PSScriptRoot "decode_data.py") `
+        $macDataResource $macDecodedDataRoot
+    if ($LASTEXITCODE -ne 0) { throw "Macintosh DATA decode failed." }
+
+    $macA5World = Join-Path $macDecodedDataRoot "a5_world.bin"
+    $macA5WorldSummary = Join-Path $macDecodedDataRoot "a5_world.json"
+    python (Join-Path $PSScriptRoot "disassemble_code.py") `
+        $macCodeResourceRoot $macDisassemblyRoot `
+        --a5-world $macA5World --a5-world-summary $macA5WorldSummary `
+        --data-resource $macDataResource
+    if ($LASTEXITCODE -ne 0) { throw "Macintosh global call-graph disassembly failed." }
+
+    python (Join-Path $PSScriptRoot "verify_mac_relocations.py") `
+        $macCodeResourceRoot $macA5World $macA5WorldSummary $macDataResource `
+        --report (Join-Path $auditRoot "mac-relocation-audit.json")
+    if ($LASTEXITCODE -ne 0) { throw "Macintosh relocation topology audit failed." }
+}
+
 if (Test-Path -LiteralPath $macFunctionSummary) {
     python (Join-Path $PSScriptRoot "build_function_traceability.py") `
         $macFunctionSummary (Join-Path $auditRoot "function-traceability.csv") `
@@ -77,12 +105,7 @@ if (Test-Path -LiteralPath $macCodeDisassembly) {
     if ($LASTEXITCODE -ne 0) { throw "Macintosh tracked/direct audio-route audit failed." }
 }
 
-$macResourceManifest = Join-Path $projectRoot "work/rip/manifest.json"
-$macCodeResourceRoot = Join-Path $projectRoot "work/rip/resources/CODE"
 if (Test-Path -LiteralPath $macResourceManifest) {
-    if (-not (Test-Path -LiteralPath $macCodeResourceRoot)) {
-        throw "Macintosh resource evidence is present but its CODE directory is missing."
-    }
     python (Join-Path $PSScriptRoot "verify_mac_game_intro_input.py") `
         $macCodeResourceRoot `
         --report (Join-Path $auditRoot "mac-game-intro-input-audit.json")

@@ -10,35 +10,42 @@ original executable into the release.
 The inventory is intentionally conservative:
 
 - 788 entries have a compiler-style `LINK` stack-frame prologue.
-- The union of segment starts, `LINK` prologues, direct internal targets, and recovered exported
-  jump-table targets contains 1,299 structural entries.
+- The union of segment starts, `LINK` prologues, globally resolved direct-call targets, and
+  recovered exported jump-table targets contains 936 structural entries.
 - Original segment metadata declares 218 exported jump-table entries. All 218 resolve to ledger
-  rows; 42 export-only targets were invisible to the earlier prologue/direct-call scan.
+  rows; two export-only targets remain invisible to the prologue/direct-call scan.
 - 905 A-line trap invocations across 214 trap words are cataloged.
 
-Direct-call discovery cannot prove that every computed jump-table target is a separate source-level function. `work/disassembly/function_inventory.csv` therefore labels entries as structural candidates, not recovered original symbol names. The complete disposition ledger is `work/audit/function-traceability.csv`: 78 rows have explicit control-flow landmarks, 211 other exported rows have segment-family mappings, 1,010 other structural rows have segment-family mappings, and zero rows are unaccounted for. A semantic/platform replacement may absorb several compiler-generated 68k entries; this is traceability, not a claim of instruction-for-instruction translation.
+The custom CODE 1 loader audit decodes all 3,149 relocation records, including the 619 records in
+DATA 0 that patch the A5 world and CODE 1 itself. It resolves all 2,600 relocation-backed absolute
+calls before building the global graph. The graph records 4,091 direct call sites, 1,282 unique
+source-segment/destination edges, 2,527 cross-segment sites, and 260 cross-segment target rows. The
+PC-relative portion remains a conservative structural scan; relocation-backed destinations are
+exact.
+
+Direct-call discovery cannot prove that every computed jump-table target is a separate source-level function. `work/disassembly/function_inventory.csv` therefore labels entries as structural candidates, not recovered original symbol names. The complete disposition ledger is `work/audit/function-traceability.csv`: 76 rows have explicit control-flow landmarks, 208 other exported rows have segment-family mappings, 652 other structural rows have segment-family mappings, and zero rows are unaccounted for. A semantic/platform replacement may absorb several compiler-generated 68k entries; this is traceability, not a claim of instruction-for-instruction translation.
 
 ## Macintosh 1.1 segment inventory
 
 | CODE | Code bytes | Export metadata | LINK funcs | Identified entries | System mapping | Confidence |
 |---:|---:|---:|---:|---:|---|---|
-| 1 | 18,524 | 1 | 148 | 233 | Application runtime and Macintosh Toolbox glue | High |
+| 1 | 18,524 | 1 | 148 | 175 | Application runtime and Macintosh Toolbox glue | High |
 | 2 | 560 | 5 | 6 | 6 | Line-interpolation point lists and counted arrays | High |
-| 3 | 7,678 | 47 | 63 | 83 | Pak/movie/image resource engine | High |
+| 3 | 7,678 | 47 | 63 | 74 | Pak/movie/image resource engine | High |
 | 4 | 40 | 1 | 1 | 1 | PixMap base-address compatibility (`GetPixBaseAddr`) | High |
-| 5 | 1,208 | 3 | 8 | 10 | PICT title/credits windows and version-text layout | High |
-| 6 | 4,874 | 20 | 27 | 44 | Pak-backed modal panels, text entry, and event-handler chaining | High |
+| 5 | 1,208 | 3 | 8 | 8 | PICT title/credits windows and version-text layout | High |
+| 6 | 4,874 | 20 | 27 | 34 | Pak-backed modal panels, text entry, and event-handler chaining | High |
 | 7 | 894 | 3 | 7 | 7 | Preferences resource creation, migration, load, and save | High |
-| 8 | 12,488 | 26 | 117 | 126 | Bundled MIDI/Sound Manager driver, sequencer, timers, and channel control | High |
-| 10 | 3,640 | 18 | 21 | 44 | Pak decompression and shared asset/UI services | High |
-| 11 | 24,528 | 4 | 62 | 120 | Backgammon | High |
-| 12 | 9,658 | 3 | 40 | 72 | Main shell, startup, menu, Mario host | High |
-| 13 | 1,802 | 25 | 15 | 31 | Song control, shuffle, geometry, window-update, and delay helpers | High |
-| 14 | 23,654 | 4 | 42 | 94 | Dominoes | High |
-| 15 | 1,708 | 6 | 12 | 16 | Display-depth negotiation, dialog placement, and text layout | High |
-| 16 | 31,128 | 13 | 65 | 121 | Checkers | High |
-| 17 | 19,966 | 5 | 65 | 132 | Go Fish | High |
-| 18 | 16,456 | 2 | 59 | 114 | Yacht | High |
+| 8 | 12,488 | 26 | 117 | 117 | Bundled MIDI/Sound Manager driver, sequencer, timers, and channel control | High |
+| 10 | 3,640 | 18 | 21 | 25 | Pak decompression and shared asset/UI services | High |
+| 11 | 24,528 | 4 | 62 | 80 | Backgammon | High |
+| 12 | 9,658 | 3 | 40 | 42 | Main shell, startup, menu, Mario host | High |
+| 13 | 1,802 | 25 | 15 | 29 | Song control, shuffle, geometry, window-update, and delay helpers | High |
+| 14 | 23,654 | 4 | 42 | 47 | Dominoes | High |
+| 15 | 1,708 | 6 | 12 | 14 | Display-depth negotiation, dialog placement, and text layout | High |
+| 16 | 31,128 | 13 | 65 | 76 | Checkers | High |
+| 17 | 19,966 | 5 | 65 | 82 | Go Fish | High |
+| 18 | 16,456 | 2 | 59 | 74 | Yacht | High |
 | 20 | 1,832 | 19 | 11 | 22 | System capability, File Manager, and FindFolder compatibility | High |
 | 21 | 516 | 7 | 9 | 12 | C/Pascal string conversion and integer radix formatting | High |
 | 22 | 1,180 | 6 | 10 | 11 | Multi-monitor selection, window placement, and QuickDraw geometry | High |

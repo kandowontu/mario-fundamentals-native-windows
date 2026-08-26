@@ -134,13 +134,29 @@ CODE 1 contains the startup/runtime and the custom DATA decompressor. `tools/dec
 
 - Declared decoded size: 22,989 bytes.
 - Compressed resource size: 23,163 bytes.
-- A5 materialized interval: `-19663..8380`.
+- A5 materialized interval: `[-19663, 8376)`.
 - Materialized bytes: 19,432.
 - Flattened audit image: 28,039 bytes.
 - Three streams: below-A5 data, an empty middle stream, and above-A5 data.
 - Zero-runs use `(mask + 1)` bytes; arbitrary-byte runs use `(mask + 2)` bytes.
 
 Decoded A5 globals confirm the resource-type slots for `Img `, `MuV `, `Ply `, and `Pak `.
+
+The decompressor consumes 22,459 bytes after DATA 0's size word. The remaining 704-byte tail is
+not padding: CODE 1 `$6C/$74` sends it through `$286`'s three-base dispatcher twice, first against
+the decoded A5 world and then against CODE 1 itself. `tools/mac_code_relocations.py` mirrors the
+signed relocation codec at CODE 1 `$212-$286`: bit-7 bytes are signed seven-bit deltas times two,
+bit-6 words are signed fourteen-bit deltas times two, and four-byte records reset the cursor to a
+signed thirty-bit absolute position times two. Negative deltas are therefore required, not corrupt
+metadata.
+
+The DATA tail contains 494 A5-world records and 125 CODE-1 records. Every later loadable CODE
+resource contributes the same three count-qualified streams after its offset-8 code boundary,
+adding 2,530 records. The complete audit consequently covers 3,149 relocations. It classifies and
+resolves 2,600 absolute calls; the remaining CODE-image relocations are proven `LEA`/`PEA`
+operands, while the A5-world group patches data pointers. This also resolves CODE 1 `$686/$68E` to
+CODE 13 `$6B4/$6A8`; their raw `$2B8/$2A8` literals are A5 jump-table offsets and must not be read
+as CODE-1 instruction addresses before relocation.
 
 CODE 1 `$352C` is also the exact common random-range scaler. It sign-extends `_Random`'s returned
 word, adds `0x7fff`, multiplies the zero-extended word limit with signed `MULS.L`, and divides the
@@ -154,7 +170,20 @@ controller supplies 23 records at A5 `$-38EA`. Its randomized third idle branch 
 21 (a decoded `movie=0, sound=0` record) or 12061 (rejected as out of range), proving that branch is
 an intentional audiovisual no-op rather than an unripped asset.
 
-The disassembler now treats the non-CODE-1 header's longword at offset 8 as the absolute end of code, not a length. This avoids interpreting relocation/export metadata as instructions. It also decodes every unloaded A5 jump-table stub from CODE 0/DATA. The union of segment starts, 788 `LINK` prologues, direct internal `BSR`/`JSR` targets, and all 218 exported targets contains 1,299 structural routine entries; export recovery added 42 targets that the earlier prologue/direct-call scan could not see. See `work/disassembly/function_inventory.csv` and the zero-unaccounted disposition ledger at `work/audit/function-traceability.csv`.
+The disassembler now treats the non-CODE-1 header's longword at offset 8 as the absolute end of
+code, not a length. This avoids interpreting relocation/export metadata as instructions. It also
+decodes every unloaded A5 jump-table stub from CODE 0/DATA and applies the exact loader route to
+every absolute call before assigning its destination segment. The resulting graph has 4,091 direct
+call sites, 1,282 unique source-segment/destination edges, 2,527 cross-segment sites, and 2,600
+relocation-backed sites. CODE 16 `$1AF6`, immediately after an inline switch table, is recovered
+from its relocation even though a linear decoder misses it.
+
+The union of segment starts, 788 `LINK` prologues, global direct-call targets, and all 218 exported
+targets contains 936 conservative structural routine entries; export recovery adds two targets
+that have neither a prologue nor an incoming direct call. This replaces the older 1,299 count,
+which incorrectly treated relocated A5 literals as same-segment addresses. See
+`work/disassembly/function_inventory.csv`, `work/audit/mac-relocation-audit.json`, and the
+zero-unaccounted disposition ledger at `work/audit/function-traceability.csv`.
 
 ## Proprietary Pak graphics
 
@@ -225,8 +254,10 @@ source-time-240 bounds are `(99,18)-(337,212)`. At source time zero the movie ac
 Pak 6010 frame 12's stationary cup is
 `(218,129)-(296,228)`, and movie 6020 input `(0,-9)` gives its first live frame those identical
 bounds. The controller suppresses the stationary frame from mouse-down through the movie and all
-five settle passes, so the contact frame neither jumps nor doubles. These Macintosh values do not
-replace the separately recovered DOS placements.
+five settle passes, so the contact frame neither jumps nor doubles. The independent Macintosh
+comparison reconstructs vanilla trace 6's complete Mario-first roll, including its two small
+remaining-roll counters, and gates the whole 512×384 tableau rather than only the large-cup crop.
+These Macintosh values do not replace the separately recovered DOS placements.
 
 The DOS records deliberately differ: `MuV ` uses `x, y, width, height`, while `Img ` uses
 `x, y, left, top, right, bottom`. This is proven across all 1,213 same-ID DOS Img/Pak pairs: every
@@ -272,8 +303,9 @@ flag and post callback `$2E0`; its natural completion at `$217A` posts that iden
 native shell therefore routes either input through one completion path that stops the active voice,
 installs movie 1111's terminal hand/easel cel, and enters the fully revealed menu. The preceding
 publisher-card controller remains independent. A board-coordinate mouse-down is exercised by the
-silent QA route and must hash-identically to a live-title skip, proving that an in-progress board
-reveal cannot remain active or move backward after the click.
+silent QA route at the first visible silhouette, during the live title, and during the board flip.
+All three must hash-identically, proving that an in-progress board reveal cannot remain active or
+move backward after the click.
 
 The selected-game title actors do not share one universal input rule. Backgammon CODE 11
 `$24/$2A` routes both key-down and mouse-down directly to the `$1C4` completion post, and Yacht

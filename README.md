@@ -221,7 +221,9 @@ The release script configures a static C++ runtime build, compiles the resources
 executable's full hidden/silent self-test, verifies the PE architecture and dependency set, proves
 both deterministic asset packs occur exactly once, proves all 1,707 Macintosh and 1,806 DOS ripped
 resources against their extraction manifests when those local audit records are present, reruns the
-self-test from an empty working directory, regenerates 232 Macintosh and 233 DOS no-window
+self-test from an empty working directory, decodes and verifies all 3,149 Macintosh loader
+relocations and regenerates the 936-row global function ledger when raw CODE/DATA evidence is
+present, regenerates 232 Macintosh and 233 DOS no-window
 presentation frames at the exact 512×384 and 320×200 logical sizes, inventories all 225 retained
 vanilla captures, compares 52 independent original-output cases (publisher/title states and the
 terminal open-hand cel, pressed-menu feedback, exact pointer traversal/retargeting and selection
@@ -294,7 +296,7 @@ artwork.
 - [Version 2.0.0 release notes](docs/RELEASE_NOTES_2.0.0.md)
 - Machine-readable disassembly, decoded DATA image, overlay records, movie catalogs, converted
   media, and visual QA captures are generated under ignored `work/` directories. The Macintosh
-  1,299-row routine disposition ledger is `work/audit/function-traceability.csv`; the exact DOS
+  936-row routine disposition ledger is `work/audit/function-traceability.csv`; the exact DOS
   591-row overlay ledger is `work/audit/dos-overlay-function-traceability.csv`. Separate Macintosh,
   DOS, and PE reports are produced by the release pipeline.
 

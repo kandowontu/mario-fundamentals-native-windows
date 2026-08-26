@@ -188,9 +188,20 @@ void App::renderQaFrames(std::wstring_view outputDirectory) {
         save(name);
     }
 
-    // Exercise the actual mouse-down route through both a live title pose and
-    // the board-flip phase. Both must replace the title's terminal open hand
-    // with movie 1111 at the menu controller's selected resting time.
+    // Exercise the actual mouse-down route at the earliest visible-board
+    // instant, a live title pose, and the board-flip phase. All three must
+    // replace the title's terminal open hand with movie 1111 at the menu
+    // controller's selected resting time.
+    screen_ = Screen::Intro;
+    introPhase_ = IntroPhase::Silhouette;
+    introPhaseMilliseconds_ = 0U;
+    click({150, 250});
+    if (screen_ != Screen::Menu)
+        throw std::runtime_error("Macintosh silhouette-board mouse-down did not finish the intro");
+    render();
+    const std::uint64_t silhouetteSkipHash =
+        canvas_.pixelHash({0, 0, kLogicalWidth, kLogicalHeight});
+
     screen_ = Screen::Intro;
     introPhase_ = IntroPhase::TalkingHead;
     introPhaseMilliseconds_ = 600U;
@@ -201,6 +212,8 @@ void App::renderQaFrames(std::wstring_view outputDirectory) {
     save(L"09-skip-menu.bmp");
     const std::uint64_t liveTitleSkipHash =
         canvas_.pixelHash({0, 0, kLogicalWidth, kLogicalHeight});
+    if (liveTitleSkipHash != silhouetteSkipHash)
+        throw std::runtime_error("Macintosh early-board skip did not install the final menu pose");
 
     screen_ = Screen::Intro;
     introPhase_ = IntroPhase::MenuReveal;
@@ -599,8 +612,21 @@ int App::run(int showCommand) {
 
         // Exercise the packaged HWND route, including client-to-logical
         // conversion, rather than calling App::click directly. CODE 12's
-        // live-title and board-wipe mouse handlers converge on one completion
-        // post, so both inputs must install the identical final menu pose.
+        // silhouette, live-title, and board-wipe mouse handlers converge on
+        // one completion post, so all three inputs must install the identical
+        // final menu pose. The silhouette probe is the earliest instant at
+        // which the easel board is visible and matches the user's click path.
+        screen_ = Screen::Intro;
+        introPhase_ = IntroPhase::Silhouette;
+        introPhaseMilliseconds_ = 0;
+        sendLogicalMouseDown({150, 250});
+        if (screen_ != Screen::Menu)
+            throw std::runtime_error(
+                "Macintosh silhouette board did not skip through WM_LBUTTONDOWN");
+        render();
+        const std::uint64_t silhouetteHash =
+            canvas_.pixelHash({0, 0, kLogicalWidth, kLogicalHeight});
+
         screen_ = Screen::Intro;
         introPhase_ = IntroPhase::TalkingHead;
         introPhaseMilliseconds_ = 600;
@@ -610,6 +636,9 @@ int App::run(int showCommand) {
         render();
         const std::uint64_t liveTitleHash =
             canvas_.pixelHash({0, 0, kLogicalWidth, kLogicalHeight});
+        if (liveTitleHash != silhouetteHash)
+            throw std::runtime_error(
+                "Macintosh early board click did not install the final menu pose");
 
         screen_ = Screen::Intro;
         introPhase_ = IntroPhase::MenuReveal;

@@ -1614,7 +1614,12 @@ void YachtGame::setQaRerollGesturePresentation(std::uint32_t sourceTime) {
 
 void YachtGame::setQaRollPresentation() {
     setQaStationaryCupPresentation();
-    roll();
+    // Retained vanilla trace 6 is Mario's initial roll: two source cup-shaped
+    // remaining-roll markers sit in the left lane while movie 6020 owns the
+    // one large cup. Use that exact controller state so the visual gate can
+    // compare the complete tableau and cannot mistake a second large cup or a
+    // player-lane marker for the authored counters.
+    continueComputerReroll();
 }
 
 void YachtGame::click(Point point) {

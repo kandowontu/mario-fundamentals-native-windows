@@ -350,8 +350,8 @@ MAC_SAMPLES = (
         "yacht-roll-contact-cup",
         "original-yacht-trace-6.png",
         "30-yacht-roll-0.bmp",
-        ((222, 135, 292, 225),),
-        3.0,
+        ((0, 0, 512, 384),),
+        6.0,
     ),
 )
 

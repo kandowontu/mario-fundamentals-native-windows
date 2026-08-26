@@ -84,7 +84,7 @@ back buffer so the source/browser's black flicker cannot become a port feature.
 | Macintosh | Yacht computer dice/markers | 5.847 | 12.0 |
 | Macintosh | Yacht idle actor hands | 34.004 | 40.0 |
 | Macintosh | Yacht reroll gesture registration (edge) | 14.250 | 16.0 |
-| Macintosh | Yacht roll-contact cup | 1.311 | 3.0 |
+| Macintosh | Yacht Mario-first roll, complete tableau | 4.938 | 6.0 |
 | DOS | Main menu | 8.191 | 11.0 |
 | DOS | Backgammon chrome | 30.693 | 34.0 |
 | DOS | Dominoes table | 2.068 | 3.0 |
@@ -103,6 +103,8 @@ The release gate writes the machine-readable result to
 `work/audit/visual-reference-verification.json`. Thresholds are deliberately below the measured
 distance to mismatched scenes; the two portrait registration cases reject a one-pixel displacement
 on their audited axis, while exact source actor bounds are enforced by the executable self-test.
+The Yacht roll case compares the complete 512×384 frame so an extra large cup, wrong actor layer,
+or misplaced small remaining-roll marker cannot hide outside a focused crop.
 Several publisher/intro/cup results are near pixel-identical, while the other intro
 margins allow only the independently captured cursor and source-frame/browser differences. This is
 a structural cross-check, not a claim that browser-scaled captures or different random turns are

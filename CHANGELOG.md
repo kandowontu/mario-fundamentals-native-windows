@@ -33,12 +33,23 @@ All notable native-port changes are documented here.
   hashes, event-5/event-6 branch targets, and the distinct completion, single-tick, and ignored
   routes. A hidden packaged-window probe sends all five mouse and all five key paths through the
   real Win32 dispatcher and checks printable-key `WM_CHAR` suppression.
+- Exact Macintosh custom-loader relocation decoding for DATA 0, CODE 1, and all nineteen later
+  loadable segments. The release gate now validates all 3,149 records, resolves 2,600 absolute
+  calls through the correct A5/main/self base, regenerates the 4,091-site global call graph, and
+  emits a corrected 936-row zero-unaccounted function ledger.
 - Exact DOS resident dependency classification from all 2,900 FBOV fixups and 2,839 MZ
   relocations. The supporting ledger now distinguishes 1,750 graph-reached resident candidates,
   76 validated overlay-stub thunks, and 20 explicitly conservative compiler/system-or-indirect
   candidates instead of assigning all 1,846 rows to one generic runtime bucket.
 
 ### Changed
+
+- Macintosh easel-board skip coverage now starts at the first visible silhouette frame and sends
+  each visible title phase through the packaged window; silhouette, spoken-title, and board-flip
+  clicks must all install the same completed menu pose.
+- The Macintosh Yacht cup comparison now reconstructs the original Mario-first roll and checks the
+  complete 512×384 frame, including the two authored small roll counters, rather than inspecting
+  only the large cup's center crop.
 
 - Shared game controllers now render and hit-test against each edition's native 512×384 or
   320×200 coordinate system while retaining the recovered source rules and outcomes.

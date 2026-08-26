@@ -13,6 +13,8 @@ from pathlib import Path
 
 from capstone import CS_ARCH_M68K, CS_MODE_BIG_ENDIAN, CS_MODE_M68K_020, Cs
 
+from mac_code_relocations import parse_loader_relocations, parse_segment_relocations
+
 
 TRAPS = {
     0xA000: "_Open",
@@ -149,17 +151,150 @@ def be32(data: bytes, offset: int) -> int:
     return struct.unpack_from(">I", data, offset)[0]
 
 
+def instruction_boundaries(data: bytes, start: int, stop: int) -> set[int]:
+    md = Cs(CS_ARCH_M68K, CS_MODE_BIG_ENDIAN | CS_MODE_M68K_020)
+    result: set[int] = set()
+    offset = start
+    while offset + 1 < stop:
+        result.add(offset)
+        word = be16(data, offset)
+        if word & 0xF000 == 0xA000:
+            offset += 2
+            continue
+        instruction = next(md.disasm(data[offset:stop], offset, count=1), None)
+        offset += instruction.size if instruction is not None else 2
+    return result
+
+
+def resolve_call_edges(
+    resources: dict[int, bytes],
+    code_ranges: dict[int, tuple[int, int]],
+    a5_targets: dict[int, tuple[int, int]],
+    code1_relocation_kinds: dict[int, str],
+) -> list[dict[str, object]]:
+    """Recover local and custom-loader-patched calls as one global graph."""
+    md = Cs(CS_ARCH_M68K, CS_MODE_BIG_ENDIAN | CS_MODE_M68K_020)
+    boundaries = {
+        segment_id: instruction_boundaries(resources[segment_id], start, stop)
+        for segment_id, (start, stop) in code_ranges.items()
+    }
+    edges: dict[tuple[int, int], dict[str, object]] = {}
+
+    for segment_id, (start, stop) in sorted(code_ranges.items()):
+        data = resources[segment_id]
+        relocations = None if segment_id == 1 else parse_segment_relocations(data)
+        relocation_kinds = (
+            code1_relocation_kinds if segment_id == 1 else relocations.by_offset
+        )
+
+        for source in sorted(boundaries[segment_id]):
+            instruction = next(md.disasm(data[source:stop], source, count=1), None)
+            if instruction is None:
+                continue
+            mnemonic = instruction.mnemonic.split(".", 1)[0]
+            if mnemonic not in {"bsr", "jsr"}:
+                continue
+            opcode = be16(data, source)
+            route = "pc_relative"
+            target_segment = segment_id
+            target_offset = None
+            if opcode == 0x4EB9:
+                literal = be32(data, source + 2)
+                route = relocation_kinds.get(source + 2)
+                if route is None:
+                    raise ValueError(
+                        f"CODE {segment_id} absolute JSR 0x{source:X} has no relocation"
+                    )
+                if route == "a5_relative":
+                    if literal not in a5_targets:
+                        raise ValueError(
+                            f"CODE {segment_id} JSR 0x{source:X} has unknown A5 target "
+                            f"0x{literal:X}"
+                        )
+                    target_segment, target_offset = a5_targets[literal]
+                elif route == "main_segment_relative":
+                    target_segment, target_offset = 1, literal
+                else:
+                    target_offset = literal
+            else:
+                match = re.match(r"^\$([0-9a-fA-F]+)$", instruction.op_str)
+                if match:
+                    target_offset = int(match.group(1), 16)
+
+            if target_offset is None:
+                continue
+            if target_segment not in boundaries or target_offset not in boundaries[target_segment]:
+                # A linear sweep necessarily decodes inline strings and switch
+                # tables as instructions.  Bytes in those data islands can
+                # resemble a PC-relative BSR/JSR; an odd or non-boundary target
+                # proves that the apparent caller is data, not executable code.
+                # Relocation-backed absolute calls remain fail-closed below.
+                if route == "pc_relative":
+                    continue
+                raise ValueError(
+                    f"CODE {segment_id} call 0x{source:X} targets CODE {target_segment} "
+                    f"non-instruction 0x{target_offset:X}"
+                )
+            edges[(segment_id, source)] = {
+                "source_segment": segment_id,
+                "source_offset": source,
+                "target_segment": target_segment,
+                "target_offset": target_offset,
+                "route": route,
+                "mnemonic": mnemonic,
+                "linear_decode": True,
+            }
+
+        # Relocations also identify calls that lie immediately after inline
+        # switch tables.  Linear Capstone decoding intentionally emits those
+        # tables as data-like instructions and misses CODE 16 $1AF6, so scan
+        # every relocated operand and add any raw absolute JSR/JMP owner.
+        if relocation_kinds:
+            for operand, route in sorted(relocation_kinds.items()):
+                source = operand - 2
+                opcode = be16(data, source)
+                if opcode not in (0x4EB9, 0x4EF9) or (segment_id, source) in edges:
+                    continue
+                literal = be32(data, operand)
+                if route == "a5_relative":
+                    if literal not in a5_targets:
+                        raise ValueError(
+                            f"CODE {segment_id} raw call 0x{source:X} has unknown A5 target"
+                        )
+                    target_segment, target_offset = a5_targets[literal]
+                elif route == "main_segment_relative":
+                    target_segment, target_offset = 1, literal
+                else:
+                    target_segment, target_offset = segment_id, literal
+                if target_offset not in boundaries[target_segment]:
+                    raise ValueError(
+                        f"CODE {segment_id} raw call 0x{source:X} targets non-instruction"
+                    )
+                edges[(segment_id, source)] = {
+                    "source_segment": segment_id,
+                    "source_offset": source,
+                    "target_segment": target_segment,
+                    "target_offset": target_offset,
+                    "route": route,
+                    "mnemonic": "jsr" if opcode == 0x4EB9 else "jmp",
+                    "linear_decode": False,
+                }
+
+    return [edges[key] for key in sorted(edges)]
+
+
 def disassemble(
+    segment_id: int,
     data: bytes,
     start: int,
     stop: int,
     exported_entries: dict[int, list[int]],
-) -> tuple[list[str], Counter[int], list[dict[str, object]]]:
+    call_edges: list[dict[str, object]],
+) -> tuple[list[str], Counter[int], list[dict[str, object]], dict[str, int]]:
     md = Cs(CS_ARCH_M68K, CS_MODE_BIG_ENDIAN | CS_MODE_M68K_020)
     decoded: list[tuple[str, int, object]] = []
     traps: Counter[int] = Counter()
     link_offsets: set[int] = set()
-    direct_call_targets: Counter[int] = Counter()
     offset = start
 
     while offset + 1 < stop:
@@ -179,19 +314,17 @@ def disassemble(
         raw = instruction.bytes.hex(" ").upper()
         if instruction.mnemonic.startswith("link"):
             link_offsets.add(offset)
-        base_mnemonic = instruction.mnemonic.split(".", 1)[0]
-        if base_mnemonic in {"bsr", "jsr"}:
-            target_match = re.match(r"^\$([0-9a-fA-F]+)", instruction.op_str)
-            if target_match:
-                direct_call_targets[int(target_match.group(1), 16)] += 1
         decoded.append(("instruction", offset, (instruction, raw)))
         offset += instruction.size
 
-    instruction_offsets = {offset for kind, offset, _ in decoded if kind == "instruction"}
-    internal_calls = Counter(
-        {target: count for target, count in direct_call_targets.items() if target in instruction_offsets}
-    )
-    function_offsets = sorted({start, *link_offsets, *internal_calls, *exported_entries})
+    incoming_edges = [
+        edge for edge in call_edges if int(edge["target_segment"]) == segment_id
+    ]
+    outgoing_edges = [
+        edge for edge in call_edges if int(edge["source_segment"]) == segment_id
+    ]
+    incoming_calls = Counter(int(edge["target_offset"]) for edge in incoming_edges)
+    function_offsets = sorted({start, *link_offsets, *incoming_calls, *exported_entries})
     function_offset_set = set(function_offsets)
     lines: list[str] = []
     for kind, record_offset, value in decoded:
@@ -212,30 +345,86 @@ def disassemble(
                 f"{instruction.address:08X}: {raw:<23} {instruction.mnemonic:<8} {instruction.op_str}"
             )
 
-    routines = [
-        {
-            "offset": function_offset,
-            "offset_hex": f"0x{function_offset:08X}",
-            "has_link_prologue": function_offset in link_offsets,
-            "incoming_direct_calls": internal_calls[function_offset],
-            "exported_jump_table_entries": len(exported_entries.get(function_offset, [])),
-            "jump_table_a5_offsets": [
-                f"0x{offset:04X}" for offset in exported_entries.get(function_offset, [])
-            ],
-            "entry_kinds": [
-                kind
-                for kind, present in (
-                    ("segment_start", function_offset == start),
-                    ("link_prologue", function_offset in link_offsets),
-                    ("direct_call_target", function_offset in internal_calls),
-                    ("exported_jump_table_target", function_offset in exported_entries),
-                )
-                if present
-            ],
-        }
-        for function_offset in function_offsets
-    ]
-    return lines, traps, routines
+    routines = []
+    for index, function_offset in enumerate(function_offsets):
+        end = function_offsets[index + 1] if index + 1 < len(function_offsets) else stop
+        incoming = [
+            edge for edge in incoming_edges if int(edge["target_offset"]) == function_offset
+        ]
+        outgoing = [
+            edge for edge in outgoing_edges
+            if function_offset <= int(edge["source_offset"]) < end
+        ]
+        callees = sorted({
+            f"CODE_{int(edge['target_segment']):02d}:0x{int(edge['target_offset']):08X}"
+            for edge in outgoing
+        })
+        routines.append(
+            {
+                "offset": function_offset,
+                "offset_hex": f"0x{function_offset:08X}",
+                "has_link_prologue": function_offset in link_offsets,
+                "incoming_direct_calls": len(incoming),
+                "incoming_local_calls": sum(
+                    int(edge["source_segment"]) == segment_id for edge in incoming
+                ),
+                "incoming_cross_segment_calls": sum(
+                    int(edge["source_segment"]) != segment_id for edge in incoming
+                ),
+                "outgoing_direct_call_sites": len(outgoing),
+                "outgoing_local_call_sites": sum(
+                    int(edge["target_segment"]) == segment_id for edge in outgoing
+                ),
+                "outgoing_cross_segment_call_sites": sum(
+                    int(edge["target_segment"]) != segment_id for edge in outgoing
+                ),
+                "direct_callees": callees,
+                "exported_jump_table_entries": len(exported_entries.get(function_offset, [])),
+                "jump_table_a5_offsets": [
+                    f"0x{offset:04X}" for offset in exported_entries.get(function_offset, [])
+                ],
+                "entry_kinds": [
+                    kind
+                    for kind, present in (
+                        ("segment_start", function_offset == start),
+                        ("link_prologue", function_offset in link_offsets),
+                        ("direct_call_target", function_offset in incoming_calls),
+                        ("cross_segment_call_target", any(
+                            int(edge["source_segment"]) != segment_id for edge in incoming
+                        )),
+                        ("exported_jump_table_target", function_offset in exported_entries),
+                    )
+                    if present
+                ],
+            }
+        )
+
+    decoded_call_sites = {
+        record_offset
+        for kind, record_offset, value in decoded
+        if kind == "instruction" and value[0].mnemonic.split(".", 1)[0] in {"bsr", "jsr"}
+    }
+    resolved_linear_sites = {
+        int(edge["source_offset"]) for edge in outgoing_edges if bool(edge["linear_decode"])
+    }
+    stats = {
+        "resolved_direct_call_sites": len(outgoing_edges),
+        "local_direct_call_sites": sum(
+            int(edge["target_segment"]) == segment_id for edge in outgoing_edges
+        ),
+        "cross_segment_call_sites": sum(
+            int(edge["target_segment"]) != segment_id for edge in outgoing_edges
+        ),
+        "unique_direct_call_edges": len({
+            (int(edge["target_segment"]), int(edge["target_offset"]))
+            for edge in outgoing_edges
+        }),
+        "nonlinear_relocation_call_sites": sum(
+            not bool(edge["linear_decode"]) for edge in outgoing_edges
+        ),
+        "indirect_or_unresolved_call_sites": len(decoded_call_sites - resolved_linear_sites),
+    }
+    return lines, traps, routines, stats
 
 
 def main() -> None:
@@ -252,25 +441,37 @@ def main() -> None:
         type=Path,
         help="decode_data.py JSON containing the flat A5 world's lower offset",
     )
+    parser.add_argument(
+        "--data-resource",
+        type=Path,
+        help="raw DATA 0 resource containing CODE 1's own relocation streams",
+    )
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
 
-    if bool(args.a5_world) != bool(args.a5_world_summary):
-        parser.error("--a5-world and --a5-world-summary must be supplied together")
+    if not (args.a5_world and args.a5_world_summary and args.data_resource):
+        parser.error(
+            "exact global call recovery requires --a5-world, --a5-world-summary, "
+            "and --data-resource"
+        )
 
     resource_paths = sorted(args.resource_directory.glob("*.bin"))
     resources = {int(path.stem): path.read_bytes() for path in resource_paths}
     exports_by_segment: dict[int, dict[int, list[int]]] = {}
+    a5_targets: dict[int, tuple[int, int]] = {}
+    code1_relocation_kinds: dict[int, str] = {}
     if args.a5_world:
         a5_world = args.a5_world.read_bytes()
         a5_summary = json.loads(args.a5_world_summary.read_text(encoding="utf-8"))
         a5_lower_offset = int(a5_summary["a5_lower_offset"])
+        a5_upper_offset = int(a5_summary["a5_upper_offset"])
         code0 = resources[0]
         # CODE 1's only unloaded jump-table stub lives in CODE 0. Unlike later
         # segments, it has no patched target word in the decoded DATA image; its
         # entry is the CODE 1 code start.
         code1_a5_offset = be32(code0, 12)
         exports_by_segment[1] = {4: [code1_a5_offset]}
+        a5_targets[code1_a5_offset] = (1, 4)
         for segment_id, data in resources.items():
             if segment_id in (0, 1):
                 continue
@@ -293,7 +494,29 @@ def main() -> None:
                         f"at A5+0x{a5_offset:04X}"
                     )
                 segment_exports.setdefault(target, []).append(a5_offset)
+                a5_targets[a5_offset] = (segment_id, target)
             exports_by_segment[segment_id] = segment_exports
+
+        loader_relocations = parse_loader_relocations(
+            args.data_resource.read_bytes(),
+            4 + int(a5_summary["compressed_bytes_consumed"]),
+            a5_lower_offset=a5_lower_offset,
+            a5_upper_offset=a5_upper_offset,
+            code1_size=len(resources[1]),
+        )
+        code1_relocation_kinds = loader_relocations.for_target("code1").by_offset
+
+    code_ranges = {
+        segment_id: (
+            4 if segment_id == 1 else 12,
+            len(data) if segment_id == 1 else min(be32(data, 8), len(data)),
+        )
+        for segment_id, data in resources.items()
+        if segment_id != 0
+    }
+    call_edges = resolve_call_edges(
+        resources, code_ranges, a5_targets, code1_relocation_kinds
+    )
 
     summaries = []
     total_traps: Counter[int] = Counter()
@@ -327,8 +550,13 @@ def main() -> None:
             code_size = max(0, code_stop - code_start)
 
         code_stop = code_start + code_size
-        lines, traps, routines = disassemble(
-            data, code_start, code_stop, exports_by_segment.get(segment_id, {})
+        lines, traps, routines, call_stats = disassemble(
+            segment_id,
+            data,
+            code_start,
+            code_stop,
+            exports_by_segment.get(segment_id, {}),
+            call_edges,
         )
         total_traps.update(traps)
         assembly_path = args.output / f"CODE_{segment_id:02d}.asm"
@@ -357,6 +585,7 @@ def main() -> None:
                     1 for routine in routines if routine["has_link_prologue"]
                 ),
                 "identified_routine_count": len(routines),
+                **call_stats,
                 "system": SEGMENT_SYSTEMS.get(segment_id, ("unknown", "low"))[0],
                 "system_confidence": SEGMENT_SYSTEMS.get(segment_id, ("unknown", "low"))[1],
                 "routines": routines,
@@ -367,6 +596,38 @@ def main() -> None:
 
     summary = {
         "architecture": "Motorola 68020, big-endian",
+        "call_graph": {
+            "resolved_call_sites": len(call_edges),
+            "unique_edges": len({
+                (
+                    int(edge["source_segment"]),
+                    int(edge["target_segment"]),
+                    int(edge["target_offset"]),
+                )
+                for edge in call_edges
+            }),
+            "cross_segment_call_sites": sum(
+                int(edge["source_segment"]) != int(edge["target_segment"])
+                for edge in call_edges
+            ),
+            "relocation_backed_call_sites": sum(
+                str(edge["route"]) in {
+                    "a5_relative", "main_segment_relative", "self_segment_relative"
+                }
+                for edge in call_edges
+            ),
+            "nonlinear_relocation_call_sites": sum(
+                not bool(edge["linear_decode"]) for edge in call_edges
+            ),
+            "edges": [
+                {
+                    **edge,
+                    "source_offset_hex": f"0x{int(edge['source_offset']):08X}",
+                    "target_offset_hex": f"0x{int(edge['target_offset']):08X}",
+                }
+                for edge in call_edges
+            ],
+        },
         "segments": summaries,
         "total_traps": {
             f"0x{key:04X}": {"name": TRAPS.get(key, "unknown"), "count": value}
@@ -388,6 +649,12 @@ def main() -> None:
                 "system_confidence",
                 "has_link_prologue",
                 "incoming_direct_calls",
+                "incoming_local_calls",
+                "incoming_cross_segment_calls",
+                "outgoing_direct_call_sites",
+                "outgoing_local_call_sites",
+                "outgoing_cross_segment_call_sites",
+                "direct_callees",
                 "exported_jump_table_entries",
                 "jump_table_a5_offsets",
                 "entry_kinds",
@@ -406,6 +673,20 @@ def main() -> None:
                         "system_confidence": segment["system_confidence"],
                         "has_link_prologue": routine["has_link_prologue"],
                         "incoming_direct_calls": routine["incoming_direct_calls"],
+                        "incoming_local_calls": routine["incoming_local_calls"],
+                        "incoming_cross_segment_calls": routine[
+                            "incoming_cross_segment_calls"
+                        ],
+                        "outgoing_direct_call_sites": routine[
+                            "outgoing_direct_call_sites"
+                        ],
+                        "outgoing_local_call_sites": routine[
+                            "outgoing_local_call_sites"
+                        ],
+                        "outgoing_cross_segment_call_sites": routine[
+                            "outgoing_cross_segment_call_sites"
+                        ],
+                        "direct_callees": ";".join(routine["direct_callees"]),
                         "exported_jump_table_entries": routine[
                             "exported_jump_table_entries"
                         ],
@@ -418,6 +699,10 @@ def main() -> None:
     print(f"Wrote {len(summaries) - 1} segment listings to {args.output}")
     print(f"Found {sum(s['link_prologue_count'] for s in summaries if s['id'])} LINK prologues")
     print(f"Identified {sum(s['identified_routine_count'] for s in summaries if s['id'])} routine entries")
+    print(
+        f"Resolved {len(call_edges)} direct call sites "
+        f"({sum(int(edge['source_segment']) != int(edge['target_segment']) for edge in call_edges)} cross-segment)"
+    )
     print(f"Found {sum(total_traps.values())} A-line trap calls ({len(total_traps)} distinct)")
 
 

@@ -308,6 +308,20 @@ def main() -> None:
                     "entry_kinds": ";".join(routine.get("entry_kinds", [])),
                     "has_link_prologue": bool(routine["has_link_prologue"]),
                     "incoming_direct_calls": int(routine["incoming_direct_calls"]),
+                    "incoming_local_calls": int(routine.get("incoming_local_calls", 0)),
+                    "incoming_cross_segment_calls": int(
+                        routine.get("incoming_cross_segment_calls", 0)
+                    ),
+                    "outgoing_direct_call_sites": int(
+                        routine.get("outgoing_direct_call_sites", 0)
+                    ),
+                    "outgoing_local_call_sites": int(
+                        routine.get("outgoing_local_call_sites", 0)
+                    ),
+                    "outgoing_cross_segment_call_sites": int(
+                        routine.get("outgoing_cross_segment_call_sites", 0)
+                    ),
+                    "direct_callees": ";".join(routine.get("direct_callees", [])),
                     "exported_jump_table_entries": exported,
                     "jump_table_a5_offsets": ";".join(
                         routine.get("jump_table_a5_offsets", [])
@@ -349,6 +363,7 @@ def main() -> None:
         writer.writerows(rows)
 
     counts = Counter(str(row["mapping_granularity"]) for row in rows)
+    call_graph = summary.get("call_graph", {})
     report = {
         "status": "PASS",
         "architecture": summary["architecture"],
@@ -361,6 +376,20 @@ def main() -> None:
         "direct_call_target_rows": sum(
             int(row["incoming_direct_calls"]) > 0 for row in rows
         ),
+        "cross_segment_call_target_rows": sum(
+            int(row["incoming_cross_segment_calls"]) > 0 for row in rows
+        ),
+        "resolved_direct_call_sites": int(call_graph.get("resolved_call_sites", 0)),
+        "unique_direct_call_edges": int(call_graph.get("unique_edges", 0)),
+        "cross_segment_call_sites": int(
+            call_graph.get("cross_segment_call_sites", 0)
+        ),
+        "relocation_backed_call_sites": int(
+            call_graph.get("relocation_backed_call_sites", 0)
+        ),
+        "nonlinear_relocation_call_sites": int(
+            call_graph.get("nonlinear_relocation_call_sites", 0)
+        ),
         "mapping_granularity": dict(sorted(counts.items())),
         "unaccounted_entries": 0,
         "segments": {
@@ -369,8 +398,10 @@ def main() -> None:
         },
         "interpretation": (
             "Rows are conservative structural CODE entry candidates. Native semantic or platform "
-            "replacements may absorb multiple compiler-generated 68k entries; the ledger does not "
-            "claim original symbol recovery or instruction-for-instruction translation."
+            "replacements may absorb multiple compiler-generated 68k entries. Relocation-backed "
+            "absolute calls have exact segment destinations; PC-relative calls and structural "
+            "boundaries remain conservative. The ledger does not claim original symbol recovery "
+            "or instruction-for-instruction translation."
         ),
     }
     if args.json_output:

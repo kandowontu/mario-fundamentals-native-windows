@@ -182,6 +182,9 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   commands, 278 sampled sounds, and 12 fixed-120 Hz XMIDI tracks.
 - Structural disassembly records for the 16-bit Borland MZ/FBOV executable: 2,839 relocations,
   31 overlays, 505 exact export targets, and a confidence-labeled 591-row overlay ledger.
+- Exact Macintosh custom-loader records: all 3,149 DATA/CODE relocations, 2,600 resolved absolute
+  calls, a 4,091-site global direct-call graph, all 218 A5 exports, and a conservative 936-row
+  zero-unaccounted disposition ledger.
 - Dual-edition behavioral regressions plus byte-preservation, PE/dependency, embedded-pack,
   empty-directory, and reproducible-build checks.
 
