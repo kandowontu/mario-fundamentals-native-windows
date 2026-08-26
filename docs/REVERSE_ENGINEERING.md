@@ -274,6 +274,16 @@ immediately skips only Backgammon and Yacht, advances Dominoes by one controller
 and leaves Checkers and Go Fish title playback unchanged. Escape is not repurposed as a return-to-menu
 shortcut while any selected-game title is active.
 
+The DOS title overlays have a separate, independently decoded input contract. Publisher/title
+overlay 20 identifies event 28 as key-down (its branch reads the key pair at `BP+0C/+0E`) and
+event 45 as mouse-down (its branch consumes the mouse point copied to `BP-04/-02`). Selected-game
+overlays 1, 7, 13, 17, and 30 all send event 28 to resident completion helper `0160:0008`.
+Backgammon, Dominoes, Go Fish, and Yacht also map event 45 to that exact branch; Checkers overlay 7
+omits event 45 and therefore ignores the mouse. `tools/verify_dos_game_intro_input.py` pins the five
+complete event/target tables, their original payload hashes, and the completion-call signature.
+The native DOS window probe separately sends real mouse/key messages through logical-coordinate
+conversion and proves that Escape is a completing key-down, not a return-to-menu shortcut.
+
 The preceding publisher controller at `$1B0A`/`$1B74` explicitly loads `$1C` (28) controller
 counts for the Stepping Stone card.  At the same 100 ms cadence demonstrated by the title
 controller's 15/2/5-count pauses, this is a 2.8-second hold; the original high-cadence startup

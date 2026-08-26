@@ -39,6 +39,12 @@ All notable native-port changes are documented here.
 
 ### Fixed
 
+- Restored the five original DOS selected-game intro input handlers from FBOV overlays
+  1/7/13/17/30. Event 28 key-down completes every intro; event 45 mouse-down completes Backgammon,
+  Dominoes, Go Fish, and Yacht and is intentionally absent from Checkers. Escape now follows the
+  same completion post instead of returning backward to the menu. A binary-table audit and hidden
+  packaged-window input probe enforce the routes and prevent a printable skip key's Windows
+  `WM_CHAR` from leaking into the following name field.
 - Restored CODE 11 `$856-$91A` Backgammon click precedence. Once a checker is selected, a legal
   friendly-stack destination now performs the move instead of reselecting that point; a repeat
   click on the selected checker cancels it. Eight complete public-input matches per edition now

@@ -72,7 +72,7 @@ private:
     void advanceIntro(IntroPhase phase);
     void selectMenu(int sourceSelection, bool animate);
     void beginGameIntro(int gameIndex);
-    void finishGameIntro();
+    void finishGameIntro(bool skippedByInput = false);
     void beginFirstUsePreview(int gameIndex, bool askCharacter);
     void startGame(int gameIndex);
     void startPreviewedGame(int gameIndex);
@@ -114,7 +114,10 @@ private:
     MenuPopup menuPopup_{MenuPopup::None};
     int helpGameIndex_{};
     int helpPage_{};
+    int qaGameIntroCompletionCount_{};
     bool changingName_{};
+    bool qaGameIntroInputProbe_{};
+    bool suppressNextCharacter_{};
     bool animatedPieces_{true};
     bool forcedJumps_{true};
     Rect viewport_{};

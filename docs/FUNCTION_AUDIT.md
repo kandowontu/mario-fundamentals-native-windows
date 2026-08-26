@@ -170,7 +170,9 @@ objects retain player identity and animation options.
   but loads the DOS-native backgrounds, sprites, movies, voices, effects, XMI, coordinates, hit
   targets, publisher/title/menu controller, game introductions, name/character panels, and
   reset/replay dialogs. The same strategy, drag/boundary, dialogue, outcome, replay, and lifecycle
-  regressions are rerun against the DOS asset dialect. This is a native behavioral port, not an
+  regressions are rerun against the DOS asset dialect. The five original game-intro event tables
+  are separately byte-pinned: every key-down completes; mouse-down completes four intros and is
+  intentionally absent from Checkers. This is a native behavioral port, not an
   instruction-for-instruction 8086 recompilation.
 - Both publisher screens, startup/title speech, animated C/G/D/B/Y main-menu selection, first-use session prompts, five
   title sequences, synchronized in-game talking heads, low-frequency idle prompts/jokes, and the

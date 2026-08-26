@@ -10,6 +10,11 @@ media, executable, emulator, installer, sound driver, or loose asset files.
 
 ## Corrective QA after withdrawal
 
+- DOS selected-game input now follows the exact FBOV overlay tables rather than a shared shell
+  default. Any key completes all five titles; mouse-down completes Backgammon, Dominoes, Go Fish,
+  and Yacht, while Checkers deliberately ignores it. Escape completes the current title instead
+  of jumping backward to the menu. The release gate pins every table/target and sends real hidden
+  window messages through all eleven routes.
 - Macintosh Escape now shares the title controller's board-click completion route and installs the
   terminal hand/easel pose before the menu, matching CODE 12 `$1E14`/`$217A`.
 - Macintosh title-stage mouse-down now follows CODE 12's completion callback: clicking the live

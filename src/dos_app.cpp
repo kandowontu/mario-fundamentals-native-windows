@@ -86,6 +86,19 @@ constexpr bool dosGameIntroComplete(std::uint32_t elapsedMilliseconds,
     return elapsedMilliseconds >= durationMilliseconds;
 }
 
+constexpr bool dosGameIntroMouseSkips(int gameIndex) {
+    // DOS FBOV event 45 is mouse-down.  Intro overlays 1, 13, 17, and 30
+    // route it to the same shared completion helper as event 28 (key-down).
+    // Checkers overlay 7 deliberately has no event-45 entry.
+    return gameIndex == 0 || gameIndex == 1 || gameIndex == 3 || gameIndex == 4;
+}
+
+constexpr bool dosGameIntroKeySkips(int gameIndex) {
+    // Every selected-game intro overlay contains event 28 and routes it to
+    // resident completion helper 0160:0008.
+    return gameIndex >= 0 && gameIndex < 5;
+}
+
 constexpr Point dosCharacterQuestionPoint(int gameIndex) {
     // Backgammon and Checkers share the centred host actor registration.
     // Dominoes animates the small Mario portrait in its upper-left scorecard.
@@ -153,6 +166,60 @@ void DosApp::createWindow(int showCommand) {
 int DosApp::run(int showCommand) {
     createWindow(showCommand);
     const wchar_t* commandLine = GetCommandLineW();
+    if (std::wcsstr(commandLine, L"--qa-dos-game-intro-input")) {
+        audio_.setEnabled(false);
+        qaGameIntroInputProbe_ = true;
+        if (viewport_.width() <= 0 || viewport_.height() <= 0)
+            viewport_ = {0, 0, kDosLogicalWidth, kDosLogicalHeight};
+        const auto sendLogicalMouseDown = [this](Point logical) {
+            const int clientX = viewport_.left +
+                                logical.x * viewport_.width() / kDosLogicalWidth;
+            const int clientY = viewport_.top +
+                                logical.y * viewport_.height() / kDosLogicalHeight;
+            SendMessageW(window_, WM_LBUTTONDOWN, MK_LBUTTON,
+                         MAKELPARAM(clientX, clientY));
+        };
+        for (int gameIndex = 0; gameIndex < 5; ++gameIndex) {
+            beginGameIntro(gameIndex);
+            const int beforeMouse = qaGameIntroCompletionCount_;
+            sendLogicalMouseDown({kDosLogicalWidth / 2, kDosLogicalHeight / 2});
+            const Screen expected = dosGameIntroMouseSkips(gameIndex)
+                                        ? Screen::Menu : Screen::GameIntro;
+            const int expectedMouseCompletions = beforeMouse +
+                                                 (dosGameIntroMouseSkips(gameIndex) ? 1 : 0);
+            if (screen_ != expected ||
+                qaGameIntroCompletionCount_ != expectedMouseCompletions)
+                throw std::runtime_error("DOS selected-game intro mouse route changed");
+            if (screen_ == Screen::GameIntro) {
+                SendMessageW(window_, WM_KEYDOWN, 'A', 0);
+                if (screen_ != Screen::Menu ||
+                    qaGameIntroCompletionCount_ != beforeMouse + 1 ||
+                    !suppressNextCharacter_)
+                    throw std::runtime_error("DOS Checkers intro key-down did not finish");
+                SendMessageW(window_, WM_CHAR, 'a', 0);
+                if (suppressNextCharacter_)
+                    throw std::runtime_error("DOS Checkers intro skip character was not consumed");
+            }
+
+            beginGameIntro(gameIndex);
+            const int beforeKey = qaGameIntroCompletionCount_;
+            SendMessageW(window_, WM_KEYDOWN, 'A', 0);
+            if (screen_ != Screen::Menu || qaGameIntroCompletionCount_ != beforeKey + 1 ||
+                !suppressNextCharacter_)
+                throw std::runtime_error("DOS selected-game intro key-down did not finish");
+            SendMessageW(window_, WM_CHAR, 'a', 0);
+            if (suppressNextCharacter_)
+                throw std::runtime_error("DOS intro skip character was not consumed");
+        }
+        beginGameIntro(0);
+        const int beforeEscape = qaGameIntroCompletionCount_;
+        SendMessageW(window_, WM_KEYDOWN, VK_ESCAPE, 0);
+        if (screen_ != Screen::Menu || qaGameIntroCompletionCount_ != beforeEscape + 1)
+            throw std::runtime_error("DOS selected-game intro Escape went backward to the menu");
+        DestroyWindow(window_);
+        window_ = nullptr;
+        return 0;
+    }
     const bool qa = std::wcsstr(commandLine, L"--qa-dos") != nullptr;
     if (qa) {
         audio_.setEnabled(false);
@@ -198,7 +265,14 @@ bool DosApp::sourceGameIntroCompletionRegressionTest() {
     return !dosGameIntroComplete(0, duration) &&
            !dosGameIntroComplete(duration - 1, duration) &&
            dosGameIntroComplete(duration, duration) &&
-           dosGameIntroComplete(duration + 1, duration);
+           dosGameIntroComplete(duration + 1, duration) &&
+           dosGameIntroKeySkips(0) && dosGameIntroKeySkips(1) &&
+           dosGameIntroKeySkips(2) && dosGameIntroKeySkips(3) &&
+           dosGameIntroKeySkips(4) && !dosGameIntroKeySkips(-1) &&
+           !dosGameIntroKeySkips(5) &&
+           dosGameIntroMouseSkips(0) && dosGameIntroMouseSkips(1) &&
+           !dosGameIntroMouseSkips(2) && dosGameIntroMouseSkips(3) &&
+           dosGameIntroMouseSkips(4);
 }
 
 void DosApp::renderQaFrames(std::wstring_view outputDirectory) {
@@ -583,9 +657,16 @@ LRESULT DosApp::handleMessage(HWND window, UINT message, WPARAM wParam, LPARAM l
         InvalidateRect(window, nullptr, FALSE);
         return 0;
     case WM_CHAR:
+        if (suppressNextCharacter_) {
+            suppressNextCharacter_ = false;
+            return 0;
+        }
         characterInput(static_cast<wchar_t>(wParam));
         return 0;
     case WM_KEYDOWN:
+        // Discard only the character message paired with the immediately
+        // preceding intro-skip key; a later key-down starts a fresh pair.
+        suppressNextCharacter_ = false;
         key(static_cast<unsigned>(wParam));
         return 0;
     case WM_SYSCHAR:
@@ -955,8 +1036,16 @@ void DosApp::beginGameIntro(int gameIndex) {
     if (window_) InvalidateRect(window_, nullptr, FALSE);
 }
 
-void DosApp::finishGameIntro() {
+void DosApp::finishGameIntro(bool skippedByInput) {
+    if (screen_ != Screen::GameIntro) return;
+    if (skippedByInput) audio_.stop();
     gameIntroMovies_.clear();
+    if (qaGameIntroInputProbe_) {
+        ++qaGameIntroCompletionCount_;
+        pendingGameIndex_ = -1;
+        screen_ = Screen::Menu;
+        return;
+    }
     const int gameIndex = pendingGameIndex_;
     if (gameIndex < 0 || gameIndex >= 5) return;
     if (gameIndex <= 2 && !characterConfirmed_) {
@@ -1153,6 +1242,9 @@ void DosApp::click(Point point) {
             else beginGameIntro(menu_catalog::gameIndex(index + 1));
             return;
         }
+    } else if (screen_ == Screen::GameIntro) {
+        if (dosGameIntroMouseSkips(pendingGameIndex_)) finishGameIntro(true);
+        return;
     } else if (screen_ == Screen::Character) {
         if (characterQuestion_.active()) return;
         if (Rect{115, 113, 157, 125}.contains(point)) {
@@ -1232,6 +1324,12 @@ void DosApp::skipIntro() {
 void DosApp::key(unsigned virtualKey) {
     if (menuPopup_ != MenuPopup::None && virtualKey == VK_ESCAPE) {
         menuPopup_ = MenuPopup::None;
+        if (window_) InvalidateRect(window_, nullptr, FALSE);
+        return;
+    }
+    if (screen_ == Screen::GameIntro && dosGameIntroKeySkips(pendingGameIndex_)) {
+        suppressNextCharacter_ = true;
+        finishGameIntro(true);
         if (window_) InvalidateRect(window_, nullptr, FALSE);
         return;
     }

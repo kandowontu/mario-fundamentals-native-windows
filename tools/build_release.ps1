@@ -1,13 +1,14 @@
 param(
     [string] $BuildDirectory = "build",
-    [string] $DistributionDirectory = "dist"
+    [string] $DistributionDirectory = "dist",
+    [string] $CMakeGenerator = "Ninja"
 )
 
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $buildRoot = [System.IO.Path]::GetFullPath((Join-Path $projectRoot $BuildDirectory))
 $distributionRoot = [System.IO.Path]::GetFullPath((Join-Path $projectRoot $DistributionDirectory))
 
-cmake -S $projectRoot -B $buildRoot -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake -S $projectRoot -B $buildRoot -G $CMakeGenerator -DCMAKE_BUILD_TYPE=Release
 if ($LASTEXITCODE -ne 0) { throw "CMake configuration failed." }
 cmake --build $buildRoot --parallel
 if ($LASTEXITCODE -ne 0) { throw "Native build failed." }
@@ -32,6 +33,18 @@ if ($titleSkip.ExitCode -ne 0) {
     throw "Macintosh live title/board-click integration test failed with exit code $($titleSkip.ExitCode)."
 }
 Write-Output "PASS macintosh_live_title_board_click_skip"
+
+$dosIntroInputOutput = Join-Path $buildRoot "dos-game-intro-input.out"
+$dosIntroInputError = Join-Path $buildRoot "dos-game-intro-input.err"
+$dosIntroInput = Start-Process -FilePath $executable `
+    -ArgumentList "--qa-dos-game-intro-input" -WindowStyle Hidden `
+    -RedirectStandardOutput $dosIntroInputOutput `
+    -RedirectStandardError $dosIntroInputError -Wait -PassThru
+Get-Content $dosIntroInputOutput, $dosIntroInputError
+if ($dosIntroInput.ExitCode -ne 0) {
+    throw "DOS selected-game intro input integration test failed with exit code $($dosIntroInput.ExitCode)."
+}
+Write-Output "PASS dos_selected_game_intro_input"
 
 # Regenerate the static function traceability ledgers whenever the local
 # disassembly/source evidence is available. This prevents a green runtime
@@ -75,6 +88,11 @@ if ((Test-Path -LiteralPath $dosExecutableManifestPath) -and
         $dosExecutableManifestPath $dosOriginalExecutable $dosOverlayRoot `
         $dosFunctionResourceManifest $dosOverlayCsv --json-output $dosOverlaySummary
     if ($LASTEXITCODE -ne 0) { throw "DOS exact overlay function traceability audit failed." }
+
+    python (Join-Path $PSScriptRoot "verify_dos_game_intro_input.py") `
+        $dosExecutableManifestPath $dosOverlayRoot `
+        --report (Join-Path $auditRoot "dos-game-intro-input-audit.json")
+    if ($LASTEXITCODE -ne 0) { throw "DOS selected-game intro input audit failed." }
 
     python (Join-Path $PSScriptRoot "build_dos_function_traceability.py") `
         $dosRadareFunctions $dosRadareSections $dosExecutableManifestPath `
@@ -260,7 +278,7 @@ if (-not $reproductionRoot.StartsWith(
     throw "Reproduction build path escaped the workspace work directory."
 }
 try {
-    cmake -S $projectRoot -B $reproductionRoot -G Ninja -DCMAKE_BUILD_TYPE=Release
+    cmake -S $projectRoot -B $reproductionRoot -G $CMakeGenerator -DCMAKE_BUILD_TYPE=Release
     if ($LASTEXITCODE -ne 0) { throw "Independent release configuration failed." }
     cmake --build $reproductionRoot --parallel
     if ($LASTEXITCODE -ne 0) { throw "Independent release build failed." }

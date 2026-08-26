@@ -16,6 +16,8 @@ original executable, emulator, installer, DOS driver, or loose asset file at run
 - The DOS route includes the Interplay and Presage cards, original production-credits page, dim and
   live title stages, voiced Mario sequence, board flip, animated C/G/D/B/Y easel menu, five game
   introductions, source character/name panels, all five games, and original reset/replay panels.
+  Its source-specific intro input is retained: every key finishes the current title; clicks finish
+  Backgammon, Dominoes, Go Fish, and Yacht, while the original Checkers title ignores clicks.
 - All 1,806 DOS resources are preserved from the exact PRD/PRS chain: 187 Pak sheets/3,633 frames,
   574 movies/10,614 commands, 278 SND resources, and 12 XMI tracks. The DOS asset dialect is decoded
   directly; no screenshot reconstruction or replacement voice/music library is used.
@@ -202,6 +204,9 @@ From PowerShell:
 .\tools\build_release.ps1
 .\dist\MarioFundamentals.exe
 ```
+
+The gate defaults to Ninja. On an equivalent MinGW environment it can use the installed make
+generator without changing any checks: `-CMakeGenerator "MinGW Makefiles"`.
 
 The release script configures a static C++ runtime build, compiles the resources, runs the
 executable's full hidden/silent self-test, verifies the PE architecture and dependency set, proves
