@@ -31,6 +31,7 @@ public:
     [[nodiscard]] bool sourceOutcomeRegressionTest(int expectedWinner);
     [[nodiscard]] bool sourceComputerSelectionRegressionTest();
     [[nodiscard]] bool sourceTurnOrderRegressionTest();
+    [[nodiscard]] bool sourceOpeningClickRegressionTest();
     [[nodiscard]] bool sourceCupPresentationRegressionTest();
     [[nodiscard]] bool sourceFullMatchRegressionTest();
     [[nodiscard]] bool sourceReplayRegressionTest();

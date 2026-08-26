@@ -54,6 +54,21 @@ TARGET_SIGNATURES = {
     (18, 0x228): bytes.fromhex("4879000001302f0a4eb9000004d8"),
 }
 
+# CODE 18's second export is the scorecard/gameplay event handler.  Its event-6
+# branch enters the normal mouse-control dispatcher; unlike the first export's
+# Yacht-on-the-water title handler, it has no completion post.  This distinction
+# is why clicking the visible board during "Good luck" / "I go first" does not
+# skip that in-board opening in vanilla.
+YACHT_GAMEPLAY_MOUSE = {
+    "branch_offset": 0x3EA,
+    "target": 0x6F0,
+    "action": "controls_only_no_opening_skip",
+    "signature": bytes.fromhex(
+        "3b7c0050b1bc202db1c4028000004000671a"
+        "206dfcd44aa800026710"
+    ),
+}
+
 
 def fail(message: str) -> None:
     raise SystemExit(f"FAIL mac_game_intro_input: {message}")
@@ -75,6 +90,7 @@ def main() -> None:
     args = parser.parse_args()
 
     report_resources = []
+    yacht_gameplay_mouse = None
     counts = {"finish": 0, "advance_one_tick": 0, "ignore": 0}
     for resource_id, expected_hash in RESOURCE_SHA256.items():
         path = args.code_directory / f"+{resource_id:05d}.bin"
@@ -109,6 +125,25 @@ def main() -> None:
             if payload[target:target + len(signature)] != signature:
                 fail(f"CODE {resource_id} target signature changed at 0x{target:X}")
 
+        if resource_id == 18:
+            branch_offset = YACHT_GAMEPLAY_MOUSE["branch_offset"]
+            expected_target = YACHT_GAMEPLAY_MOUSE["target"]
+            actual_target = branch_target(payload, branch_offset)
+            if actual_target != expected_target:
+                fail(
+                    f"CODE 18 gameplay mouse target 0x{actual_target:X} "
+                    f"!= 0x{expected_target:X}"
+                )
+            signature = YACHT_GAMEPLAY_MOUSE["signature"]
+            if payload[expected_target:expected_target + len(signature)] != signature:
+                fail("CODE 18 gameplay mouse-control signature changed at 0x6F0")
+            yacht_gameplay_mouse = {
+                "event": 6,
+                "branch_offset": branch_offset,
+                "target": expected_target,
+                "action": YACHT_GAMEPLAY_MOUSE["action"],
+            }
+
         report_resources.append(
             {
                 "code_resource": resource_id,
@@ -121,11 +156,14 @@ def main() -> None:
 
     if counts != {"finish": 4, "advance_one_tick": 1, "ignore": 5}:
         fail(f"unexpected route totals {counts}")
+    if yacht_gameplay_mouse is None:
+        fail("missing Yacht gameplay mouse disposition")
 
     report = {
         "format": "mario-fundamentals-mac-game-intro-input-audit-v1",
         "resources": report_resources,
         "route_counts": counts,
+        "yacht_scorecard_opening_mouse": yacht_gameplay_mouse,
     }
     if args.report:
         args.report.parent.mkdir(parents=True, exist_ok=True)
@@ -133,7 +171,8 @@ def main() -> None:
     print(
         "PASS mac_game_intro_input "
         f"resources={len(report_resources)} finish={counts['finish']} "
-        f"advance_one_tick={counts['advance_one_tick']} ignore={counts['ignore']}"
+        f"advance_one_tick={counts['advance_one_tick']} ignore={counts['ignore']} "
+        "yacht_board_opening=controls_only_no_opening_skip"
     )
 
 

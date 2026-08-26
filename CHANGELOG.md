@@ -107,8 +107,13 @@ All notable native-port changes are documented here.
   10006/10008. This removes a Macintosh abort caused by the former DOS-only movie request.
 - Restored the Macintosh title controller's source mouse-down behavior: clicking the live
   title/board sequence now stops its current voice and enters the completed menu immediately.
+- Kept CODE 18's two Macintosh click contexts distinct: the Yacht-on-the-water title accepts a
+  mouse-down completion, while clicks after the scorecard board appears enter `$6F0`'s locked
+  gameplay-control dispatcher and do not skip the vanilla "Good luck" / "I go first" opening.
 - Applied the Yacht stationary-cup suppression to the shared Macintosh/DOS controller and added
   per-edition full-path regressions covering every animated-shake and sequential-die-settle pass.
+  The renderer now gives the animated movie and stationary Pak cel one exclusive visual-owner path;
+  all 960 Macintosh and 1,200 DOS movie instants must contain exactly one active cup cel.
 - Re-registered the Macintosh Yacht dialogue head, torso, idle actor, stationary cup, and roll
   movie against the preserved vanilla capture. The stationary and roll-contact cups now occupy the
   same `(218,129)-(296,228)` rectangle, with an exact regional hash preventing a jump or duplicate.

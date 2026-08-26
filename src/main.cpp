@@ -788,6 +788,7 @@ int selfTest(HINSTANCE instance) {
     auto yachtTieOutcome = std::make_unique<mf::YachtGame>(context);
     auto yachtComputerSelection = std::make_unique<mf::YachtGame>(context);
     auto yachtTurnOrder = std::make_unique<mf::YachtGame>(context);
+    auto yachtOpeningClick = std::make_unique<mf::YachtGame>(context);
     auto yachtCupPresentation = std::make_unique<mf::YachtGame>(context);
     auto yachtFullMatch = std::make_unique<mf::YachtGame>(context);
     auto yachtReplay = std::make_unique<mf::YachtGame>(context);
@@ -795,6 +796,7 @@ int selfTest(HINSTANCE instance) {
         !mf::YachtGame::sourceDialogueRegressionTest() ||
         !yachtComputerSelection->sourceComputerSelectionRegressionTest() ||
         !yachtTurnOrder->sourceTurnOrderRegressionTest() ||
+        !yachtOpeningClick->sourceOpeningClickRegressionTest() ||
         !yachtCupPresentation->sourceCupPresentationRegressionTest() ||
         !yachtFullMatch->sourceFullMatchRegressionTest() ||
         !yachtReplay->sourceReplayRegressionTest()) {

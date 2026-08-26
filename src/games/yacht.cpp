@@ -1186,6 +1186,25 @@ bool YachtGame::shouldDrawStationaryCup() const noexcept {
            !gestureAnimation_.active() && !host_.active();
 }
 
+bool YachtGame::sourceOpeningClickRegressionTest() {
+    // CODE 18's first export owns the skippable Yacht-on-the-water title.
+    // Once the scorecard board exists, the second export's event-6 branch at
+    // $3EA enters the ordinary control dispatcher at $6F0; it does not post
+    // the title completion callback.  Controls stay locked while $AD2's
+    // "Good luck" / "I go first" opening controller is active.
+    if (introPhase_ != IntroPhase::GoodLuck || openingDelayMilliseconds_ != 1 ||
+        !host_.active() || rollAnimation_.active() || pendingRollPlayer_ != 0 ||
+        rolls_ != 0 || round_ != 0) return false;
+
+    // This is deliberately the live roll control, not an inert patch of the
+    // board.  If the opening lock regresses, this click starts movie 6020.
+    const Point rollControl = dosEdition() ? Point{159, 113} : Point{257, 178};
+    click(rollControl);
+    return introPhase_ == IntroPhase::GoodLuck && openingDelayMilliseconds_ == 1 &&
+           host_.active() && !rollAnimation_.active() && pendingRollPlayer_ == 0 &&
+           rolls_ == 0 && round_ == 0;
+}
+
 bool YachtGame::sourceCupPresentationRegressionTest() {
     host_.stop();
     rollAnimation_.stop();
@@ -1201,10 +1220,25 @@ bool YachtGame::sourceCupPresentationRegressionTest() {
     pendingRollPlayer_ = 0;
     held_.fill(false);
 
-    if (!shouldDrawStationaryCup()) return false;
+    // Movie 6020 contains exactly one active cup cel at every authored source
+    // instant.  Prove that for each edition's retained timeline, then prove
+    // the controller never enables its separate stationary Pak cel while the
+    // movie owns the stage.  The earlier state-only check sampled contact and
+    // could not rule out a duplicate layer at an intermediate movie instant.
+    const Movie sourceRollMovie(context_.assets, 6020);
+    if (!sourceRollMovie.resolved() || sourceRollMovie.duration() == 0) return false;
+    for (std::uint32_t sourceTime = 0; sourceTime < sourceRollMovie.duration(); ++sourceTime) {
+        if (sourceRollMovie.activeImageCount(sourceTime) != 1) return false;
+    }
+    const auto cupLayerCount = [this]() {
+        return static_cast<int>(rollAnimation_.active()) +
+               static_cast<int>(shouldDrawStationaryCup());
+    };
+
+    if (!shouldDrawStationaryCup() || cupLayerCount() != 1) return false;
     roll();
     if (pendingRollPlayer_ != 1 || !rollAnimation_.active() ||
-        shouldDrawStationaryCup() ||
+        shouldDrawStationaryCup() || cupLayerCount() != 1 ||
         context_.audio.lastSampleRequestRoute() != SampleRequestRoute::Tracked ||
         context_.audio.requestedSoundResourceId() != 5018) return false;
 
@@ -1217,7 +1251,7 @@ bool YachtGame::sourceCupPresentationRegressionTest() {
     for (int tickIndex = 0;
          tickIndex < 256 && (pendingRollPlayer_ != 0 || rollAnimation_.active());
          ++tickIndex) {
-        if (shouldDrawStationaryCup()) return false;
+        if (shouldDrawStationaryCup() || cupLayerCount() > 1) return false;
         sawMovie = sawMovie || rollAnimation_.active();
         const int previousSettlingIndex = settlingDieIndex_;
         (void)tick();
@@ -1227,7 +1261,7 @@ bool YachtGame::sourceCupPresentationRegressionTest() {
             settledDice += settlingDieIndex_ - previousSettlingIndex;
         }
         if ((pendingRollPlayer_ != 0 || rollAnimation_.active()) &&
-            shouldDrawStationaryCup()) return false;
+            (shouldDrawStationaryCup() || cupLayerCount() > 1)) return false;
     }
     if (!sawMovie || settledDice != 5 || pendingRollPlayer_ != 0 ||
         rollAnimation_.active() || rolls_ != 1 || shouldDrawStationaryCup()) return false;
@@ -1637,8 +1671,12 @@ void YachtGame::render(Canvas& canvas) {
     } else {
         (void)gestureAnimation_.render(canvas);
     }
-    (void)rollAnimation_.render(canvas);
-    if (shouldDrawStationaryCup())
+    // The roll movie and Pak 6010's stationary control are mutually exclusive
+    // visual owners.  Key the fallback off the render result as well as the
+    // controller predicate, so a future state edit cannot draw both layers in
+    // one frame on either Macintosh or DOS.
+    const bool rollCupRendered = rollAnimation_.render(canvas);
+    if (!rollCupRendered && shouldDrawStationaryCup())
         canvas.sprite(context_.graphics.sprite(6010, 12),
                       dosEdition() ? 136 : kMacYachtCupAnchor.x,
                       dosEdition() ? 86 : kMacYachtCupAnchor.y, false);

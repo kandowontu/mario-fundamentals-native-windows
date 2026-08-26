@@ -26,6 +26,11 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   messages through all ten source-specific routes: four completion inputs, Dominoes' one-tick
   mouse advance, and five ignored inputs. A printable finishing key is also prohibited from
   leaking its paired Windows `WM_CHAR` into the first-use name field.
+- Yacht's two Macintosh mouse contexts are now explicitly audited rather than conflated. CODE 18's
+  first export lets a click finish the Yacht-on-the-water title; after the scorecard board appears,
+  export 2 sends event 6 to `$6F0`'s gameplay-control dispatcher, so the vanilla "Good luck" /
+  "I go first" board opening remains deliberately non-skippable. The native self-test clicks the
+  live roll control during that lock and requires the opening state to remain unchanged.
 - The first stable Macintosh title frame now keeps Pak 710 under the source black cast. The easel
   artwork appears only when the greeting begins instead of being exposed during the silhouette hold.
 - CODE 12's title control now pins movie 1111 at `duration-1`, preserving Mario's open right hand
@@ -121,9 +126,10 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   bearing off, checker conservation, Mario's delayed turns, and result completion.
 - The Yacht idle cup is suppressed by the same controller guard in both editions throughout the
   roll movie and all sequential die-settle passes, with separate Macintosh and DOS regressions.
-  The regression executes the entire live movie-to-five-die-settle transition and checks every
-  controller pass. Every movie tick also proves there is at most one large cup cel; vanilla's two
-  small cup-shaped counters remain because they are the authored remaining-roll markers.
+  The renderer now chooses one exclusive visual owner—movie 6020 or Pak 6010's stationary cel—and
+  the regression executes the entire live movie-to-five-die-settle transition while checking every
+  controller pass. All 960 Macintosh and 1,200 DOS source instants prove exactly one animated large
+  cup cel; vanilla's small cup-shaped counters remain because they are authored remaining-roll markers.
 - Yacht now has eight full public-input matches per edition in the release gate. Each one performs
   all player rolls, holds and releases dice through their source hit records, fills the right
   scorecard, lets Mario's recovered adviser fill the left scorecard, reaches round twelve, and

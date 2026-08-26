@@ -43,7 +43,9 @@ original executable, emulator, installer, DOS driver, or loose asset file at run
 - Selected-game intro input remains module-specific like the original: Backgammon and Yacht accept
   any key or mouse-down as completion, Dominoes advances its title controller by one pass on
   mouse-down, and Checkers/Go Fish leave their title playback unchanged. The release gate verifies
-  those branches from the five raw CODE resources and through the packaged Win32 window.
+  those branches from the five raw CODE resources and through the packaged Win32 window. Yacht's
+  later scorecard-board opening ("Good luck" / "I go first") is already gameplay, not that
+  skippable title: CODE 18 sends its clicks to locked gameplay controls and vanilla does not skip it.
 - Name and Yoshi/Koopa selection occur when the first game needs them; Mario finishes the source
   character-choice speech before its modal choice panel is revealed. The player name and the
   source's four persistent options now survive later launches through per-user Windows settings,
