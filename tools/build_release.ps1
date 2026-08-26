@@ -34,6 +34,18 @@ if ($titleSkip.ExitCode -ne 0) {
 }
 Write-Output "PASS macintosh_live_title_board_click_skip"
 
+$macIntroInputOutput = Join-Path $buildRoot "mac-game-intro-input.out"
+$macIntroInputError = Join-Path $buildRoot "mac-game-intro-input.err"
+$macIntroInput = Start-Process -FilePath $executable `
+    -ArgumentList "--qa-mac-game-intro-input" -WindowStyle Hidden `
+    -RedirectStandardOutput $macIntroInputOutput `
+    -RedirectStandardError $macIntroInputError -Wait -PassThru
+Get-Content $macIntroInputOutput, $macIntroInputError
+if ($macIntroInput.ExitCode -ne 0) {
+    throw "Macintosh selected-game intro input integration test failed with exit code $($macIntroInput.ExitCode)."
+}
+Write-Output "PASS macintosh_selected_game_intro_input"
+
 $dosIntroInputOutput = Join-Path $buildRoot "dos-game-intro-input.out"
 $dosIntroInputError = Join-Path $buildRoot "dos-game-intro-input.err"
 $dosIntroInput = Start-Process -FilePath $executable `
@@ -63,6 +75,18 @@ if (Test-Path -LiteralPath $macCodeDisassembly) {
         (Join-Path $projectRoot "work/disassembly") `
         (Join-Path $auditRoot "mac-audio-route-audit.json")
     if ($LASTEXITCODE -ne 0) { throw "Macintosh tracked/direct audio-route audit failed." }
+}
+
+$macResourceManifest = Join-Path $projectRoot "work/rip/manifest.json"
+$macCodeResourceRoot = Join-Path $projectRoot "work/rip/resources/CODE"
+if (Test-Path -LiteralPath $macResourceManifest) {
+    if (-not (Test-Path -LiteralPath $macCodeResourceRoot)) {
+        throw "Macintosh resource evidence is present but its CODE directory is missing."
+    }
+    python (Join-Path $PSScriptRoot "verify_mac_game_intro_input.py") `
+        $macCodeResourceRoot `
+        --report (Join-Path $auditRoot "mac-game-intro-input-audit.json")
+    if ($LASTEXITCODE -ne 0) { throw "Macintosh selected-game intro input audit failed." }
 }
 
 $dosExecutableManifestPath = Join-Path $auditRoot "dos-executable-manifest.json"

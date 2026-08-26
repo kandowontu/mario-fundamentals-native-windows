@@ -21,6 +21,11 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   board skips the remaining voice/animation and lands on the fully revealed menu. A hidden
   integration probe sends actual `WM_LBUTTONDOWN` input through the packaged window for both the
   talking title and partial board wipe and requires the identical final-menu raster.
+- Macintosh selected-game title input now has the same fail-closed proof as the DOS route. The
+  release gate hashes and decodes CODE 11/14/16/17/18, then sends real hidden-window mouse/key
+  messages through all ten source-specific routes: four completion inputs, Dominoes' one-tick
+  mouse advance, and five ignored inputs. A printable finishing key is also prohibited from
+  leaking its paired Windows `WM_CHAR` into the first-use name field.
 - The first stable Macintosh title frame now keeps Pak 710 under the source black cast. The easel
   artwork appears only when the greeting begins instead of being exposed during the silhouette hold.
 - CODE 12's title control now pins movie 1111 at `duration-1`, preserving Mario's open right hand

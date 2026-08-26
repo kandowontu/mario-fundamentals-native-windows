@@ -29,6 +29,10 @@ All notable native-port changes are documented here.
 - Dual-edition Play Again regressions for all five games, separating reset board/deck/score/history
   data from preserved source module state such as round counters, shuffled dialogue cursors, idle
   cycles, character identity, and options.
+- A fail-closed Macintosh selected-game intro-input audit which pins CODE 11/14/16/17/18 payload
+  hashes, event-5/event-6 branch targets, and the distinct completion, single-tick, and ignored
+  routes. A hidden packaged-window probe sends all five mouse and all five key paths through the
+  real Win32 dispatcher and checks printable-key `WM_CHAR` suppression.
 
 ### Changed
 

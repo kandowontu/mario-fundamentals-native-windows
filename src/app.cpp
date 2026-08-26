@@ -623,6 +623,86 @@ int App::run(int showCommand) {
         DestroyWindow(window_);
         window_ = nullptr;
         return 0;
+    } else if (std::wcsstr(GetCommandLineW(), L"--qa-mac-game-intro-input")) {
+        // Exercise the actual packaged HWND path for every source-specific
+        // selected-game intro route.  This is deliberately separate from the
+        // presentation sweep, whose direct click calls cannot prove Windows
+        // client-coordinate conversion or WM_KEYDOWN/WM_CHAR pairing.
+        if (viewport_.width() <= 0 || viewport_.height() <= 0)
+            viewport_ = {0, 0, kLogicalWidth, kLogicalHeight};
+        const auto sendLogicalMouseDown = [this](Point logical) {
+            const int clientX = viewport_.left + logical.x * viewport_.width() / kLogicalWidth;
+            const int clientY = viewport_.top + logical.y * viewport_.height() / kLogicalHeight;
+            SendMessageW(window_, WM_LBUTTONDOWN, MK_LBUTTON, MAKELPARAM(clientX, clientY));
+        };
+        const auto resetIntro = [this](int gameIndex) {
+            characterConfirmed_ = true;
+            nameConfirmed_ = true;
+            playerName_ = L"PLAYER";
+            beginGameIntro(gameIndex);
+            gameIntroMilliseconds_ = gameIntroDurationMilliseconds_ / 2U;
+        };
+
+        for (int gameIndex = 0; gameIndex < 5; ++gameIndex) {
+            resetIntro(gameIndex);
+            const std::uint32_t before = gameIntroMilliseconds_;
+            sendLogicalMouseDown({256, 192});
+            switch (macGameIntroMouseAction(gameIndex)) {
+            case MacGameIntroMouseAction::Finish:
+                if (screen_ != Screen::Game || pendingGameIndex_ != -1)
+                    throw std::runtime_error(
+                        "Macintosh game-intro mouse completion route regression");
+                break;
+            case MacGameIntroMouseAction::AdvanceOneTick:
+                if (screen_ != Screen::GameIntro ||
+                    gameIntroMilliseconds_ != before + 33U)
+                    throw std::runtime_error(
+                        "Macintosh Dominoes intro mouse controller-tick regression");
+                break;
+            case MacGameIntroMouseAction::Ignore:
+                if (screen_ != Screen::GameIntro || gameIntroMilliseconds_ != before)
+                    throw std::runtime_error(
+                        "Macintosh game-intro ignored mouse route regression");
+                break;
+            }
+            game_.reset();
+        }
+
+        for (int gameIndex = 0; gameIndex < 5; ++gameIndex) {
+            resetIntro(gameIndex);
+            const std::uint32_t before = gameIntroMilliseconds_;
+            SendMessageW(window_, WM_KEYDOWN, 'A', 0);
+            SendMessageW(window_, WM_CHAR, 'A', 0);
+            if (macGameIntroKeySkips(gameIndex)) {
+                if (screen_ != Screen::Game || pendingGameIndex_ != -1 ||
+                    suppressNextCharacter_)
+                    throw std::runtime_error(
+                        "Macintosh game-intro key completion route regression");
+            } else if (screen_ != Screen::GameIntro ||
+                       gameIntroMilliseconds_ != before || suppressNextCharacter_) {
+                throw std::runtime_error("Macintosh game-intro ignored key route regression");
+            }
+            game_.reset();
+        }
+
+        // A finishing printable key can land on the first-use name editor.
+        // Consume its paired WM_CHAR so the skip itself is not entered as the
+        // player's first character.
+        characterConfirmed_ = true;
+        nameConfirmed_ = false;
+        playerName_ = L"My friend";
+        beginGameIntro(0);
+        SendMessageW(window_, WM_KEYDOWN, 'A', 0);
+        SendMessageW(window_, WM_CHAR, 'A', 0);
+        if (screen_ != Screen::GameName || playerName_ != L"My friend" ||
+            suppressNextCharacter_)
+            throw std::runtime_error(
+                "Macintosh game-intro skip leaked WM_CHAR into the name editor");
+
+        game_.reset();
+        DestroyWindow(window_);
+        window_ = nullptr;
+        return 0;
     } else if (std::wcsstr(GetCommandLineW(), L"--qa-about")) {
         screen_ = Screen::About;
         pictureReturnScreen_ = Screen::Menu;

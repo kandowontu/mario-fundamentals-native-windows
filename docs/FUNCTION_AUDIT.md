@@ -193,6 +193,8 @@ objects retain player identity and animation options.
   one-pixel-sensitive Dominoes portrait registration, and focused Macintosh Yacht
   actor/dice/marker/gesture/cup checks. A separate 225-file inventory gates every retained source
   capture as compared, redundant, external, incomplete repaint, stochastic, or supplemental.
+  The Macintosh intro-input proof is independent of those frames: a raw CODE-resource audit pins
+  all ten key/mouse branches and a hidden packaged-window probe exercises their real Win32 routes.
 - CODE 12 `$1032`'s two sound-bearing random menu idles and `$12F8`'s independent blink are restored.
   Its third randomized branch is also closed: decoded CODE 16 dispatch and A5 table data prove that
   operation 21 is a zero-movie/zero-sound record and 12061 fails the controller's 23-entry range
