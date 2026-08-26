@@ -65,10 +65,16 @@ The confidence labels matter. Export-stub targets are exact original entry point
 prologues are high-confidence structural entries; near-call-only targets remain heuristic. The
 candidate spans end at the next discovered entry and are not claimed to be recovered source-level
 function sizes or symbols. A separate radare2 discovery ledger records 1,923 resident/overlay
-candidates. Its 77 overlay rows defer to the exact ledger above, while all 1,846 resident rows map
-to the native DOS platform/runtime/media replacement family. It has zero pending or unaccounted
-candidates but remains supporting evidence because segmented far control flow makes its boundaries
-less reliable than the original INT 3F exports and Borland prologues.
+candidates. Its 77 appended-overlay rows defer to the exact ledger above. For the other 1,846 rows,
+the audit now decodes all 2,900 original FBOV fixup words as eight-byte `__SEGTABLE__` offsets and
+all 2,839 MZ relocation targets as resident segment dependencies. Their 323 overlay-to-segment and
+349 resident inter-segment edges propagate exact shell/media/game caller families into 64 resident
+code records. The result distinguishes 1,750 graph-reached candidates, 76 validated resident
+`INT 3F` overlay-thunk candidates, and 20 candidates with no structural path from the entry point
+or any overlay fixup; the last group remains explicitly conservative compiler/system-or-indirect
+runtime support. There are zero generic, pending, unknown, or unaccounted rows. This remains
+supporting evidence because segmented far control flow can still overstate radare2 candidate
+boundaries; it does not upgrade those candidates into recovered source symbols.
 
 Confirmed overlay families include:
 

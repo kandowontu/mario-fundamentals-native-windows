@@ -23,7 +23,10 @@ original executable, emulator, installer, DOS driver, or loose asset file at run
   directly; no screenshot reconstruction or replacement voice/music library is used.
 - The original 16-bit Borland MZ/FBOV executable is not shipped or executed. Its 2,839 relocations,
   133 segment records, 31 overlays, 505 exact export stubs, and 591 conservative overlay entry
-  candidates are independently cataloged and mapped to native subsystems.
+  candidates are independently cataloged and mapped to native subsystems. All 2,900 FBOV fixups
+  and all 2,839 MZ relocation targets additionally build a fail-closed resident dependency graph;
+  overlay thunks and structurally unreachable compiler/system support remain separate from live
+  shell, media, and game caller families.
 - Shared games use the recovered native rule/AI/dialogue/outcome controllers with edition-specific
   source art, animation, audio, coordinates, hit targets, and shell behavior. Every behavioral
   regression runs against both asset dialects.

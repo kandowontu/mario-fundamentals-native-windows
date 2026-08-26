@@ -94,9 +94,12 @@ media, executable, emulator, installer, sound driver, or loose asset files.
 - Runtime status copy now stays within the original Pak font's supported character set; Unicode
   en/em dashes can no longer appear as question-mark glyphs during Backgammon, Dominoes, or Go Fish.
 - The release gate now regenerates all Macintosh CODE and DOS resident/FBOV traceability ledgers.
-  The supporting DOS discovery ledger no longer leaves 1,923 heuristic candidates generically
-  pending: 77 overlay rows defer to the exact export/prologue ledger and 1,846 resident rows are
-  explicitly dispositioned to the replaced platform/runtime/media family.
+  Its supporting DOS discovery pass decodes every one of the 2,900 FBOV fixups and 2,839 MZ
+  relocations into exact segment dependencies. Of 1,846 resident candidates, 1,750 now carry their
+  propagated shell/media/game caller families, 76 are separated as validated resident overlay
+  thunks, and 20 retain an explicit compiler/system-or-indirect disposition because no structural
+  path reaches them. The 77 appended-overlay rows still defer to the exact export/prologue ledger;
+  generic, pending, unknown, or unaccounted dispositions fail the gate.
 - The local release gate now compares 52 representative native frames/regions against independently
   captured original Macintosh/DOS output. Coverage includes publisher/title states, four menu
   transition instants plus the exact settled Go Fish actor, stable game geometry, seven Macintosh and all five DOS source-timed intro instants,

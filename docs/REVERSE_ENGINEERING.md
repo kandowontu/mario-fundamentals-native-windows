@@ -88,6 +88,17 @@ overlay stub, code/fixup bound, and content hash, then writes an FBOV-merged ana
 near-call evidence to create the conservative 591-candidate overlay ledger documented in
 [`FUNCTION_AUDIT.md`](FUNCTION_AUDIT.md).
 
+The resident discovery audit no longer treats every pre-FBOV candidate as one undifferentiated
+runtime family. Each of the 2,900 overlay fixups contains an eight-byte `__SEGTABLE__` record
+offset; every one resolves to one of the 133 validated records. Each of the 2,839 MZ relocation
+words likewise resolves to an exact original segment. `tools/build_dos_function_traceability.py`
+uses those records to build 323 overlay-to-segment and 349 resident inter-segment dependency
+edges, propagates the overlay/shell caller families, and separately labels resident overlay
+thunks. Candidates with no path from the MZ entry point or any overlay fixup stay explicitly
+conservative compiler/system-or-indirect support rather than being called recovered game code.
+The candidate counts, edge counts, source executable hash, and absence of unknown dispositions all
+fail closed in the release gate.
+
 Resource/control-flow landmarks establish the publisher controller in overlay 20, live title/menu
 in 21, eight-state title controller in 25, and the five game core/intro families. Overlay 25 fixes
 the 15/2/5 source-count sequence around SND 5012, 5000, and 5001; movie 12091; SND 5011; full

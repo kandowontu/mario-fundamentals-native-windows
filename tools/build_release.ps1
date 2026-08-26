@@ -121,6 +121,7 @@ if ((Test-Path -LiteralPath $dosExecutableManifestPath) -and
     python (Join-Path $PSScriptRoot "build_dos_function_traceability.py") `
         $dosRadareFunctions $dosRadareSections $dosExecutableManifestPath `
         (Join-Path $auditRoot "dos-function-traceability.csv") `
+        --executable $dosOriginalExecutable --overlay-directory $dosOverlayRoot `
         --overlay-summary $dosOverlaySummary `
         --json-output (Join-Path $auditRoot "dos-function-traceability-summary.json")
     if ($LASTEXITCODE -ne 0) { throw "DOS resident/discovery function traceability audit failed." }

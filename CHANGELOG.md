@@ -33,6 +33,10 @@ All notable native-port changes are documented here.
   hashes, event-5/event-6 branch targets, and the distinct completion, single-tick, and ignored
   routes. A hidden packaged-window probe sends all five mouse and all five key paths through the
   real Win32 dispatcher and checks printable-key `WM_CHAR` suppression.
+- Exact DOS resident dependency classification from all 2,900 FBOV fixups and 2,839 MZ
+  relocations. The supporting ledger now distinguishes 1,750 graph-reached resident candidates,
+  76 validated overlay-stub thunks, and 20 explicitly conservative compiler/system-or-indirect
+  candidates instead of assigning all 1,846 rows to one generic runtime bucket.
 
 ### Changed
 
