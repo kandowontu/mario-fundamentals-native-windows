@@ -85,11 +85,13 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   targets, DOS uses its own hand cap, and `$5744`/DOS `$5367` forces the final permitted draw to
   match a chain endpoint. The release test completes 128 matches per dialect through real draw and
   drag/drop input while preserving all 28 unique bones and every chain link.
-- The no-window presentation sweeps now emit 232 exact 512×384 Macintosh frames and 233 exact
+- The no-window presentation sweeps now emit 243 exact 512×384 Macintosh frames and 234 exact
   320×200 DOS frames. They cover both Macintosh title/board mouse-down completion paths, all five
-  source-specific selected-game intro input routes, DOS menu/help contexts, all intros/openings,
+  source-specific selected-game intro input routes, Macintosh About/Credits/all nine Help panels,
+  DOS menu/help contexts, all intros/openings,
   Backgammon setup reveal, Dominoes full-hand/drag/endings, Checkers endings, Go Fish
-  hand/question/transfer/victory, Yacht scoring/computer-dice/selection/victory, both Yacht
+  hand/question/transfer/victory, Yacht scoring/computer-dice/selection/victory/cup-free pre-roll,
+  both Yacht
   roll/settle timelines, and the complete movie-6021 reroll-gesture cycle in both editions.
 - The DOS source's eight-pixel `File / Options / Help` bar is restored exactly over main-menu and
   gameplay frames, with context-specific commands and the Pak 8000/8001 two-page instruction UI.
@@ -128,12 +130,11 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   selection. Legal moves onto friendly stacks no longer reselect the destination and stall the
   turn. Eight complete public-input matches per edition now gate rolls, moves, hits, bar entry,
   bearing off, checker conservation, Mario's delayed turns, and result completion.
-- The Yacht idle cup is suppressed by the same controller guard in both editions throughout the
-  roll movie and all sequential die-settle passes, with separate Macintosh and DOS regressions.
-  The renderer now chooses one exclusive visual owner—movie 6020 or Pak 6010's stationary cel—and
-  the regression executes the entire live movie-to-five-die-settle transition while checking every
-  controller pass. All 960 Macintosh and 1,200 DOS source instants prove exactly one animated large
-  cup cel; vanilla's small cup-shaped counters remain because they are authored remaining-roll markers.
+- The invented Yacht idle large cup has been removed in both editions. CODE 18 creates only Pak
+  6010 frames 13/14 as its small remaining-roll markers; movie 6020 alone owns the large cup. Separate
+  Macintosh and DOS pre-roll frames require no large cup, and the live movie-to-five-die-settle
+  regression requires it only while movie 6020 is active. All 960 Macintosh and 1,200 DOS source
+  instants still prove exactly one animated movie cel; the authored small markers remain visible.
 - Yacht now has eight full public-input matches per edition in the release gate. Each one performs
   all player rolls, holds and releases dice through their source hit records, fills the right
   scorecard, lets Mario's recovered adviser fill the left scorecard, reaches round twelve, and
@@ -148,8 +149,8 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   all five game introductions move on their authored axes, the Yacht crosses the water instead
   of dropping offscreen, and the dice cup shakes vertically.
 - Yacht speech now draws the fixed torso beneath the live head and uses the complete neutral Mario
-  only between lines. Its stationary cup is hidden during the animated roll, removing both the
-  shirt-over-jaw layering error and the duplicate cup.
+  only between lines. The non-source idle large cup is gone, removing both the shirt-over-jaw
+  layering error and the duplicate cup.
 - The neutral Yacht actor now composes both simultaneous time-zero cels from movie 6021 instead of
   drawing its incomplete raw base frame. Mario's left glove is solid in Macintosh and DOS gameplay.
 - Both Macintosh computer-roll entry paths now register the full-body movie-6021 gesture at CODE

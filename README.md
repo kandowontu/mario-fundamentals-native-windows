@@ -223,9 +223,9 @@ both deterministic asset packs occur exactly once, proves all 1,707 Macintosh an
 resources against their extraction manifests when those local audit records are present, reruns the
 self-test from an empty working directory, decodes and verifies all 3,149 Macintosh loader
 relocations and regenerates the 936-row global function ledger when raw CODE/DATA evidence is
-present, regenerates 232 Macintosh and 233 DOS no-window
+present, regenerates 243 Macintosh and 234 DOS no-window
 presentation frames at the exact 512×384 and 320×200 logical sizes, verifies the filename/length/
-content digest of every one of those 465 deterministic frames, inventories all 225 retained
+content digest of every one of those 477 deterministic frames, inventories all 225 retained
 vanilla captures, compares 52 independent original-output cases (publisher/title states and the
 terminal open-hand cel, pressed-menu feedback, exact pointer traversal/retargeting and selection
 holds, stable layouts, source-timed game intros, first-use panels,

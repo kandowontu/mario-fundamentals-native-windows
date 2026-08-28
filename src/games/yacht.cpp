@@ -40,7 +40,6 @@ constexpr Point kMacYachtTorsoAnchor{26, 0};
 // controller registration and continues to use kMacYachtHostAnchor.
 constexpr Point kMacYachtIdleMovieAnchor{24, 2};
 constexpr Point kDosYachtIdleMovieAnchor{-281, -94};
-constexpr Point kMacYachtCupAnchor{218, 129};
 constexpr Point kMacYachtRollMovieAnchor{0, -9};
 constexpr Rect kMacYachtRollButton{218, 129, 296, 228};
 // Preserve the previously source-verified DOS hit rectangle exactly instead
@@ -1176,16 +1175,6 @@ bool YachtGame::sourceTurnOrderRegressionTest() {
            outcomePhase_ == OutcomePhase::Announcement;
 }
 
-bool YachtGame::shouldDrawStationaryCup() const noexcept {
-    // Pak 6010 frame 12 is the idle roll control. Movie 6020 owns the large
-    // cup from mouse-down until every die has settled. The rule is deliberately
-    // edition-neutral: Macintosh and DOS share this controller state.
-    return openingDelayMilliseconds_ == 0 && !showComputerDice_ && rolls_ == 0 &&
-           computerAttempt_ == 0 && computerRerollStage_ == 0 &&
-           pendingRollPlayer_ == 0 && !rollAnimation_.active() &&
-           !gestureAnimation_.active() && !host_.active();
-}
-
 bool YachtGame::sourceOpeningClickRegressionTest() {
     // CODE 18's first export owns the skippable Yacht-on-the-water title.
     // Once the scorecard board exists, the second export's event-6 branch at
@@ -1220,39 +1209,36 @@ bool YachtGame::sourceCupPresentationRegressionTest() {
     pendingRollPlayer_ = 0;
     held_.fill(false);
 
-    // Movie 6020 contains exactly one active cup cel at every authored source
-    // instant.  Prove that for each edition's retained timeline, then prove
-    // the controller never enables its separate stationary Pak cel while the
-    // movie owns the stage.  The earlier state-only check sampled contact and
-    // could not rule out a duplicate layer at an intermediate movie instant.
+    // Movie 6020 contains exactly one active large-cup cel at every authored
+    // source instant. CODE 18 $215C creates only Pak 6010 frames 13 and 14 as
+    // the two lanes of small remaining-roll controls; no source path creates
+    // frame 12 as an idle large cup. The large cup therefore exists only while
+    // movie 6020 owns the stage.
     const Movie sourceRollMovie(context_.assets, 6020);
     if (!sourceRollMovie.resolved() || sourceRollMovie.duration() == 0) return false;
     for (std::uint32_t sourceTime = 0; sourceTime < sourceRollMovie.duration(); ++sourceTime) {
         if (sourceRollMovie.activeImageCount(sourceTime) != 1) return false;
     }
-    const auto cupLayerCount = [this]() {
-        return static_cast<int>(rollAnimation_.active()) +
-               static_cast<int>(shouldDrawStationaryCup());
-    };
 
-    if (!shouldDrawStationaryCup() || cupLayerCount() != 1) return false;
+    if (rollAnimation_.active()) return false;
     roll();
     if (pendingRollPlayer_ != 1 || !rollAnimation_.active() ||
-        shouldDrawStationaryCup() || cupLayerCount() != 1 ||
         context_.audio.lastSampleRequestRoute() != SampleRequestRoute::Tracked ||
         context_.audio.requestedSoundResourceId() != 5018) return false;
 
     // Exercise the complete live path rather than manufacturing its terminal
     // state. The movie can finish before the five sequential die-settle
-    // passes, and the pending controller must continue suppressing the idle
-    // cup during every one of them in both resource editions.
+    // passes. Once the movie ends, no large cup may remain while those five
+    // dice settle.
     bool sawMovie = false;
+    bool sawSettleWithoutLargeCup = false;
     int settledDice = 0;
     for (int tickIndex = 0;
          tickIndex < 256 && (pendingRollPlayer_ != 0 || rollAnimation_.active());
          ++tickIndex) {
-        if (shouldDrawStationaryCup() || cupLayerCount() > 1) return false;
         sawMovie = sawMovie || rollAnimation_.active();
+        sawSettleWithoutLargeCup = sawSettleWithoutLargeCup ||
+                                   (pendingRollPlayer_ != 0 && !rollAnimation_.active());
         const int previousSettlingIndex = settlingDieIndex_;
         (void)tick();
         if (settlingDieIndex_ > previousSettlingIndex) {
@@ -1260,15 +1246,13 @@ bool YachtGame::sourceCupPresentationRegressionTest() {
                 context_.audio.requestedSoundResourceId() != 5019) return false;
             settledDice += settlingDieIndex_ - previousSettlingIndex;
         }
-        if ((pendingRollPlayer_ != 0 || rollAnimation_.active()) &&
-            (shouldDrawStationaryCup() || cupLayerCount() > 1)) return false;
     }
     if (!sawMovie || settledDice != 5 || pendingRollPlayer_ != 0 ||
-        rollAnimation_.active() || rolls_ != 1 || shouldDrawStationaryCup()) return false;
+        rollAnimation_.active() || rolls_ != 1 || !sawSettleWithoutLargeCup) return false;
 
     rolls_ = 0;
     showComputerDice_ = true;
-    return !shouldDrawStationaryCup();
+    return !rollAnimation_.active();
 }
 
 bool YachtGame::sourceFullMatchRegressionTest() {
@@ -1332,8 +1316,6 @@ bool YachtGame::sourceFullMatchRegressionTest() {
                     (computerFilled != round_ && computerFilled != round_ + 1) ||
                     computerFilled < humanFilled || computerFilled > humanFilled + 1) return false;
             }
-            if ((pendingRollPlayer_ != 0 || rollAnimation_.active()) &&
-                shouldDrawStationaryCup()) return false;
             return true;
         };
 
@@ -1556,7 +1538,7 @@ void YachtGame::setQaDiceSelectionPresentation() {
     status_ = L"Select the dice to roll again.";
 }
 
-void YachtGame::setQaStationaryCupPresentation() {
+void YachtGame::setQaPreRollPresentation() {
     host_.stop();
     rollAnimation_.stop();
     gestureAnimation_.stop();
@@ -1583,7 +1565,7 @@ void YachtGame::setQaStationaryCupPresentation() {
 }
 
 void YachtGame::setQaComputerDicePresentation() {
-    setQaStationaryCupPresentation();
+    setQaPreRollPresentation();
     // Retained vanilla trace 7: Mario has completed his first roll, two
     // small remaining-roll markers are visible, and all five dice are still
     // white. This is a stable frame immediately before his reroll gesture.
@@ -1597,7 +1579,7 @@ void YachtGame::setQaComputerDicePresentation() {
 }
 
 void YachtGame::setQaRerollGesturePresentation(std::uint32_t sourceTime) {
-    setQaStationaryCupPresentation();
+    setQaPreRollPresentation();
     // Match the independently captured vanilla third-attempt gesture: two
     // white dice followed by three held red dice, empty scorecards, and no
     // remaining-roll markers. This isolates movie 6021's registration without
@@ -1613,7 +1595,7 @@ void YachtGame::setQaRerollGesturePresentation(std::uint32_t sourceTime) {
 }
 
 void YachtGame::setQaRollPresentation() {
-    setQaStationaryCupPresentation();
+    setQaPreRollPresentation();
     // Retained vanilla trace 6 is Mario's initial roll: two source cup-shaped
     // remaining-roll markers sit in the left lane while movie 6020 owns the
     // one large cup. Use that exact controller state so the visual gate can
@@ -1676,15 +1658,10 @@ void YachtGame::render(Canvas& canvas) {
     } else {
         (void)gestureAnimation_.render(canvas);
     }
-    // The roll movie and Pak 6010's stationary control are mutually exclusive
-    // visual owners.  Key the fallback off the render result as well as the
-    // controller predicate, so a future state edit cannot draw both layers in
-    // one frame on either Macintosh or DOS.
-    const bool rollCupRendered = rollAnimation_.render(canvas);
-    if (!rollCupRendered && shouldDrawStationaryCup())
-        canvas.sprite(context_.graphics.sprite(6010, 12),
-                      dosEdition() ? 136 : kMacYachtCupAnchor.x,
-                      dosEdition() ? 86 : kMacYachtCupAnchor.y, false);
+    // CODE 18 never creates Pak 6010 frame 12 as a stationary large cup.
+    // Movie 6020 is the sole large-cup visual owner in both editions; the
+    // small frame-13/14 controls below are the authored remaining-roll cups.
+    (void)rollAnimation_.render(canvas);
     canvas.pakText(context_.graphics,
                    context_.playerName.empty() ? L"PLAYER" : context_.playerName,
                    226, dosEdition() ? Rect{236, 9, 313, 27} : Rect{378, 20, 499, 47},

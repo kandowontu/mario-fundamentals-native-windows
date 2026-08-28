@@ -18,8 +18,8 @@ All notable native-port changes are documented here.
   preservation, and empty-directory release verification.
 - Silent, no-window Macintosh presentation output covering startup, title skip, four board-flip
   positions, every menu pose, 21 points across each game intro, eight opening states per game, and
-  stationary/contact cup plus seven Yacht roll/settle states. The release gate regenerates and
-  validates all 232 Macintosh and 233 DOS frames at each edition's exact logical dimensions, then
+  a cup-free Yacht pre-roll plus seven roll/settle states. The release gate regenerates and
+  validates all 243 Macintosh and 234 DOS frames at each edition's exact logical dimensions, then
   content-pins the complete ordered corpora instead of accepting count/size alone.
 - A fail-closed 225-file vanilla-capture inventory and 52 independent pixel/edge comparisons,
   including the title silhouette/open hand, four menu selections, Go Fish question/transfer, and
@@ -65,6 +65,9 @@ All notable native-port changes are documented here.
 
 ### Fixed
 
+- Removed seven host-pointer artifacts from the retained Macintosh QuickDraw Help captures while
+  preserving their authored pixels, page chrome, and controls. A deterministic cleanup tool pins
+  both the raw capture hashes and the cleaned output hashes, and the release gate verifies them.
 - Macintosh window destruction now cancels its timer and stops both voice/effect and music routes
   immediately, matching the DOS lifecycle instead of relying on later object-destruction timing.
 - Restored the five original DOS selected-game intro input handlers from FBOV overlays
@@ -130,13 +133,14 @@ All notable native-port changes are documented here.
 - Kept CODE 18's two Macintosh click contexts distinct: the Yacht-on-the-water title accepts a
   mouse-down completion, while clicks after the scorecard board appears enter `$6F0`'s locked
   gameplay-control dispatcher and do not skip the vanilla "Good luck" / "I go first" opening.
-- Applied the Yacht stationary-cup suppression to the shared Macintosh/DOS controller and added
-  per-edition full-path regressions covering every animated-shake and sequential-die-settle pass.
-  The renderer now gives the animated movie and stationary Pak cel one exclusive visual-owner path;
-  all 960 Macintosh and 1,200 DOS movie instants must contain exactly one active cup cel.
-- Re-registered the Macintosh Yacht dialogue head, torso, idle actor, stationary cup, and roll
-  movie against the preserved vanilla capture. The stationary and roll-contact cups now occupy the
-  same `(218,129)-(296,228)` rectangle, with an exact regional hash preventing a jump or duplicate.
+- Removed the invented idle Yacht large-cup layer from the shared Macintosh/DOS renderer. CODE 18's
+  `$215C` creates only Pak 6010 frames 13/14 as the small remaining-roll markers; frame 12 is never
+  created by the original controller, and movie 6020 is the sole large-cup owner. Per-edition
+  pre-roll and roll frames plus a complete movie-to-five-die-settle regression now enforce that
+  source ownership while all 960 Macintosh and 1,200 DOS movie instants retain one active movie cel.
+- Re-registered the Macintosh Yacht dialogue head, torso, idle actor, and roll movie against the
+  preserved vanilla capture. The large cup is absent before a roll and appears only at movie 6020's
+  source placement; the authored row of three/two small remaining-roll markers remains intact.
 - Added a validation-only GitHub Actions workflow for every `main` push and pull request. It runs
   the complete packaged Windows gate and reproducible build but has read-only permissions and no
   artifact-upload or release step; withdrawn releases cannot be republished by CI.
@@ -147,9 +151,9 @@ All notable native-port changes are documented here.
   every translated movie: Yacht now sails horizontally, game-intro actors cross their stages,
   and the Yacht dice cup shakes vertically rather than sliding sideways.
 - Composited Yacht dialogue as a torso underlay followed by the live head, using the complete
-  neutral Mario only while speech is idle. The stationary cup is now suppressed throughout the
-  roll movie, eliminating the doubled cup and preventing Mario's jaw from being painted behind
-  his shirt.
+  neutral Mario only while speech is idle. Removing the non-source idle large cup eliminates the
+  doubled cup, while the corrected actor order prevents Mario's jaw from being painted behind his
+  shirt.
 - Ended DOS game introductions when their source actors complete instead of holding blank or
   trailing cels for the Macintosh-only two-second tableau delay; corrected the Dominoes parade's
   eight-pixel stage registration.

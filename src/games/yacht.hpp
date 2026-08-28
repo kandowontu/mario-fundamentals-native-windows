@@ -39,7 +39,7 @@ public:
     void setQaVictoryPresentation();
     void setQaScorecardPresentation();
     void setQaDiceSelectionPresentation();
-    void setQaStationaryCupPresentation();
+    void setQaPreRollPresentation();
     void setQaComputerDicePresentation();
     void setQaRerollGesturePresentation(std::uint32_t sourceTime);
     void setQaRollPresentation();
@@ -92,7 +92,6 @@ private:
     void continueComputerReroll();
     [[nodiscard]] int drawDialoguePool(std::vector<int>& movies, std::size_t& cursor);
     [[nodiscard]] int total(const std::array<int, 12>& scores) const;
-    [[nodiscard]] bool shouldDrawStationaryCup() const noexcept;
     [[nodiscard]] static std::wstring_view categoryName(int category);
     [[nodiscard]] static int categoryMovie(int category);
 

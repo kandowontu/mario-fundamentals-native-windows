@@ -20,10 +20,10 @@ are used only for local preservation QA.
 The independently sourced comparisons are complemented by
 `tools/verify_qa_frame_corpus.py`. Runtime Macintosh play continues to seed QuickDraw from the
 source TickCount, but the hidden presentation renderer resets to a fixed source seed. The verifier
-therefore content-pins all 232 Macintosh and 233 DOS BMPs—including the random-dependent states
+therefore content-pins all 243 Macintosh and 234 DOS BMPs—including the random-dependent states
 outside the 52 source comparisons—by ordered filename, length, and SHA-256. The current complete-
-corpus digests are `8E657C4919BDAD1CB3031CEC8170EBAFAD7BB1F75532C07BBFB6031D707601D2`
-for Macintosh and `7206677B51E3C32DA22998C88E64C08D6799C9FE690554CCD523BBCD53F35A58`
+corpus digests are `0BACE05FBC0F7487F93AE256E60733AE2D477CDBE11728F55A81B97F1A5E8A62`
+for Macintosh and `07E181C269D5FCC1489F4E3A7EA8DF208FA888A5DD3BEA71ADB51F10346915BD`
 for DOS. This regression layer prevents an unreferenced frame from changing; it does not replace
 the vanilla screenshots as the fidelity authority.
 

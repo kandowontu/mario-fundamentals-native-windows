@@ -251,12 +251,14 @@ computer-roll entry paths register full-body movie 6021 at the same `(15,-1)` in
 source-time-240 bounds are `(99,18)-(337,212)`. At source time zero the movie activates base frame
 0 and overlay frame 1 simultaneously. Their shared destination is `(217,18)` on Macintosh and
 `(119,9)` on DOS; drawing raw frame 0 alone drops Mario's left glove.
-Pak 6010 frame 12's stationary cup is
-`(218,129)-(296,228)`, and movie 6020 input `(0,-9)` gives its first live frame those identical
-bounds. The controller suppresses the stationary frame from mouse-down through the movie and all
-five settle passes, so the contact frame neither jumps nor doubles. The independent Macintosh
-comparison reconstructs vanilla trace 6's complete Mario-first roll, including its two small
-remaining-roll counters, and gates the whole 512×384 tableau rather than only the large-cup crop.
+CODE 18 `$215C` creates only Pak 6010 frame 13 at `(147+27i,182)` and frame 14 at
+`(409+33i,328)` as the two lanes of small remaining-roll controls; neither that routine nor the
+Pak-6010 initializer `$2F22` creates frame 12 as a stationary large cup. Movie 6020 is therefore
+the sole large-cup owner. The pre-roll stage contains no large cup, while movie 6020 input `(0,-9)`
+places its live cup at the authored source bounds during a roll and then removes it before the
+remaining dice finish settling. Independent Macintosh comparisons gate both the cup-free pre-roll
+and vanilla trace 6's complete Mario-first roll, including its two small remaining-roll counters,
+as whole 512×384 tableaus rather than only a large-cup crop.
 These Macintosh values do not replace the separately recovered DOS placements.
 
 The DOS records deliberately differ: `MuV ` uses `x, y, width, height`, while `Img ` uses
@@ -442,7 +444,7 @@ and hash. The native renderer draws those glyph masks directly, including QuickD
 synthetic bold smear, and reproduces the literal `v. ` prefix plus `vers` 1's short `1.1` string.
 The complete 512x384 About raster is pinned in the executable self-test.
 
-PICT 400–409 are help/instruction documents that mix QuickDraw text/vector commands with PackBits rectangles. General-purpose raster converters rejected this mix, but Deark 1.7.3 parses all ten and extracts 58 embedded raster components. The full vector/text resources remain byte-identical in the embedded pack. The nine help pages actually presented by the game were also captured from their source QuickDraw rendering and embedded as exact 486x350 modal panels for native F1 navigation.
+PICT 400–409 are help/instruction documents that mix QuickDraw text/vector commands with PackBits rectangles. General-purpose raster converters rejected this mix, but Deark 1.7.3 parses all ten and extracts 58 embedded raster components. The full vector/text resources remain byte-identical in the embedded pack. The nine help pages actually presented by the game were captured from their source QuickDraw rendering and embedded as 486x350 modal panels for native F1 navigation. Seven host-pointer artifacts accidentally present in the retained screenshots are removed by a fail-closed deterministic tool: three uniform title/chrome regions are restored row-for-row, and four terminal pages reuse Checkers' identical clean disabled-Next control. Both the raw and cleaned hashes are pinned.
 
 ## Gameplay findings
 
@@ -594,8 +596,8 @@ implementations remain evidence-backed rather than inferred from modern versions
   The release self-test exercises this as eight uninterrupted matches per edition. It fast-forwards
   speech only, then uses the public roll, die-control, and score-line click paths through all twelve
   rounds and the complete outcome controller. Per-pass invariants cover dice values, score formats,
-  scorecard ownership, Mario/player turn ordering, controller bounds, and stationary-cup exclusion
-  throughout every live roll and settle sequence.
+  scorecard ownership, Mario/player turn ordering, controller bounds, and large-cup absence outside
+  movie 6020 throughout every live roll and settle sequence.
   Play Again clears both twelve-line scorecards, dice, held flags, outcome state, and Mario's local
   score-announcement alternation before replaying Good Luck/I Go First. CODE 18's module-scoped
   thinking/reaction pools and four-joke cursor remain at their current positions; a dual-edition

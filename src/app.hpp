@@ -52,6 +52,7 @@ private:
     static LRESULT CALLBACK windowProcedure(HWND window, UINT message, WPARAM wParam, LPARAM lParam);
     LRESULT handleMessage(HWND window, UINT message, WPARAM wParam, LPARAM lParam);
     void createWindow(int showCommand);
+    void runShellQa();
     void render();
     void renderIntro();
     void renderName();

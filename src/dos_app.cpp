@@ -575,6 +575,9 @@ void DosApp::renderQaFrames(std::wstring_view outputDirectory) {
                  L"36-yacht-reroll-gesture-" + std::to_wstring(sourceTime) + L".bmp");
         }
 
+        yacht->setQaPreRollPresentation();
+        save(L"36-yacht-pre-roll.bmp");
+        const std::uint64_t preRollHash = canvas_.pixelHash({135, 86, 184, 140});
         yacht->setQaRollPresentation();
         constexpr std::array<int, 7> rollTicks{0, 4, 8, 16, 32, 48, 56};
         int elapsedTicks = 0;
@@ -584,6 +587,11 @@ void DosApp::renderQaFrames(std::wstring_view outputDirectory) {
                 ++elapsedTicks;
             }
             save(L"30-yacht-roll-" + std::to_wstring(targetTicks) + L".bmp");
+            if (targetTicks == 0 &&
+                canvas_.pixelHash({135, 86, 184, 140}) == preRollHash) {
+                throw std::runtime_error(
+                    "DOS Yacht roll movie did not replace the cup-free pre-roll stage");
+            }
         }
     }
 

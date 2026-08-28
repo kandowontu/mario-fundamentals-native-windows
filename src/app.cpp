@@ -514,9 +514,9 @@ void App::renderQaFrames(std::wstring_view outputDirectory) {
 
     startGame(4);
     if (auto* yacht = dynamic_cast<YachtGame*>(game_.get())) {
-        yacht->setQaStationaryCupPresentation();
-        save(L"36-yacht-stationary-cup.bmp");
-        const std::uint64_t stationaryCupHash = canvas_.pixelHash({218, 129, 296, 228});
+        yacht->setQaPreRollPresentation();
+        save(L"36-yacht-pre-roll.bmp");
+        const std::uint64_t preRollHash = canvas_.pixelHash({218, 129, 296, 228});
         yacht->setQaRollPresentation();
         constexpr std::array<int, 7> rollTicks{0, 4, 8, 16, 32, 48, 56};
         int elapsedTicks = 0;
@@ -529,11 +529,32 @@ void App::renderQaFrames(std::wstring_view outputDirectory) {
             canvas_.saveBmp((root / (L"30-yacht-roll-" +
                 std::to_wstring(targetTicks) + L".bmp")).wstring());
             if (targetTicks == 0 &&
-                canvas_.pixelHash({218, 129, 296, 228}) != stationaryCupHash) {
+                canvas_.pixelHash({218, 129, 296, 228}) == preRollHash) {
                 throw std::runtime_error(
-                    "Macintosh Yacht cup moved or duplicated on roll contact");
+                    "Macintosh Yacht roll movie did not replace the cup-free pre-roll stage");
             }
         }
+    }
+
+    // Cover CODE 5's two picture windows and all nine source Help pages as
+    // complete Macintosh states. Help retains a live game beneath the modal
+    // panel, matching the shell route exercised by the packaged-window probe.
+    screen_ = Screen::About;
+    pictureReturnScreen_ = Screen::Menu;
+    save(L"14-about.bmp");
+    screen_ = Screen::Credits;
+    save(L"14-credits.bmp");
+    for (int gameIndex = 0; gameIndex < 5; ++gameIndex) {
+        startGame(gameIndex);
+        helpReturnScreen_ = Screen::Game;
+        helpGameIndex_ = gameIndex;
+        for (int page = 0; page < kHelpPageCount[static_cast<std::size_t>(gameIndex)]; ++page) {
+            helpPage_ = page;
+            screen_ = Screen::Help;
+            save(L"14-help-" + std::to_wstring(gameIndex) + L"-" +
+                 std::to_wstring(page) + L".bmp");
+        }
+        game_.reset();
     }
 }
 
@@ -590,6 +611,166 @@ void App::createWindow(int showCommand) {
     updateEditMenu();
     updateOptionsMenu();
     SetTimer(window_, 1, 33, nullptr);
+}
+
+void App::runShellQa() {
+    if (!window_) throw std::runtime_error("Macintosh shell QA window was not created");
+    if (viewport_.width() <= 0 || viewport_.height() <= 0)
+        viewport_ = {0, 0, kLogicalWidth, kLogicalHeight};
+
+    const auto command = [this](UINT id) {
+        handleMessage(window_, WM_COMMAND, MAKEWPARAM(id, 0), 0);
+    };
+    const auto sendLogicalClick = [this](Point logical) {
+        const int clientX = viewport_.left + logical.x * viewport_.width() / kLogicalWidth;
+        const int clientY = viewport_.top + logical.y * viewport_.height() / kLogicalHeight;
+        handleMessage(window_, WM_LBUTTONDOWN, MK_LBUTTON, MAKELPARAM(clientX, clientY));
+    };
+
+    HMENU menuBar = GetMenu(window_);
+    HMENU helpMenu = menuBar ? GetSubMenu(menuBar, 3) : nullptr;
+    constexpr std::array<UINT, 8> helpIds{
+        kCommandHelpBackgammon, kCommandHelpCheckers, kCommandHelpDominoes,
+        kCommandHelpGoFish, kCommandHelpYacht, 0,
+        kCommandAbout, kCommandCredits};
+    if (!menuBar || !fileMenu_ || !editMenu_ || !optionsMenu_ || !helpMenu ||
+        GetMenuItemCount(menuBar) != 4 || GetMenuItemCount(helpMenu) !=
+            static_cast<int>(helpIds.size())) {
+        throw std::runtime_error("Macintosh packaged menu bar is incomplete");
+    }
+    for (int index = 0; index < static_cast<int>(helpIds.size()); ++index) {
+        const UINT actual = GetMenuItemID(helpMenu, index);
+        const UINT expected = helpIds[static_cast<std::size_t>(index)];
+        if (actual != expected) {
+            throw std::runtime_error(
+                "Macintosh Help menu order/command mapping changed at " +
+                std::to_string(index) + ":" + std::to_string(actual) +
+                "!=" + std::to_string(expected));
+        }
+    }
+
+    screen_ = Screen::Menu;
+    activeGameIndex_ = -1;
+    pendingGameIndex_ = -1;
+    playerName_ = L"PLAYER";
+    showSelectedMenuPose();
+    updateFileMenu();
+    updateEditMenu();
+    updateOptionsMenu();
+    if (GetMenuItemCount(fileMenu_) != 1 || GetMenuItemID(fileMenu_, 0) != kCommandExit ||
+        GetMenuItemCount(optionsMenu_) != 4 ||
+        GetMenuItemID(optionsMenu_, 0) != kCommandChangeName ||
+        GetMenuItemID(optionsMenu_, 1) != kCommandSound ||
+        GetMenuItemID(optionsMenu_, 2) != kCommandMusic ||
+        GetMenuItemID(optionsMenu_, 3) != kCommandHideBackground) {
+        throw std::runtime_error("Macintosh main-shell File/Options menus changed");
+    }
+    if ((GetMenuState(editMenu_, kCommandUndo, MF_BYCOMMAND) & MF_GRAYED) == 0 ||
+        (GetMenuState(editMenu_, kCommandCut, MF_BYCOMMAND) & MF_GRAYED) == 0) {
+        throw std::runtime_error("Macintosh Edit menu enabled outside the name editor");
+    }
+
+    // Verification begins with physical output disabled and no requested
+    // track, so paired Sound/Music commands can exercise their real menu
+    // routes without opening an audio device or altering persisted settings.
+    if (audio_.soundEnabled() || audio_.musicEnabled() ||
+        audio_.requestedMusicResourceId() >= 0) {
+        throw std::runtime_error("Macintosh shell QA did not begin silent");
+    }
+    command(kCommandSound);
+    if (!audio_.soundEnabled()) throw std::runtime_error("Sound menu command did not enable");
+    command(kCommandSound);
+    command(kCommandMusic);
+    if (audio_.soundEnabled() || !audio_.musicEnabled())
+        throw std::runtime_error("Sound/Music menu command state changed");
+    command(kCommandMusic);
+    if (audio_.musicEnabled()) throw std::runtime_error("Music menu command did not restore");
+
+    command(kCommandHideBackground);
+    if (!backgroundHidden_) throw std::runtime_error("Hide Background menu command did not apply");
+    command(kCommandHideBackground);
+    if (backgroundHidden_) throw std::runtime_error("Hide Background menu command did not restore");
+
+    command(kCommandChangeName);
+    if (screen_ != Screen::GameName || !changingName_ || nameReturnScreen_ != Screen::Menu)
+        throw std::runtime_error("Change Name menu command did not open its editor");
+    handleMessage(window_, WM_CHAR, 'X', 0);
+    if (playerName_ != L"PLAYERX" || audio_.requestedSoundResourceId() != 9201)
+        throw std::runtime_error("Change Name editor did not accept its live character route");
+    handleMessage(window_, WM_KEYDOWN, VK_ESCAPE, 0);
+    if (screen_ != Screen::Menu || changingName_ || playerName_ != L"PLAYER")
+        throw std::runtime_error("Change Name Escape did not restore the source value");
+
+    handleMessage(window_, WM_KEYDOWN, VK_F1, 0);
+    if (screen_ != Screen::Help || helpReturnScreen_ != Screen::Menu || helpGameIndex_ != 0)
+        throw std::runtime_error("F1 did not open default Macintosh Help from the menu");
+    handleMessage(window_, WM_KEYDOWN, VK_F1, 0);
+    if (screen_ != Screen::Menu)
+        throw std::runtime_error("F1 did not close Macintosh Help back to the menu");
+
+    startGame(2);
+    updateFileMenu();
+    updateOptionsMenu();
+    if (GetMenuItemCount(fileMenu_) != 3 ||
+        GetMenuItemID(fileMenu_, 0) != kCommandNewGame ||
+        GetMenuItemID(fileMenu_, 1) != 0 ||
+        GetMenuItemID(fileMenu_, 2) != kCommandMainMenu ||
+        GetMenuItemCount(optionsMenu_) != 7 ||
+        GetMenuItemID(optionsMenu_, 5) != kCommandAnimatedPieces ||
+        GetMenuItemID(optionsMenu_, 6) != kCommandForcedJumps) {
+        throw std::runtime_error("Macintosh Checkers File/Options menus changed");
+    }
+    command(kCommandAnimatedPieces);
+    command(kCommandForcedJumps);
+    if (animatedPieces_ || forcedJumps_)
+        throw std::runtime_error("Checkers option commands did not reach the live game");
+    command(kCommandAnimatedPieces);
+    command(kCommandForcedJumps);
+    if (!animatedPieces_ || !forcedJumps_)
+        throw std::runtime_error("Checkers option commands did not restore");
+
+    command(kCommandNewGame);
+    if (dialog_ != Dialog::ConfirmReset)
+        throw std::runtime_error("New Game command did not open the reset confirmation");
+    handleMessage(window_, WM_KEYDOWN, VK_ESCAPE, 0);
+    if (dialog_ != Dialog::None)
+        throw std::runtime_error("reset confirmation Escape did not close the dialog");
+
+    command(kCommandHelpBackgammon);
+    if (screen_ != Screen::Help || helpReturnScreen_ != Screen::Game ||
+        helpGameIndex_ != 0 || helpPage_ != 0) {
+        throw std::runtime_error("game Help command did not preserve its return screen");
+    }
+    sendLogicalClick({340, 339});
+    if (helpPage_ != 1 || audio_.requestedEffectResourceId() != 5003)
+        throw std::runtime_error("Macintosh Help Next route did not advance/play its cue");
+    sendLogicalClick({176, 339});
+    if (helpPage_ != 0) throw std::runtime_error("Macintosh Help Previous route did not rewind");
+    sendLogicalClick({260, 339});
+    if (screen_ != Screen::Game) throw std::runtime_error("Macintosh Help Close lost game state");
+
+    command(kCommandAbout);
+    if (screen_ != Screen::About || pictureReturnScreen_ != Screen::Game ||
+        audio_.requestedSoundResourceId() != audio_catalog::kAboutSound) {
+        throw std::runtime_error("About command did not enter CODE 5's picture route");
+    }
+    render();
+    if (canvas_.pixelHash({0, 0, kLogicalWidth, kLogicalHeight}) != 9429561953654105681ULL)
+        throw std::runtime_error("packaged About command rendered the wrong source raster");
+    sendLogicalClick({10, 10});
+    if (screen_ != Screen::Game) throw std::runtime_error("About click did not restore the game");
+
+    command(kCommandCredits);
+    if (screen_ != Screen::Credits || pictureReturnScreen_ != Screen::Game ||
+        audio_.requestedSoundResourceId() != audio_catalog::kCreditsSound) {
+        throw std::runtime_error("Credits command did not enter CODE 5's picture route");
+    }
+    handleMessage(window_, WM_KEYDOWN, VK_ESCAPE, 0);
+    if (screen_ != Screen::Game) throw std::runtime_error("Credits Escape did not restore the game");
+
+    command(kCommandMainMenu);
+    if (screen_ != Screen::Menu || activeGameIndex_ != -1 || game_)
+        throw std::runtime_error("Exit Game command did not return to the main shell");
 }
 
 int App::run(int showCommand) {
@@ -734,6 +915,11 @@ int App::run(int showCommand) {
                 "Macintosh game-intro skip leaked WM_CHAR into the name editor");
 
         game_.reset();
+        DestroyWindow(window_);
+        window_ = nullptr;
+        return 0;
+    } else if (std::wcsstr(GetCommandLineW(), L"--qa-mac-shell")) {
+        runShellQa();
         DestroyWindow(window_);
         window_ = nullptr;
         return 0;

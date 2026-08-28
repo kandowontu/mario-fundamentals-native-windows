@@ -61,19 +61,19 @@ supported payload and records the sole shipped orphan movie source, ID 10001.
 | `startup/stepping-stone.bmp` | 589,878 | `5DEBF9B9591458B4CFA4DDA0EAE63065AE43AE70604467C48149EF541A94525D` |
 | `startup/stepping-stone-fade.bmp` | 589,878 | `19F28456BF68A20CAC902EEEEA16B6E236DEEFC04B846500F6016C5AC6A72C82` |
 | `help/backgammon-1.bmp` | 511,054 | `DF562FE7E91AC0ED79925E9F01BD93BCF76722D814A630CDB847111632C097F7` |
-| `help/backgammon-2.bmp` | 511,054 | `762FCEBD98F061F99F883BADDC6C789DA3875A900B378D63169048535AF9B27F` |
-| `help/dominoes-1.bmp` | 511,054 | `D34BFCA149AFC0134AE199B9EA4F6829A4D68A352F847AAE67446C0B436C4311` |
-| `help/dominoes-2.bmp` | 511,054 | `4C403A4E8C861BFDAE48D26FF0CF57935B6EA180EEBE45C037EF588CB4B918EE` |
+| `help/backgammon-2.bmp` | 511,054 | `7F6B3F112CC7108DC6E3F6DF22F1922571EF9C308C8DDC12998D6406DC1E6EE7` |
+| `help/dominoes-1.bmp` | 511,054 | `D6B08D708FDDD3258F10462D4EFE800B1D774E3087CDCD16B3A47D2DE3C641FB` |
+| `help/dominoes-2.bmp` | 511,054 | `7472BE7B9FF65B0B351BF42A36F7277E4BF7D4015E1192C5DA04411AFD4C6769` |
 | `help/checkers-1.bmp` | 511,054 | `F4EE88BD96E2317EDD6AB81153BB57FB22BD83D76E1433A7E86369582D1889D7` |
-| `help/gofish-1.bmp` | 511,054 | `5FD4A3A6F5B9A5E7ECE7425ECAC69F234BE95F797B562DB186FDA354D197E6FC` |
-| `help/gofish-2.bmp` | 511,054 | `C92F1DCB8A156E6B9A06873B31CCC3BCF8A371AD2C755196B768AD55B3C353A0` |
-| `help/yacht-1.bmp` | 511,054 | `CD973B373015E7445FD300EE4C94D600820CDA2927BA69726FF94473C9A00FEA` |
-| `help/yacht-2.bmp` | 511,054 | `E37FE4B68C1695C173646CFD9D66CE90D4918E925B12959531EEB537BEE8076F` |
+| `help/gofish-1.bmp` | 511,054 | `67AC1F4E346011F18E66E68C13AFDB4B32127D7DC5E7100B52BC9E11B2534981` |
+| `help/gofish-2.bmp` | 511,054 | `BDDDB031A330D0F4759C0B0C2B8AF71FC644D043E7BD4BBCCD3AB315D29593DB` |
+| `help/yacht-1.bmp` | 511,054 | `37E8F3C1EEE77A7766EBF4E8CFF07D62124754F367E5042BFD59A657C674C173` |
+| `help/yacht-2.bmp` | 511,054 | `1FA38048828048491EBFD07AE09020901F79B1F9B3688F3CBAB84100A7AB718E` |
 | `fonts/times-14.nfnt` | 4,124 | `C6DA9CF88E5B0CF28EF6A70AAE2D3D7D64611C6FEE5D91067F34FD5913E00E9F` |
 | `fonts/geneva-9.nfnt` | 2,152 | `B2BBBA4A4CD1E78320C6A4256BD5D08E01326349804905A1E5D577521F03C754` |
 | `fonts/monaco-12.nfnt` | 2,464 | `4593CB0D3CC92A5C8ACB8A0C2C9D7BA5B59731A12387944795CA00AD1801B9DD` |
 
-The BMP files are normalized to the classic 40-byte `BITMAPINFOHEADER` so MinGW `windres` and Win32 GDI load them consistently. Title/credits pixel content comes from PICT 128/129; publisher and help panels are preserved source-rendered captures. All are embedded Win32 resources rather than loose runtime files.
+The BMP files are normalized to the classic 40-byte `BITMAPINFOHEADER` so MinGW `windres` and Win32 GDI load them consistently. Title/credits pixel content comes from PICT 128/129; publisher and help panels are preserved source-rendered captures. `tools/clean_mac_help_captures.py` removes only seven host-pointer artifacts from those retained Help captures and pins both its accepted source and cleaned hashes; the source PICT resources remain byte-identical in the embedded pack. All BMPs are embedded Win32 resources rather than loose runtime files.
 
 The three embedded `NFNT` files are exact resource bytes from the source image's System 7
 Times/Geneva/Monaco suitcases. Their extraction is reproducible with
@@ -86,7 +86,7 @@ one-bit screen strikes. CODE 5 About metrics and the complete composed raster ar
 
 | File | Bytes | SHA-256 |
 |---|---:|---|
-| `dist/MarioFundamentals.exe` | 25,194,221 | `A08B5CD92442559AE8D2F445467E1BA9EFE513917F29715E6E2BFF8DECFC23B7` |
+| `dist/MarioFundamentals.exe` | 25,206,994 | `BCCE5C92BC7DBCC95F64D9B976D39CE43245539FAAC117D7921C24FB9FDA2453` |
 
 This local candidate is not published. The release verifiers require both deterministic asset packs to occur exactly once in the
 executable. They separately prove all 1,707 Macintosh and 1,806 DOS manifest entries against the

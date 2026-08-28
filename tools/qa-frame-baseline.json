@@ -3,18 +3,18 @@
   "digest_method": "SHA-256 over each case-sensitive UTF-8 filename, NUL, 8-byte big-endian file length, and the 32-byte SHA-256 of the BMP, in ordinal filename order",
   "editions": {
     "macintosh": {
-      "frames": 232,
+      "frames": 243,
       "width": 512,
       "height": 384,
       "bmp_bytes": 786486,
-      "corpus_sha256": "8E657C4919BDAD1CB3031CEC8170EBAFAD7BB1F75532C07BBFB6031D707601D2"
+      "corpus_sha256": "0BACE05FBC0F7487F93AE256E60733AE2D477CDBE11728F55A81B97F1A5E8A62"
     },
     "dos": {
-      "frames": 233,
+      "frames": 234,
       "width": 320,
       "height": 200,
       "bmp_bytes": 256054,
-      "corpus_sha256": "7206677B51E3C32DA22998C88E64C08D6799C9FE690554CCD523BBCD53F35A58"
+      "corpus_sha256": "07E181C269D5FCC1489F4E3A7EA8DF208FA888A5DD3BEA71ADB51F10346915BD"
     }
   }
 }

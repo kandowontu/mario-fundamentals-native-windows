@@ -8,6 +8,9 @@ $projectRoot = Split-Path -Parent $PSScriptRoot
 $buildRoot = [System.IO.Path]::GetFullPath((Join-Path $projectRoot $BuildDirectory))
 $distributionRoot = [System.IO.Path]::GetFullPath((Join-Path $projectRoot $DistributionDirectory))
 
+python (Join-Path $PSScriptRoot "clean_mac_help_captures.py") --check
+if ($LASTEXITCODE -ne 0) { throw "Macintosh Help capture cleanup verification failed." }
+
 function Assert-NoMarioProcess {
     param([Parameter(Mandatory = $true)] [string] $Context)
 
@@ -97,6 +100,13 @@ Invoke-HiddenExecutableCheck -FilePath $executable -Arguments "--qa-mac-game-int
     -StandardOutput $macIntroInputOutput -StandardError $macIntroInputError `
     -Label "Macintosh selected-game intro input integration test"
 Write-Output "PASS macintosh_selected_game_intro_input"
+
+$macShellOutput = Join-Path $buildRoot "mac-shell.out"
+$macShellError = Join-Path $buildRoot "mac-shell.err"
+Invoke-HiddenExecutableCheck -FilePath $executable -Arguments "--qa-mac-shell" `
+    -StandardOutput $macShellOutput -StandardError $macShellError `
+    -Label "Macintosh shell/menu/help integration test"
+Write-Output "PASS macintosh_shell_menu_help_routes"
 
 $dosIntroInputOutput = Join-Path $buildRoot "dos-game-intro-input.out"
 $dosIntroInputError = Join-Path $buildRoot "dos-game-intro-input.err"
@@ -240,10 +250,10 @@ function Invoke-PresentationQa {
 
 Invoke-PresentationQa -Argument "--render-mac-qa" `
     -OutputDirectory (Join-Path $projectRoot "work/qa/mac") -Label "macintosh" `
-    -ExpectedFrames 232 -ExpectedBytes 786486
+    -ExpectedFrames 243 -ExpectedBytes 786486
 Invoke-PresentationQa -Argument "--render-dos-qa" `
     -OutputDirectory (Join-Path $projectRoot "work/qa/dos") -Label "dos" `
-    -ExpectedFrames 233 -ExpectedBytes 256054
+    -ExpectedFrames 234 -ExpectedBytes 256054
 
 # Independent references cover source fidelity at representative instants;
 # this second layer pins every generated state so an unreferenced intro,

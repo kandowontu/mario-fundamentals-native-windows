@@ -1291,6 +1291,14 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int showCommand) {
         }
         return 0;
     } catch (const std::exception& error) {
+        // Hidden QA is a command-line contract: failures must return through
+        // redirected stderr instead of opening a modal error box and leaving
+        // the release gate waiting on an invisible process.
+        if (std::wcsstr(commandLine, L"--qa-") != nullptr) {
+            std::fprintf(stderr, "FAIL %s\n", error.what());
+            std::fflush(stderr);
+            return 1;
+        }
         const std::string text = std::string("The native Mario collection could not start:\n\n") +
                                  error.what();
         MessageBoxA(nullptr, text.c_str(), "Mario native collection", MB_OK | MB_ICONERROR);
