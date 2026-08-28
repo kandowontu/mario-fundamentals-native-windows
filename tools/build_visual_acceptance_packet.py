@@ -15,6 +15,7 @@ import hashlib
 import html
 import json
 import os
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
@@ -113,8 +114,8 @@ def main() -> None:
     baseline = json.loads(args.baseline.read_text(encoding="utf-8"))["editions"]
     mac_dir = args.mac_directory.resolve()
     dos_dir = args.dos_directory.resolve()
-    require_pinned_corpus(mac_dir, baseline["macintosh"])
-    require_pinned_corpus(dos_dir, baseline["dos"])
+    mac_frames = require_pinned_corpus(mac_dir, baseline["macintosh"])
+    dos_frames = require_pinned_corpus(dos_dir, baseline["dos"])
 
     output = args.output_directory.resolve()
     output.mkdir(parents=True, exist_ok=True)
@@ -169,6 +170,28 @@ def main() -> None:
         ),
     )
 
+    sheet_slugs = [sheet.slug for sheet in sheets]
+    duplicate_slugs = sorted(slug for slug, count in Counter(sheet_slugs).items() if count != 1)
+    if duplicate_slugs:
+        raise SystemExit(f"duplicate review-sheet slugs: {', '.join(duplicate_slugs)}")
+
+    expected_frames = set(mac_frames) | set(dos_frames)
+    reviewed_frames = [path for sheet in sheets for path in sheet.files]
+    frame_counts = Counter(reviewed_frames)
+    duplicate_frames = sorted(path for path, count in frame_counts.items() if count != 1)
+    reviewed_set = set(reviewed_frames)
+    missing_frames = sorted(expected_frames - reviewed_set)
+    extra_frames = sorted(reviewed_set - expected_frames)
+    if duplicate_frames or missing_frames or extra_frames:
+        details = []
+        if duplicate_frames:
+            details.append("duplicate=" + ",".join(path.name for path in duplicate_frames))
+        if missing_frames:
+            details.append("missing=" + ",".join(path.name for path in missing_frames))
+        if extra_frames:
+            details.append("extra=" + ",".join(path.name for path in extra_frames))
+        raise SystemExit("review-sheet corpus coverage failed: " + "; ".join(details))
+
     sheet_records = []
     for sheet in sheets:
         if not sheet.files:
@@ -178,8 +201,16 @@ def main() -> None:
         sheet_records.append((sheet, filename, width, height))
 
     candidate = project_root / "dist" / "MarioFundamentals.exe"
-    candidate_hash = hashlib.sha256(candidate.read_bytes()).hexdigest().upper() if candidate.is_file() else "missing"
-    candidate_bytes = candidate.stat().st_size if candidate.is_file() else 0
+    checksum = project_root / "dist" / "SHA256SUMS.txt"
+    if not candidate.is_file() or not checksum.is_file():
+        raise SystemExit("run tools/build_release.ps1 before generating the acceptance packet")
+    candidate_hash = hashlib.sha256(candidate.read_bytes()).hexdigest().upper()
+    checksum_fields = checksum.read_text(encoding="ascii").strip().split()
+    if checksum_fields != [candidate_hash, candidate.name]:
+        raise SystemExit(
+            f"{checksum}: does not bind {candidate.name} to current SHA-256 {candidate_hash}"
+        )
+    candidate_bytes = candidate.stat().st_size
     sections = []
     for sheet, filename, width, height in sheet_records:
         links = link_list(sheet.files, output)
@@ -224,7 +255,10 @@ for (const box of document.querySelectorAll('input[data-key]')) {{
 </script>
 """
     (output / "index.html").write_text(page, encoding="utf-8")
-    print(f"PASS visual_acceptance_packet sheets={len(sheets)} output={output / 'index.html'}")
+    print(
+        f"PASS visual_acceptance_packet sheets={len(sheets)} frames={len(expected_frames)} "
+        f"candidate_sha256={candidate_hash} output={output / 'index.html'}"
+    )
 
 
 if __name__ == "__main__":

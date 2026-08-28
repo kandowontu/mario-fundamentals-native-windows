@@ -15,6 +15,8 @@ Open `work/qa/visual-acceptance/index.html`. Its fifteen sheets cover both shell
 game-intro instant, every deterministic opening state, representative gameplay/outcome states, and
 all Yacht actor/cup/dice/score frames. Together they expose every one of the 477 pinned corpus frames
 at full resolution, and each local checkbox persists in the browser without sending data anywhere.
+The builder fails if any frame is absent or duplicated, if either corpus differs from its pinned
+digest, or if the candidate does not match `dist/SHA256SUMS.txt`.
 
 The live executable must additionally be checked for the timing/audio aspects a static packet
 cannot prove perceptually:
