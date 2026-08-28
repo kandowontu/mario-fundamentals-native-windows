@@ -245,6 +245,17 @@ corrected dual-edition presentation audit is explicitly accepted. The hidden sel
 otherwise empty directory containing only the executable, proving that no disk image, original
 application, DOS support file, loose asset, or generated sidecar is required at runtime.
 
+For that required human review, generate the checksum-bound, lossless contact-sheet packet after
+the gate passes:
+
+```powershell
+python .\tools\build_visual_acceptance_packet.py
+```
+
+Then open `work/qa/visual-acceptance/index.html` and follow the live-play checklist in
+[the visual acceptance procedure](docs/VISUAL_ACCEPTANCE.md). Passing the automated gate alone does
+not authorize publication.
+
 To run only the executable-level audit:
 
 ```powershell
@@ -293,6 +304,7 @@ artwork.
 - [Function and subsystem audit](docs/FUNCTION_AUDIT.md)
 - [Music and sound audit](docs/AUDIO_AUDIT.md)
 - [Fidelity and release-withdrawal matrix](docs/QA_MATRIX.md)
+- [Visual acceptance procedure](docs/VISUAL_ACCEPTANCE.md)
 - [Asset catalog](docs/ASSET_CATALOG.md)
 - [Version 2.0.0 release notes](docs/RELEASE_NOTES_2.0.0.md)
 - Machine-readable disassembly, decoded DATA image, overlay records, movie catalogs, converted

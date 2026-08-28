@@ -47,5 +47,6 @@ Macintosh frames and 234 fresh DOS frames at their native logical dimensions, fo
 checked complete-corpus digests. Any missing, stale, renamed, wrong-sized, corrupt, or content-
 changed frame fails the build.
 
-The remaining publication condition is explicit visual acceptance of the corrected candidate. Until
-then, passing this matrix produces only an unreleased QA artifact.
+The remaining publication condition is explicit visual acceptance of the corrected candidate using
+[`docs/VISUAL_ACCEPTANCE.md`](VISUAL_ACCEPTANCE.md). Until then, passing this matrix produces only an
+unreleased QA artifact.
