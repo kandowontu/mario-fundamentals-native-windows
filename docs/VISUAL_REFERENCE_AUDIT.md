@@ -21,7 +21,7 @@ The independently sourced comparisons are complemented by
 `tools/verify_qa_frame_corpus.py`. Runtime Macintosh play continues to seed QuickDraw from the
 source TickCount, but the hidden presentation renderer resets to a fixed source seed. The verifier
 therefore content-pins all 243 Macintosh and 234 DOS BMPs—including the random-dependent states
-outside the 52 source comparisons—by ordered filename, length, and SHA-256. The current complete-
+outside the 53 source comparisons—by ordered filename, length, and SHA-256. The current complete-
 corpus digests are `0BACE05FBC0F7487F93AE256E60733AE2D477CDBE11728F55A81B97F1A5E8A62`
 for Macintosh and `07E181C269D5FCC1489F4E3A7EA8DF208FA888A5DD3BEA71ADB51F10346915BD`
 for DOS. This regression layer prevents an unreferenced frame from changing; it does not replace
@@ -40,7 +40,8 @@ Backgammon/Checkers first-use panels, three Go Fish grouped/question/transfer st
 post-roll dice/marker state. Edge-only cases pin both Dominoes score portraits and the Macintosh
 Yacht reroll gesture to their source registrations. Focused cases pin the title's terminal open
 hand, Yacht's two-cel-composed idle hands, and the DOS Go Fish captions/value columns absent from
-Pak 5001. Together the 52 cases cover startup colors, title reveal order, title composition,
+Pak 5001. A dedicated source-capture region also requires Yacht's entire pre-roll large-cup
+footprint to remain empty. Together the 53 cases cover startup colors, title reveal order, title composition,
 scorecards, boards, status bars, tiled backgrounds, menus,
 prompt ordering, hand transfers, and moving-actor registration without treating different random
 gameplay states as failures.
@@ -91,6 +92,7 @@ back buffer so the source/browser's black flicker cannot become a port feature.
 | Macintosh | Go Fish question-card transfer | 12.649 | 15.0 |
 | Macintosh | Yacht scorecards | 6.110 | 10.0 |
 | Macintosh | Yacht center actor | 27.293 | 30.0 |
+| Macintosh | Yacht pre-roll, no large cup | 0.617 | 2.0 |
 | Macintosh | Yacht computer dice/markers | 5.847 | 12.0 |
 | Macintosh | Yacht idle actor hands | 34.004 | 40.0 |
 | Macintosh | Yacht reroll gesture registration (edge) | 14.250 | 16.0 |
@@ -113,8 +115,9 @@ The release gate writes the machine-readable result to
 `work/audit/visual-reference-verification.json`. Thresholds are deliberately below the measured
 distance to mismatched scenes; the two portrait registration cases reject a one-pixel displacement
 on their audited axis, while exact source actor bounds are enforced by the executable self-test.
-The Yacht roll case compares the complete 512×384 frame so an extra large cup, wrong actor layer,
-or misplaced small remaining-roll marker cannot hide outside a focused crop.
+The Yacht pre-roll case independently requires the preserved vanilla large-cup footprint to remain
+empty, while the roll case compares the complete 512×384 frame so an extra large cup, wrong actor
+layer, or misplaced small remaining-roll marker cannot hide outside a focused crop.
 Several publisher/intro/cup results are near pixel-identical, while the other intro
 margins allow only the independently captured cursor and source-frame/browser differences. This is
 a structural cross-check, not a claim that browser-scaled captures or different random turns are

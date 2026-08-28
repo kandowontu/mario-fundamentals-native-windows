@@ -107,15 +107,15 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   thunks, and 20 retain an explicit compiler/system-or-indirect disposition because no structural
   path reaches them. The 77 appended-overlay rows still defer to the exact export/prologue ledger;
   generic, pending, unknown, or unaccounted dispositions fail the gate.
-- The local release gate now compares 52 representative native frames/regions against independently
+- The local release gate now compares 53 representative native frames/regions against independently
   captured original Macintosh/DOS output. Coverage includes publisher/title states, four menu
   transition instants plus the exact settled Go Fish actor, stable game geometry, seven Macintosh and all five DOS source-timed intro instants,
   complete post-intro first-use panels, Backgammon's setup reveal, DOS Go Fish scoreboard
   captions, Go Fish grouped/question/transfer hands, exact Dominoes portrait registration, the
-  title's open hand, and Yacht actor/hand/dice/marker/gesture/cup regions. A separate inventory
+  title's open hand, and Yacht actor/hand/no-large-cup-pre-roll/dice/marker/gesture/cup regions. A separate inventory
   accounts for all 225 retained captures
   and fails on any unknown file.
-- All 465 hidden presentation frames are now independently reproducible and content-pinned as two
+- All 477 hidden presentation frames are now independently reproducible and content-pinned as two
   complete ordered corpora after source-reference comparison. Macintosh live play keeps its
   TickCount-derived QuickDraw seed; only the no-window QA renderer resets to the fixed regression
   seed, so random openings and outcomes cannot evade the gate by changing between builds.

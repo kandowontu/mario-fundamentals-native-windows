@@ -198,14 +198,14 @@ objects retain player identity and animation options.
   deterministic Backgammon setup, Dominoes full-hand/drag/outcome, Checkers outcome, Go Fish
   hand/question/transfer/victory, and Yacht score/computer-dice/selection/victory/cup-free-pre-roll
   states, both Yacht roll/settle sequences, ten samples of the reroll gesture in each edition, and
-  Macintosh About/Credits/all nine Help panels plus DOS menu/help context screens. Fifty-two
+  Macintosh About/Credits/all nine Help panels plus DOS menu/help context screens. Fifty-three
   independent original-output comparisons include
   publisher states, the black-cast title silhouette and speech poses, four menu-transition instants
   plus the exact settled Go Fish actor,
   complete source-timed frames for seven Macintosh intro instants and all five DOS intros,
   first-use panels, Backgammon's setup reveal, the DOS Go Fish scoreboard captions and three Go Fish hand/question states,
   one-pixel-sensitive Dominoes portrait registration, and focused Macintosh Yacht
-  actor/dice/marker/gesture/cup checks. A separate 225-file inventory gates every retained source
+  actor/no-large-cup-pre-roll/dice/marker/gesture/cup checks. A separate 225-file inventory gates every retained source
   capture as compared, redundant, external, incomplete repaint, stochastic, or supplemental.
   The Macintosh intro-input proof is independent of those frames: a raw CODE-resource audit pins
   all ten key/mouse branches and a hidden packaged-window probe exercises their real Win32 routes.

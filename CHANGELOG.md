@@ -21,9 +21,9 @@ All notable native-port changes are documented here.
   a cup-free Yacht pre-roll plus seven roll/settle states. The release gate regenerates and
   validates all 243 Macintosh and 234 DOS frames at each edition's exact logical dimensions, then
   content-pins the complete ordered corpora instead of accepting count/size alone.
-- A fail-closed 225-file vanilla-capture inventory and 52 independent pixel/edge comparisons,
+- A fail-closed 225-file vanilla-capture inventory and 53 independent pixel/edge comparisons,
   including the title silhouette/open hand, four menu selections, Go Fish question/transfer, and
-  Yacht dice/marker/composed-hand states.
+  Yacht no-large-cup pre-roll, dice/marker, and composed-hand states.
 - Eight deterministic full Yacht matches per edition, driven through the public roll, die-control,
   and score-line click paths with continuous dice, scorecard, turn, cup-ownership, and completion
   invariants.

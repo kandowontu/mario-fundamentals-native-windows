@@ -226,11 +226,11 @@ relocations and regenerates the 936-row global function ledger when raw CODE/DAT
 present, regenerates 243 Macintosh and 234 DOS no-window
 presentation frames at the exact 512×384 and 320×200 logical sizes, verifies the filename/length/
 content digest of every one of those 477 deterministic frames, inventories all 225 retained
-vanilla captures, compares 52 independent original-output cases (publisher/title states and the
+vanilla captures, compares 53 independent original-output cases (publisher/title states and the
 terminal open-hand cel, pressed-menu feedback, exact pointer traversal/retargeting and selection
 holds, stable layouts, source-timed game intros, first-use panels,
 Backgammon setup, Go Fish scoreboard captions/questions/transfers, exact Dominoes portrait
-registration, and focused Macintosh Yacht actor/hand/dice/marker/gesture/cup checks) when those
+registration, and focused Macintosh Yacht actor/hand/dice/marker/gesture/pre-roll/cup checks) when those
 unshipped local captures are present, and copies the result to `dist`.
 
 Every push to `main` and every pull request also runs this dual-edition release gate on a clean

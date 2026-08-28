@@ -322,6 +322,17 @@ MAC_SAMPLES = (
         ((145, 0, 367, 220),),
         30.0,
     ),
+    # The preserved opening has no large cup anywhere below Mario.  Compare
+    # the authored cup footprint directly against the dedicated pre-roll QA
+    # state so an invented Pak-6010 frame-12 layer cannot hide behind stable
+    # scorecard/actor crops or a self-generated corpus hash.
+    Sample(
+        "yacht-pre-roll-no-large-cup",
+        "original-yacht-trace-5.png",
+        "36-yacht-pre-roll.bmp",
+        ((145, 200, 367, 325),),
+        2.0,
+    ),
     Sample(
         "yacht-computer-dice-and-markers",
         "original-yacht-trace-7.png",
@@ -617,7 +628,9 @@ def main() -> int:
             "and five source-timed DOS game intros compare complete frames; a focused title-hand "
             "case pins the terminal open-hand cel; three first-use "
             "panel frames, a Backgammon setup reveal, three Go Fish hand/question states, and a "
-            "Yacht dice/marker state are checked as complete frames; edge-only checks pin both "
+            "Yacht dice/marker state are checked as complete frames; the preserved Yacht opening "
+            "independently requires the pre-roll large-cup footprint to remain empty; edge-only "
+            "checks pin both "
             "Dominoes score portraits and the Macintosh Yacht reroll gesture; three Macintosh Yacht "
             "regions independently verify the idle actor, its composed hands, and the full-body "
             "gesture; the source-matched roll-contact cup is checked as a complete frame"
