@@ -449,6 +449,7 @@ def main() -> None:
         fail(f"unexpected non-call relocation total {total_noncall}")
 
     report = {
+        "status": "PASS",
         "format": "mario-fundamentals-mac-relocation-audit-v2",
         "loader_hashes": loader_hashes,
         "data_resource": {

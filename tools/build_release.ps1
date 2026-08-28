@@ -8,6 +8,68 @@ $projectRoot = Split-Path -Parent $PSScriptRoot
 $buildRoot = [System.IO.Path]::GetFullPath((Join-Path $projectRoot $BuildDirectory))
 $distributionRoot = [System.IO.Path]::GetFullPath((Join-Path $projectRoot $DistributionDirectory))
 
+function Assert-NoMarioProcess {
+    param([Parameter(Mandatory = $true)] [string] $Context)
+
+    $running = @(Get-Process -Name "MarioFundamentals" -ErrorAction SilentlyContinue)
+    if ($running.Count -ne 0) {
+        $identifiers = ($running | ForEach-Object { $_.Id }) -join ", "
+        throw "MarioFundamentals process detected $Context (PIDs: $identifiers)."
+    }
+}
+
+function Invoke-HiddenExecutableCheck {
+    param(
+        [Parameter(Mandatory = $true)] [string] $FilePath,
+        [Parameter(Mandatory = $true)] [string] $Arguments,
+        [Parameter(Mandatory = $true)] [string] $StandardOutput,
+        [Parameter(Mandatory = $true)] [string] $StandardError,
+        [Parameter(Mandatory = $true)] [string] $Label,
+        [string] $WorkingDirectory = "",
+        [int] $TimeoutMilliseconds = 180000
+    )
+
+    Assert-NoMarioProcess -Context "before $Label"
+    Remove-Item -LiteralPath $StandardOutput -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $StandardError -ErrorAction SilentlyContinue
+    if (-not $WorkingDirectory) { $WorkingDirectory = $projectRoot }
+
+    $process = $null
+    try {
+        $process = Start-Process -FilePath $FilePath -ArgumentList $Arguments `
+            -WorkingDirectory $WorkingDirectory -WindowStyle Hidden `
+            -RedirectStandardOutput $StandardOutput `
+            -RedirectStandardError $StandardError -PassThru
+        # Windows PowerShell can return a Process wrapper without retaining
+        # ExitCode after a timed wait unless its native handle is materialized
+        # while the child is alive.
+        $nativeProcessHandle = $process.Handle
+        if (-not $process.WaitForExit($TimeoutMilliseconds)) {
+            if (-not $process.HasExited) {
+                # This is the exact hidden QA process created above, never a
+                # name-based or user-owned window/process cleanup.
+                Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+                $process.WaitForExit(5000) | Out-Null
+            }
+            throw "$Label timed out after $TimeoutMilliseconds ms."
+        }
+        $process.WaitForExit()
+        $process.Refresh()
+        if (Test-Path -LiteralPath $StandardOutput) { Get-Content -LiteralPath $StandardOutput }
+        if (Test-Path -LiteralPath $StandardError) { Get-Content -LiteralPath $StandardError }
+        if ($process.ExitCode -ne 0) {
+            throw "$Label failed with exit code $($process.ExitCode)."
+        }
+    }
+    finally {
+        if ($null -ne $process -and -not $process.HasExited) {
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+            $process.WaitForExit(5000) | Out-Null
+        }
+        Assert-NoMarioProcess -Context "after $Label"
+    }
+}
+
 cmake -S $projectRoot -B $buildRoot -G $CMakeGenerator -DCMAKE_BUILD_TYPE=Release
 if ($LASTEXITCODE -ne 0) { throw "CMake configuration failed." }
 cmake --build $buildRoot --parallel
@@ -18,44 +80,29 @@ $auditRoot = Join-Path $projectRoot "work/audit"
 New-Item -ItemType Directory -Force -Path $auditRoot | Out-Null
 $standardOutput = Join-Path $buildRoot "self-test.out"
 $standardError = Join-Path $buildRoot "self-test.err"
-$test = Start-Process -FilePath $executable -ArgumentList "--self-test" -WindowStyle Hidden `
-    -RedirectStandardOutput $standardOutput -RedirectStandardError $standardError -Wait -PassThru
-Get-Content $standardOutput, $standardError
-if ($test.ExitCode -ne 0) { throw "Executable self-test failed with exit code $($test.ExitCode)." }
+Invoke-HiddenExecutableCheck -FilePath $executable -Arguments "--self-test" `
+    -StandardOutput $standardOutput -StandardError $standardError `
+    -Label "Executable self-test"
 
 $titleSkipOutput = Join-Path $buildRoot "title-board-skip.out"
 $titleSkipError = Join-Path $buildRoot "title-board-skip.err"
-$titleSkip = Start-Process -FilePath $executable -ArgumentList "--qa-title-board-skip" `
-    -WindowStyle Hidden -RedirectStandardOutput $titleSkipOutput `
-    -RedirectStandardError $titleSkipError -Wait -PassThru
-Get-Content $titleSkipOutput, $titleSkipError
-if ($titleSkip.ExitCode -ne 0) {
-    throw "Macintosh live title/board-click integration test failed with exit code $($titleSkip.ExitCode)."
-}
+Invoke-HiddenExecutableCheck -FilePath $executable -Arguments "--qa-title-board-skip" `
+    -StandardOutput $titleSkipOutput -StandardError $titleSkipError `
+    -Label "Macintosh live title/board-click integration test"
 Write-Output "PASS macintosh_live_title_board_click_skip"
 
 $macIntroInputOutput = Join-Path $buildRoot "mac-game-intro-input.out"
 $macIntroInputError = Join-Path $buildRoot "mac-game-intro-input.err"
-$macIntroInput = Start-Process -FilePath $executable `
-    -ArgumentList "--qa-mac-game-intro-input" -WindowStyle Hidden `
-    -RedirectStandardOutput $macIntroInputOutput `
-    -RedirectStandardError $macIntroInputError -Wait -PassThru
-Get-Content $macIntroInputOutput, $macIntroInputError
-if ($macIntroInput.ExitCode -ne 0) {
-    throw "Macintosh selected-game intro input integration test failed with exit code $($macIntroInput.ExitCode)."
-}
+Invoke-HiddenExecutableCheck -FilePath $executable -Arguments "--qa-mac-game-intro-input" `
+    -StandardOutput $macIntroInputOutput -StandardError $macIntroInputError `
+    -Label "Macintosh selected-game intro input integration test"
 Write-Output "PASS macintosh_selected_game_intro_input"
 
 $dosIntroInputOutput = Join-Path $buildRoot "dos-game-intro-input.out"
 $dosIntroInputError = Join-Path $buildRoot "dos-game-intro-input.err"
-$dosIntroInput = Start-Process -FilePath $executable `
-    -ArgumentList "--qa-dos-game-intro-input" -WindowStyle Hidden `
-    -RedirectStandardOutput $dosIntroInputOutput `
-    -RedirectStandardError $dosIntroInputError -Wait -PassThru
-Get-Content $dosIntroInputOutput, $dosIntroInputError
-if ($dosIntroInput.ExitCode -ne 0) {
-    throw "DOS selected-game intro input integration test failed with exit code $($dosIntroInput.ExitCode)."
-}
+Invoke-HiddenExecutableCheck -FilePath $executable -Arguments "--qa-dos-game-intro-input" `
+    -StandardOutput $dosIntroInputOutput -StandardError $dosIntroInputError `
+    -Label "DOS selected-game intro input integration test"
 Write-Output "PASS dos_selected_game_intro_input"
 
 # Regenerate the static function traceability ledgers whenever the local
@@ -173,13 +220,9 @@ function Invoke-PresentationQa {
     $started = [DateTime]::UtcNow.AddSeconds(-1)
     $qaOutput = Join-Path $auditRoot "$Label-presentation-qa.out"
     $qaError = Join-Path $auditRoot "$Label-presentation-qa.err"
-    $qa = Start-Process -FilePath $executable -ArgumentList $Argument -WindowStyle Hidden `
-        -WorkingDirectory $projectRoot -RedirectStandardOutput $qaOutput `
-        -RedirectStandardError $qaError -Wait -PassThru
-    Get-Content $qaOutput, $qaError
-    if ($qa.ExitCode -ne 0) {
-        throw "$Label presentation QA failed with exit code $($qa.ExitCode)."
-    }
+    Invoke-HiddenExecutableCheck -FilePath $executable -Arguments $Argument `
+        -StandardOutput $qaOutput -StandardError $qaError `
+        -WorkingDirectory $projectRoot -Label "$Label presentation QA"
     $allFrames = @(Get-ChildItem -LiteralPath $OutputDirectory -Filter "*.bmp" -File)
     if ($allFrames.Count -ne $ExpectedFrames) {
         throw "$Label presentation directory contains $($allFrames.Count) frames; expected exactly $ExpectedFrames. Remove obsolete QA captures."
@@ -239,8 +282,10 @@ if (Test-Path -LiteralPath $visualReferenceRoot) {
     if ($LASTEXITCODE -ne 0) { throw "Independent visual-reference verification failed." }
 }
 
+Assert-NoMarioProcess -Context "before hidden Alt+Enter integration test"
 & (Join-Path $PSScriptRoot "test_fullscreen.ps1") -Executable $executable
 if ($LASTEXITCODE -ne 0) { throw "Hidden Alt+Enter integration test failed." }
+Assert-NoMarioProcess -Context "after hidden Alt+Enter integration test"
 
 python (Join-Path $PSScriptRoot "verify_release.py") $executable `
     --asset-pack (Join-Path $projectRoot "assets/MarioFundamentals.pack") `
@@ -298,13 +343,9 @@ New-Item -ItemType Directory -Path $isolationRoot | Out-Null
 try {
     $isolationOutput = Join-Path $isolationRoot "self-test.out"
     $isolationError = Join-Path $isolationRoot "self-test.err"
-    $isolationTest = Start-Process -FilePath $executable -ArgumentList "--self-test" `
-        -WorkingDirectory $isolationRoot -WindowStyle Hidden -RedirectStandardOutput $isolationOutput `
-        -RedirectStandardError $isolationError -Wait -PassThru
-    Get-Content $isolationOutput, $isolationError
-    if ($isolationTest.ExitCode -ne 0) {
-        throw "Empty-directory executable self-test failed with exit code $($isolationTest.ExitCode)."
-    }
+    Invoke-HiddenExecutableCheck -FilePath $executable -Arguments "--self-test" `
+        -WorkingDirectory $isolationRoot -StandardOutput $isolationOutput `
+        -StandardError $isolationError -Label "Empty-directory executable self-test"
 }
 finally {
     Remove-Item -LiteralPath $isolationOutput -ErrorAction SilentlyContinue

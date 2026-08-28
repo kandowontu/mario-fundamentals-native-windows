@@ -160,6 +160,7 @@ def main() -> None:
         fail("missing Yacht gameplay mouse disposition")
 
     report = {
+        "status": "PASS",
         "format": "mario-fundamentals-mac-game-intro-input-audit-v1",
         "resources": report_resources,
         "route_counts": counts,

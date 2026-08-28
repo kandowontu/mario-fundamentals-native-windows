@@ -50,6 +50,9 @@ All notable native-port changes are documented here.
 - The Macintosh Yacht cup comparison now reconstructs the original Mario-first roll and checks the
   complete 512×384 frame, including the two authored small roll counters, rather than inspecting
   only the large cup's center crop.
+- Hidden packaged-executable checks now have bounded waits and fail before or after a stage if a
+  `MarioFundamentals` process is already present or remains behind. A timed-out gate kills only the
+  exact hidden QA PID that it launched and never searches for or closes unrelated user windows.
 
 - Shared game controllers now render and hit-test against each edition's native 512×384 or
   320×200 coordinate system while retaining the recovered source rules and outcomes.
@@ -58,6 +61,8 @@ All notable native-port changes are documented here.
 
 ### Fixed
 
+- Macintosh window destruction now cancels its timer and stops both voice/effect and music routes
+  immediately, matching the DOS lifecycle instead of relying on later object-destruction timing.
 - Restored the five original DOS selected-game intro input handlers from FBOV overlays
   1/7/13/17/30. Event 28 key-down completes every intro; event 45 mouse-down completes Backgammon,
   Dominoes, Go Fish, and Yacht and is intentionally absent from Checkers. Escape now follows the

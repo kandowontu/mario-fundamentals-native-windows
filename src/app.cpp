@@ -1109,7 +1109,16 @@ LRESULT App::handleMessage(HWND window, UINT message, WPARAM wParam, LPARAM lPar
         fullscreen_.restore(window);
         DestroyWindow(window);
         return 0;
-    case WM_DESTROY: PostQuitMessage(0); return 0;
+    case WM_DESTROY:
+        KillTimer(window, 1);
+        // Stop every Macintosh audio route as soon as the window is destroyed.
+        // Waiting for App/Audio destruction leaves speech or MIDI alive while
+        // the message loop is unwinding, which can sound like a background
+        // game process after the visible window has already gone away.
+        audio_.stop();
+        audio_.stopMusic();
+        PostQuitMessage(0);
+        return 0;
     default: return DefWindowProcW(window, message, wParam, lParam);
     }
 }

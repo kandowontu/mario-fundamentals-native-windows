@@ -618,9 +618,9 @@ def main() -> int:
             "case pins the terminal open-hand cel; three first-use "
             "panel frames, a Backgammon setup reveal, three Go Fish hand/question states, and a "
             "Yacht dice/marker state are checked as complete frames; edge-only checks pin both "
-            "Dominoes score portraits and the Macintosh Yacht reroll gesture; four Macintosh Yacht "
-            "regions independently verify the idle actor, its composed hands, the full-body "
-            "gesture, and the roll-contact cup"
+            "Dominoes score portraits and the Macintosh Yacht reroll gesture; three Macintosh Yacht "
+            "regions independently verify the idle actor, its composed hands, and the full-body "
+            "gesture; the source-matched roll-contact cup is checked as a complete frame"
         ),
         "cases": cases,
     }

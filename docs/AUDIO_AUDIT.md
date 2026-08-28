@@ -140,6 +140,11 @@ mapper in the background and queues a requested sequence until that handle is re
 the machine-dependent temporary softlock that could occur at the menu-music handoff after the
 Stepping Stone voice cue; a timed executable regression guards both foreground calls.
 
+Both edition windows stop the active voice/effect channel and MIDI sequence in `WM_DESTROY`, before
+posting the message-loop quit. The release gate wraps every hidden executable probe in a bounded
+wait and requires that no `MarioFundamentals` process exists before or after the probe, so an audio
+or shutdown regression cannot silently leave Mario speaking after the test window disappears.
+
 ## Startup, title, and common UI
 
 | Source action | Native routing |

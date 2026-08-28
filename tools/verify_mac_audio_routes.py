@@ -132,6 +132,7 @@ def main() -> int:
         raise SystemExit(f"Mac immediate audio resource sets changed: {immediate_resources}")
 
     report = {
+        "status": "PASS",
         "schema": 1,
         "source": "retained Macintosh CODE_*.asm disassembly",
         "semantics": {
