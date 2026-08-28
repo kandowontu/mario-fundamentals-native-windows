@@ -19,7 +19,7 @@ All notable native-port changes are documented here.
 - Silent, no-window Macintosh presentation output covering startup, title skip, four board-flip
   positions, every menu pose, 21 points across each game intro, eight opening states per game, and
   a cup-free Yacht pre-roll plus seven roll/settle states. The release gate regenerates and
-  validates all 243 Macintosh and 234 DOS frames at each edition's exact logical dimensions, then
+  validates all 246 Macintosh and 237 DOS frames at each edition's exact logical dimensions, then
   content-pins the complete ordered corpora instead of accepting count/size alone.
 - A fail-closed 225-file vanilla-capture inventory and 53 independent pixel/edge comparisons,
   including the title silhouette/open hand, four menu selections, Go Fish question/transfer, and
@@ -65,6 +65,12 @@ All notable native-port changes are documented here.
 
 ### Fixed
 
+- Backgammon and Checkers now give the complete 9000–9002 idle movie exclusive ownership of
+  Mario's full-body layer. The resting actor is no longer left underneath a moving second actor;
+  dedicated Macintosh and DOS corpus frames pin the replacement state.
+- DOS Dominoes dialogue now registers each 10000-family 26-pixel talking head at `(12,15)`, so its
+  authored `(5,4)` MuV origin lands exactly on the resting portrait at `(17,19)`. The separate
+  first-use character-question registration remains `(7,3)`.
 - Removed seven host-pointer artifacts from the retained Macintosh QuickDraw Help captures while
   preserving their authored pixels, page chrome, and controls. A deterministic cleanup tool pins
   both the raw capture hashes and the cleaned output hashes, and the release gate verifies them.

@@ -250,10 +250,10 @@ function Invoke-PresentationQa {
 
 Invoke-PresentationQa -Argument "--render-mac-qa" `
     -OutputDirectory (Join-Path $projectRoot "work/qa/mac") -Label "macintosh" `
-    -ExpectedFrames 243 -ExpectedBytes 786486
+    -ExpectedFrames 246 -ExpectedBytes 786486
 Invoke-PresentationQa -Argument "--render-dos-qa" `
     -OutputDirectory (Join-Path $projectRoot "work/qa/dos") -Label "dos" `
-    -ExpectedFrames 234 -ExpectedBytes 256054
+    -ExpectedFrames 237 -ExpectedBytes 256054
 
 # Independent references cover source fidelity at representative instants;
 # this second layer pins every generated state so an unreferenced intro,

@@ -25,6 +25,7 @@ public:
     [[nodiscard]] bool sourceFullMatchRegressionTest();
     [[nodiscard]] bool sourceReplayRegressionTest();
     void setQaSetupRevealPresentation(int revealedCheckers);
+    void setQaIdleVisualPresentation(std::uint32_t sourceTime);
 
 private:
     struct State {

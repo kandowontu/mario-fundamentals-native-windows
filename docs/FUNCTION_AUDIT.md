@@ -191,7 +191,7 @@ objects retain player identity and animation options.
   title sequences, synchronized in-game talking heads, low-frequency idle prompts/jokes, and the
   original New Game/Play Again dialogs are restored. Source selectors retain their lazy-shuffle and
   cross-round state where the original module globals did.
-- The silent presentation gate regenerates 243 Macintosh and 234 DOS logical-resolution frames,
+- The silent presentation gate regenerates 246 Macintosh and 237 DOS logical-resolution frames,
   covering both Macintosh title mouse-down routes, all five source-specific selected-game intro
   mouse routes (two finishes, one single-tick advance, and two ignored inputs),
   every menu selection, 21 samples for every game intro, eight opening states for every game,

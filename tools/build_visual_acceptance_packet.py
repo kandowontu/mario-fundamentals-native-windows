@@ -241,7 +241,7 @@ a {{ color: #8fd3ff; }} .warning {{ padding: 12px; border: 1px solid #f4c542; ba
 it does not publish either withdrawn GitHub draft. Click any sheet or frame for its lossless pixels.</p>
 <p>Candidate: <a href="../../../dist/MarioFundamentals.exe">MarioFundamentals.exe</a><br>
 Bytes: <code>{candidate_bytes}</code><br>SHA-256: <code>{candidate_hash}</code><br>
-Pinned corpus: <code>243 Macintosh + 234 DOS = 477 frames</code>.</p>
+Pinned corpus: <code>246 Macintosh + 237 DOS = 483 frames</code>.</p>
 <p>Required focus: startup colors/audio handoff; centered/concealed board reveal; stable menus;
 all five intro paths; progressive deals/setup; solid Mario head/torso/hands; and Yacht's cup-free
 pre-roll followed by exactly one large animated cup. The in-board Yacht “Good luck / I go first”

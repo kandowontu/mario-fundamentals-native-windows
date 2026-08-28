@@ -495,6 +495,8 @@ void DosApp::renderQaFrames(std::wstring_view outputDirectory) {
             save(std::wstring(L"31-backgammon-setup-") + (revealed < 10 ? L"0" : L"") +
                  std::to_wstring(revealed) + L".bmp");
         }
+        backgammon->setQaIdleVisualPresentation(600);
+        save(L"31-backgammon-idle-full-body.bmp");
     }
 
     startGame(1);
@@ -503,6 +505,8 @@ void DosApp::renderQaFrames(std::wstring_view outputDirectory) {
         save(L"32-dominoes-drag.bmp");
         dominoes->setQaDrawnHandPresentation();
         save(L"32-dominoes-drawn-hand-limit.bmp");
+        dominoes->setQaIdlePortraitPresentation(120);
+        save(L"32-dominoes-idle-portrait.bmp");
     }
     constexpr std::array<std::pair<int, std::wstring_view>, 3> dominoOutcomes{{
         {1, L"human"}, {-1, L"mario"}, {2, L"tie"},
@@ -530,6 +534,11 @@ void DosApp::renderQaFrames(std::wstring_view outputDirectory) {
             checkers->setQaOutcomePresentation(variant);
             save(L"34-checkers-outcome-" + std::wstring(label) + L".bmp");
         }
+    }
+    startGame(2);
+    if (auto* checkers = dynamic_cast<CheckersGame*>(game_.get())) {
+        checkers->setQaIdleVisualPresentation(600);
+        save(L"34-checkers-idle-full-body.bmp");
     }
 
     startGame(3);

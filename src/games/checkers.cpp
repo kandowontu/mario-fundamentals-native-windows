@@ -956,11 +956,26 @@ void CheckersGame::setQaOutcomePresentation(int outcomeVariant) {
                                                          : OutcomeKind::MarioWin);
 }
 
+void CheckersGame::setQaIdleVisualPresentation(std::uint32_t sourceTime) {
+    characterChooser_ = false;
+    pieceAnimation_ = {};
+    computerPlan_.clear();
+    status_ = L"It's your turn.";
+    host_.showFrame(9000, -42, 43, sourceTime);
+}
+
 void CheckersGame::render(Canvas& canvas) {
     canvas.clear(rgb(0, 0, 0));
     drawBackground(canvas, 2999);
-    canvas.sprite(context_.graphics.sprite(9000),
-                  dosEdition() ? 103 : 165, dosEdition() ? 9 : 18, false);
+    const int hostResource = host_.activeResourceId();
+    const bool hostOwnsFullBody = hostResource >= 9000 && hostResource <= 9002;
+    // The 9000..9002 idle movies contain the complete actor, not a facial
+    // overlay.  Keeping the resting Pak 9000 actor underneath leaves a second
+    // head/body visible whenever the animated actor moves away from frame 0.
+    if (!hostOwnsFullBody) {
+        canvas.sprite(context_.graphics.sprite(9000),
+                      dosEdition() ? 103 : 165, dosEdition() ? 9 : 18, false);
+    }
     if (!characterChooser_) (void)host_.render(canvas);
     canvas.pakText(context_.graphics,
                    context_.playerName.empty() ? L"PLAYER" : context_.playerName,

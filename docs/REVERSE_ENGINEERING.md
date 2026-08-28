@@ -772,9 +772,12 @@ implementations remain evidence-backed rather than inferred from modern versions
   The DOS first-use controller constructs the selected game before this call. The question therefore
   runs over the live game's Mario/scoreboard/status composition, not a bare tiled page, and the Pak
   101 choice panel is revealed only after movie 11093 ends. Backgammon and Checkers use the centred
-  host registration `(116,1)` in native DOS coordinates; Dominoes uses its score-portrait registration
-  `(7,3)`. The subsequent name panel remains over the same preview for all five games. Native preview
-  construction records and restores the shared random seed before creating the playable instance,
+  host registration `(116,1)` in native DOS coordinates; the Dominoes character question uses its
+  score-portrait registration `(7,3)`. In-game Dominoes speech is the separate 10000 movie family:
+  its `(12,15)` anchor plus the authored `(5,4)` MuV origin lands the 26-pixel head on Pak 10000's
+  resting `(17,19)` portrait. The subsequent name panel remains over the same preview for all five
+  games. Native preview construction records and restores the shared random seed before creating
+  the playable instance,
   preventing the first deal, board, or lazy dialogue selector from being consumed twice.
 - Backgammon's initial board is not painted in one pass. `$F78` scans the eight nonzero six-byte
   records at A5-`$3ACE` in source-point order: `(1000,0,2)`, `(2000,5,5)`, `(2000,7,3)`,

@@ -33,6 +33,7 @@ public:
     void setQaDrawnHandPresentation();
     void setQaOutcomePresentation(int expectedWinner, bool blocked);
     void setQaPlayerResultPresentation(std::uint32_t sourceTime);
+    void setQaIdlePortraitPresentation(std::uint32_t sourceTime);
 
 private:
     struct Tile { int left; int right; };

@@ -222,7 +222,13 @@ constexpr int dominoOpeningMovie(bool marioStarts, int sourceDraw) {
 DominoesGame::DominoesGame(GameContext context)
     : Game(context), host_(context.assets, context.graphics, context.audio, true,
           [](int resourceId, Point scaled) {
-              if (resourceId >= 10000) return Point{7, 3};
+              // The DOS 10000-family movies are 26-pixel talking-head cels.
+              // Their MuV origin is (5,4), while Pak 10000's resting head is
+              // drawn at (17,19) over the torso baked into Pak 3700.  The
+              // original compositor therefore supplies (12,15).  Reusing the
+              // separate (7,3) character-question registration placed every
+              // dialogue head twelve pixels above its torso.
+              if (resourceId >= 10000) return Point{12, 15};
               return scaled;
           }),
       playerResultAnimation_(context.assets, context.graphics, context.audio, false) { reset(); }
@@ -1093,6 +1099,12 @@ void DominoesGame::setQaPlayerResultPresentation(std::uint32_t sourceTime) {
     playerResultAnimation_.showFrame(3900, dosEdition() ? -2 : 231,
                                      dosEdition() ? -17 : -13, sourceTime);
     status_ = L"Congratulations! You win!";
+}
+
+void DominoesGame::setQaIdlePortraitPresentation(std::uint32_t sourceTime) {
+    characterChooser_ = false;
+    status_ = L"Knock knock...";
+    host_.showFrame(10094, 14, 5, sourceTime);
 }
 
 void DominoesGame::scheduleComputerTurn() {

@@ -1543,11 +1543,23 @@ void BackgammonGame::setQaSetupRevealPresentation(int revealedCheckers) {
     }
 }
 
+void BackgammonGame::setQaIdleVisualPresentation(std::uint32_t sourceTime) {
+    characterChooser_ = false;
+    qaSetupRevealPresentation_ = false;
+    startupPhase_ = StartupPhase::Complete;
+    status_ = L"Your move.";
+    host_.showFrame(9000, -45, 45, sourceTime);
+}
+
 void BackgammonGame::render(Canvas& canvas) {
     canvas.clear(rgb(0, 0, 0));
     drawBackground(canvas, 4001);
-    canvas.sprite(context_.graphics.sprite(4021),
-                  dosEdition() ? 103 : 165, dosEdition() ? 9 : 18, false);
+    const int hostResource = host_.activeResourceId();
+    const bool hostOwnsFullBody = hostResource >= 9000 && hostResource <= 9002;
+    if (!hostOwnsFullBody) {
+        canvas.sprite(context_.graphics.sprite(4021),
+                      dosEdition() ? 103 : 165, dosEdition() ? 9 : 18, false);
+    }
     if (!characterChooser_) (void)host_.render(canvas);
     canvas.pakText(context_.graphics,
                    context_.playerName.empty() ? L"PLAYER" : context_.playerName,

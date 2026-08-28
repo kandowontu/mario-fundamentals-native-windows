@@ -18,12 +18,19 @@ param(
     [string] $Text = "",
     [int] $PostTextLogicalClickX = -1,
     [int] $PostTextLogicalClickY = -1,
+    [int] $LogicalWidth = 512,
+    [int] $LogicalHeight = 384,
+    [switch] $DoNotActivate,
     [int] $InitialDelayMilliseconds = 500,
     [int] $PostActionDelayMilliseconds = 500,
     [int] $TimeoutSeconds = 10
 )
 
 $ErrorActionPreference = "Stop"
+
+if ($LogicalWidth -le 0 -or $LogicalHeight -le 0) {
+    throw "LogicalWidth and LogicalHeight must both be positive."
+}
 
 Add-Type -AssemblyName System.Drawing
 Add-Type @'
@@ -114,17 +121,25 @@ try {
     if ($process.HasExited) { throw "Application exited before opening a window (exit $($process.ExitCode))." }
     if ($windowHandle -eq [IntPtr]::Zero) { throw "Application did not open a window in time." }
 
-    [WindowCaptureNative]::ShowWindow($windowHandle, 9) | Out-Null
-    [WindowCaptureNative]::SetWindowPos($windowHandle, [IntPtr](-1), 0, 0, 0, 0, 0x0053) | Out-Null
-    [WindowCaptureNative]::SetForegroundWindow($windowHandle) | Out-Null
+    if ($DoNotActivate) {
+        # SW_SHOWNOACTIVATE preserves the user's foreground window while the
+        # process-owned HWND remains available to PrintWindow and SendMessage.
+        [WindowCaptureNative]::ShowWindow($windowHandle, 4) | Out-Null
+    } else {
+        [WindowCaptureNative]::ShowWindow($windowHandle, 9) | Out-Null
+        [WindowCaptureNative]::SetWindowPos(
+            $windowHandle, [IntPtr](-1), 0, 0, 0, 0, 0x0053) | Out-Null
+        [WindowCaptureNative]::SetForegroundWindow($windowHandle) | Out-Null
+    }
     Start-Sleep -Milliseconds $InitialDelayMilliseconds
     if ($LogicalClickX -ge 0 -and $LogicalClickY -ge 0) {
         $client = [WindowCaptureNative]::ReadClientRect($windowHandle)
         $clientWidth = $client.Right - $client.Left
         $clientHeight = $client.Bottom - $client.Top
-        $scale = [Math]::Min($clientWidth / 512.0, $clientHeight / 384.0)
-        $viewportWidth = [int](512 * $scale)
-        $viewportHeight = [int](384 * $scale)
+        $scale = [Math]::Min($clientWidth / [double]$LogicalWidth,
+                             $clientHeight / [double]$LogicalHeight)
+        $viewportWidth = [int]($LogicalWidth * $scale)
+        $viewportHeight = [int]($LogicalHeight * $scale)
         $x = [int](($clientWidth - $viewportWidth) / 2 + $LogicalClickX * $scale)
         $y = [int](($clientHeight - $viewportHeight) / 2 + $LogicalClickY * $scale)
         $packedPoint = [IntPtr](($y -band 0xffff) -shl 16 -bor ($x -band 0xffff))
@@ -137,9 +152,10 @@ try {
         $client = [WindowCaptureNative]::ReadClientRect($windowHandle)
         $clientWidth = $client.Right - $client.Left
         $clientHeight = $client.Bottom - $client.Top
-        $scale = [Math]::Min($clientWidth / 512.0, $clientHeight / 384.0)
-        $viewportWidth = [int](512 * $scale)
-        $viewportHeight = [int](384 * $scale)
+        $scale = [Math]::Min($clientWidth / [double]$LogicalWidth,
+                             $clientHeight / [double]$LogicalHeight)
+        $viewportWidth = [int]($LogicalWidth * $scale)
+        $viewportHeight = [int]($LogicalHeight * $scale)
         $viewportX = [int](($clientWidth - $viewportWidth) / 2)
         $viewportY = [int](($clientHeight - $viewportHeight) / 2)
         $fromX = [int]($viewportX + $DragFromLogicalX * $scale)
@@ -165,9 +181,10 @@ try {
         $client = [WindowCaptureNative]::ReadClientRect($windowHandle)
         $clientWidth = $client.Right - $client.Left
         $clientHeight = $client.Bottom - $client.Top
-        $scale = [Math]::Min($clientWidth / 512.0, $clientHeight / 384.0)
-        $viewportWidth = [int](512 * $scale)
-        $viewportHeight = [int](384 * $scale)
+        $scale = [Math]::Min($clientWidth / [double]$LogicalWidth,
+                             $clientHeight / [double]$LogicalHeight)
+        $viewportWidth = [int]($LogicalWidth * $scale)
+        $viewportHeight = [int]($LogicalHeight * $scale)
         $x = [int](($clientWidth - $viewportWidth) / 2 + $SecondLogicalClickX * $scale)
         $y = [int](($clientHeight - $viewportHeight) / 2 + $SecondLogicalClickY * $scale)
         $packedPoint = [IntPtr](($y -band 0xffff) -shl 16 -bor ($x -band 0xffff))
@@ -203,9 +220,10 @@ try {
         $client = [WindowCaptureNative]::ReadClientRect($windowHandle)
         $clientWidth = $client.Right - $client.Left
         $clientHeight = $client.Bottom - $client.Top
-        $scale = [Math]::Min($clientWidth / 512.0, $clientHeight / 384.0)
-        $viewportWidth = [int](512 * $scale)
-        $viewportHeight = [int](384 * $scale)
+        $scale = [Math]::Min($clientWidth / [double]$LogicalWidth,
+                             $clientHeight / [double]$LogicalHeight)
+        $viewportWidth = [int]($LogicalWidth * $scale)
+        $viewportHeight = [int]($LogicalHeight * $scale)
         $x = [int](($clientWidth - $viewportWidth) / 2 + $PostTextLogicalClickX * $scale)
         $y = [int](($clientHeight - $viewportHeight) / 2 + $PostTextLogicalClickY * $scale)
         $packedPoint = [IntPtr](($y -band 0xffff) -shl 16 -bor ($x -band 0xffff))

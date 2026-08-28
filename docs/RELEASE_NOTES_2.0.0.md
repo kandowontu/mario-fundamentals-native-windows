@@ -10,6 +10,13 @@ media, executable, emulator, installer, sound driver, or loose asset files.
 
 ## Corrective QA after withdrawal
 
+- Backgammon and Checkers now replace, rather than underpaint, the resting Mario whenever a
+  complete 9000–9002 idle actor is active. This removes the second head/body that became visible as
+  the full-body movie moved away from its first cel in either edition.
+- DOS Dominoes now distinguishes its in-game talking-head registration from the first-use
+  character question. The 10000-family portrait anchor is `(12,15)` so its `(5,4)` authored MuV
+  origin lands on Pak 10000's `(17,19)` resting head; the character-question controller continues
+  to use its separately recovered `(7,3)` point.
 - DOS selected-game input now follows the exact FBOV overlay tables rather than a shared shell
   default. Any key completes all five titles; mouse-down completes Backgammon, Dominoes, Go Fish,
   and Yacht, while Checkers deliberately ignores it. Escape completes the current title instead
@@ -85,7 +92,7 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   targets, DOS uses its own hand cap, and `$5744`/DOS `$5367` forces the final permitted draw to
   match a chain endpoint. The release test completes 128 matches per dialect through real draw and
   drag/drop input while preserving all 28 unique bones and every chain link.
-- The no-window presentation sweeps now emit 243 exact 512×384 Macintosh frames and 234 exact
+- The no-window presentation sweeps now emit 246 exact 512×384 Macintosh frames and 237 exact
   320×200 DOS frames. They cover both Macintosh title/board mouse-down completion paths, all five
   source-specific selected-game intro input routes, Macintosh About/Credits/all nine Help panels,
   DOS menu/help contexts, all intros/openings,
@@ -115,7 +122,7 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   title's open hand, and Yacht actor/hand/no-large-cup-pre-roll/dice/marker/gesture/cup regions. A separate inventory
   accounts for all 225 retained captures
   and fails on any unknown file.
-- All 477 hidden presentation frames are now independently reproducible and content-pinned as two
+- All 483 hidden presentation frames are now independently reproducible and content-pinned as two
   complete ordered corpora after source-reference comparison. Macintosh live play keeps its
   TickCount-derived QuickDraw seed; only the no-window QA renderer resets to the fixed regression
   seed, so random openings and outcomes cannot evade the gate by changing between builds.

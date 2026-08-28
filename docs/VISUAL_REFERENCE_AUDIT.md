@@ -20,7 +20,7 @@ are used only for local preservation QA.
 The independently sourced comparisons are complemented by
 `tools/verify_qa_frame_corpus.py`. Runtime Macintosh play continues to seed QuickDraw from the
 source TickCount, but the hidden presentation renderer resets to a fixed source seed. The verifier
-therefore content-pins all 243 Macintosh and 234 DOS BMPs—including the random-dependent states
+therefore content-pins all 246 Macintosh and 237 DOS BMPs—including the random-dependent states
 outside the 53 source comparisons—by ordered filename, length, and SHA-256. The current complete-
 corpus digests are `0BACE05FBC0F7487F93AE256E60733AE2D477CDBE11728F55A81B97F1A5E8A62`
 for Macintosh and `07E181C269D5FCC1489F4E3A7EA8DF208FA888A5DD3BEA71ADB51F10346915BD`

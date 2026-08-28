@@ -21,6 +21,7 @@ public:
     [[nodiscard]] bool sourceOutcomeRegressionTest(int outcomeVariant);
     [[nodiscard]] bool sourceReplayRegressionTest();
     void setQaOutcomePresentation(int outcomeVariant);
+    void setQaIdleVisualPresentation(std::uint32_t sourceTime);
 
 private:
     struct Move { int from; int to; int captured; };
