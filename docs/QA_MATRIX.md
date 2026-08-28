@@ -1,8 +1,9 @@
-# Fidelity and release-withdrawal matrix
+# Fidelity and release matrix
 
 This matrix turns the reported defects and release requirements into explicit evidence. `Automated
 pass` means the current hidden gate proves the named invariant; it does not authorize publication.
-Both historical release entries remain withdrawn until the replacement artifact is visually accepted.
+The corrected `v2.0.0` artifact was explicitly accepted on 2026-08-28; the obsolete `v1.0.0`
+Mac-only entry remains withdrawn.
 
 | Requirement or reported defect | Current evidence | State |
 | --- | --- | --- |
@@ -35,8 +36,8 @@ Both historical release entries remain withdrawn until the replacement artifact 
 | Every recoverable original code entry is dispositioned | The Macintosh loader gate decodes all 3,149 relocation records, resolves all 2,600 relocation-backed absolute calls, and builds a 4,091-site global direct-call graph before mapping 936 conservative structural CODE entries with zero unaccounted. All 218 A5 exports resolve; the graph records 1,282 unique edges and 2,527 cross-segment sites. The DOS primary overlay ledger maps 591 exact/high/heuristic entries, including all 505 original INT 3F exports. The supporting radare2 ledger maps 77 appended-overlay candidates to that exact ledger, decodes all 2,900 FBOV fixups plus 2,839 MZ relocations, and splits its 1,846 resident candidates into 1,750 exact-dependency-graph dispositions, 76 validated overlay-stub thunks, and 20 explicitly conservative compiler/system-or-indirect rows. Exact source-specific counts are fail-closed; no generic, pending, unknown, or unaccounted row is accepted. | Automated pass |
 | Alt+Enter fullscreen works in both editions | `tools/test_fullscreen.ps1` exercises fullscreen entry and exact windowed restoration for each edition without changing the Windows display mode. | Automated pass |
 | Repository changes cannot bypass the packaged runtime gate | `.github/workflows/validate.yml` runs `tools/build_release.ps1` on every `main` push and pull request using a clean Windows/MinGW-w64 environment. It builds both editions, runs bounded hidden input/self-tests and presentation sweeps with pre/post process-leak assertions, verifies fullscreen and static self-containment, and performs the independent reproducible build. It has read-only repository permissions and no artifact-upload or release step; unshipped source-media/disassembly/reference evidence remains an additional local gate. | Automated pass |
-| Repository credits/rights are accurate | `CREDITS.md`, source/tooling license boundaries, source-media provenance, and the withdrawn-draft notice are present. Original game data is explicitly excluded from the source license. | Present |
-| No premature public release | GitHub `v1.0.0` and `v2.0.0` are both withdrawn drafts with no public downloadable release artifact. | Enforced |
+| Repository credits/rights are accurate | `CREDITS.md`, source/tooling license boundaries, source-media provenance, and the release-status notices are present. Original game data is explicitly excluded from the source license. | Present |
+| No premature public release | The accepted `v2.0.0` artifact is checksum-bound to the completed gate; obsolete `v1.0.0` remains withdrawn, and CI has no release-write permission. | Enforced |
 
 ## Current gate
 
@@ -47,6 +48,6 @@ Macintosh frames and 237 fresh DOS frames at their native logical dimensions, fo
 checked complete-corpus digests. Any missing, stale, renamed, wrong-sized, corrupt, or content-
 changed frame fails the build.
 
-The remaining publication condition is explicit visual acceptance of the corrected candidate using
-[`docs/VISUAL_ACCEPTANCE.md`](VISUAL_ACCEPTANCE.md). Until then, passing this matrix produces only an
-unreleased QA artifact.
+Publication additionally requires explicit visual acceptance under
+[`docs/VISUAL_ACCEPTANCE.md`](VISUAL_ACCEPTANCE.md). That acceptance was recorded for the current
+`v2.0.0` checksum on 2026-08-28; any rebuilt artifact must be accepted separately.

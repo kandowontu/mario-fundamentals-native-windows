@@ -1,8 +1,9 @@
 # Visual acceptance procedure
 
-Automated fidelity is necessary but does not authorize publication. The release remains withdrawn
-until the current executable is reviewed by a person at normal play speed and the corrected scenes
-are explicitly accepted.
+Automated fidelity is necessary but does not authorize publication. The corrected `v2.0.0`
+executable was explicitly accepted on 2026-08-28 with SHA-256
+`F3469CA3CC46A771EDC696079260E6A9474B518D2F0C20EAEC336647C991BBE1`. Any rebuilt executable must
+be reviewed at normal play speed and explicitly accepted under its new checksum before publication.
 
 Run the full hidden gate first, then generate the lossless review packet:
 
@@ -37,5 +38,5 @@ cannot prove perceptually:
    after that movie ends; the authored three/two small remaining-roll markers stay visible.
 
 Record any rejection with the edition, sheet/frame name or gameplay step, and a screenshot. Do not
-publish either GitHub draft until every item is explicitly accepted against the executable checksum
-recorded in the generated packet.
+publish a new or replacement GitHub artifact until every item is explicitly accepted against the
+executable checksum recorded in the generated packet.

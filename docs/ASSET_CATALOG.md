@@ -82,13 +82,13 @@ scalable `sfnt` faces for audit, but the executable deliberately uses the source
 one-bit screen strikes. CODE 5 About metrics and the complete composed raster are checked in every
 `--self-test` run.
 
-## Unreleased QA artifact
+## Release artifact
 
 | File | Bytes | SHA-256 |
 |---|---:|---|
-| `dist/MarioFundamentals.exe` | 25,206,994 | `BCCE5C92BC7DBCC95F64D9B976D39CE43245539FAAC117D7921C24FB9FDA2453` |
+| `dist/MarioFundamentals.exe` | 25,210,368 | `F3469CA3CC46A771EDC696079260E6A9474B518D2F0C20EAEC336647C991BBE1` |
 
-This local candidate is not published. The release verifiers require both deterministic asset packs to occur exactly once in the
+This is the accepted `v2.0.0` artifact. The release verifiers require both deterministic asset packs to occur exactly once in the
 executable. They separately prove all 1,707 Macintosh and 1,806 DOS manifest entries against the
 embedded bytes. A hidden `--self-test` also runs from an otherwise empty working directory and
 must create no runtime sidecar.

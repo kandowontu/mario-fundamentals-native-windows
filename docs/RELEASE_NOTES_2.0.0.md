@@ -1,8 +1,8 @@
 # Mario's Game Gallery / FUNdamentals native Windows collection 2.0.0
 
-> Draft status: this release was withdrawn from public access after DOS rendering defects were
-> found during user QA. No public `v2.0.0` release or Git tag currently exists. The draft must not
-> be republished until its replacement artifact has completed presentation review.
+> Release status: the corrected dual-edition artifact completed the automated, independent-reference,
+> and explicit visual-acceptance gates and was accepted for publication on 2026-08-28. Its SHA-256 is
+> `F3469CA3CC46A771EDC696079260E6A9474B518D2F0C20EAEC336647C991BBE1`.
 
 Version 2.0.0 adds the complete embedded DOS 1.0 edition alongside the existing Macintosh 1.1
 port. The executable opens with a native edition chooser; neither route requires the original

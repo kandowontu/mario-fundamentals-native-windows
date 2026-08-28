@@ -1,8 +1,7 @@
 # Mario's Game Gallery / FUNdamentals — native Windows preservation collection
 
-There is currently no public release. The obsolete Mac-only `v1.0.0` artifact and the dual-edition
-`v2.0.0` candidate are both withdrawn drafts while presentation QA continues; neither executable
-is endorsed for redistribution.
+Version `v2.0.0` is the accepted dual-edition release. The obsolete Mac-only `v1.0.0` artifact
+remains a withdrawn draft and is not endorsed for redistribution.
 
 This repository contains clean native Win32 compatibility ports of Mario's Game Gallery DOS 1.0
 and Mario's FUNdamentals Macintosh 1.1. On boot, one self-contained executable offers either
@@ -235,13 +234,13 @@ unshipped local captures are present, and copies the result to `dist`.
 
 Every push to `main` and every pull request also runs this dual-edition release gate on a clean
 GitHub-hosted Windows runner. The workflow is validation-only: it uploads no executable, creates no
-release, and cannot publish either withdrawn draft. Source-media preservation, disassembly, and
+release, and cannot create or modify a GitHub release. Source-media preservation, disassembly, and
 independent-reference checks remain additional local requirements because their evidence is
 deliberately excluded from the repository.
 
-The dual-edition artifact produced here is an unreleased QA candidate. Its build-specific checksum
-is written to `dist/SHA256SUMS.txt`; no candidate should be redistributed as a 2.0 release until the
-corrected dual-edition presentation audit is explicitly accepted. The hidden self-test runs from an
+The accepted dual-edition release artifact is written to `dist`, with its build-specific checksum
+in `dist/SHA256SUMS.txt`. Any rebuilt candidate requires the same corrected-presentation audit and
+explicit acceptance before it replaces the published artifact. The hidden self-test runs from an
 otherwise empty directory containing only the executable, proving that no disk image, original
 application, DOS support file, loose asset, or generated sidecar is required at runtime.
 
@@ -254,7 +253,7 @@ python .\tools\build_visual_acceptance_packet.py
 
 Then open `work/qa/visual-acceptance/index.html` and follow the live-play checklist in
 [the visual acceptance procedure](docs/VISUAL_ACCEPTANCE.md). Passing the automated gate alone does
-not authorize publication.
+not authorize publishing a replacement build.
 
 To run only the executable-level audit:
 

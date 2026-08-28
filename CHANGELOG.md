@@ -2,7 +2,7 @@
 
 All notable native-port changes are documented here.
 
-## [2.0.0] - Unreleased
+## [2.0.0] - 2026-08-28
 
 ### Added
 
@@ -149,7 +149,7 @@ All notable native-port changes are documented here.
   source placement; the authored row of three/two small remaining-roll markers remains intact.
 - Added a validation-only GitHub Actions workflow for every `main` push and pull request. It runs
   the complete packaged Windows gate and reproducible build but has read-only permissions and no
-  artifact-upload or release step; withdrawn releases cannot be republished by CI.
+  artifact-upload or release step; releases cannot be created or modified by CI.
 - Restored CODE 14's shared Macintosh Dominoes title registration, joining all five dominoes and
   Yoshi instead of leaving a single scattered partial tile.
 - Decoded DOS `Ply` motion payloads in their retained vertical/horizontal order instead of the
