@@ -16,7 +16,9 @@ game-intro instant, every deterministic opening state, representative gameplay/o
 all Yacht actor/cup/dice/score frames. Together they expose every one of the 477 pinned corpus frames
 at full resolution, and each local checkbox persists in the browser without sending data anywhere.
 The builder fails if any frame is absent or duplicated, if either corpus differs from its pinned
-digest, or if the candidate does not match `dist/SHA256SUMS.txt`.
+digest, or if the candidate does not match `dist/SHA256SUMS.txt`. Static-sheet and live-test
+checkmarks are namespaced by that candidate SHA-256, so a rebuilt executable cannot inherit an
+older candidate's acceptance.
 
 The live executable must additionally be checked for the timing/audio aspects a static packet
 cannot prove perceptually:

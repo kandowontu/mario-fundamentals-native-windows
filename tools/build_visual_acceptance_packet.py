@@ -234,6 +234,7 @@ img {{ max-width: 100%; height: auto; image-rendering: pixelated; border: 1px so
 .check {{ float: right; padding: 8px 12px; background: #303030; border-radius: 6px; }}
 nav {{ display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 12px; }}
 a {{ color: #8fd3ff; }} .warning {{ padding: 12px; border: 1px solid #f4c542; background: #332b08; }}
+.live li {{ margin: 10px 0; }} #progress {{ font-weight: 700; color: #9fffa5; }}
 </style>
 <h1>Mario's Game Gallery / FUNdamentals visual acceptance</h1>
 <p class="warning"><strong>Unreleased QA candidate.</strong> This packet is the human review layer;
@@ -245,13 +246,41 @@ Pinned corpus: <code>243 Macintosh + 234 DOS = 477 frames</code>.</p>
 all five intro paths; progressive deals/setup; solid Mario head/torso/hands; and Yacht's cup-free
 pre-roll followed by exactly one large animated cup. The in-board Yacht “Good luck / I go first”
 opening intentionally remains input-locked, while its selected-game title is click-skippable.</p>
+<section id="live-checks"><h2>Live executable checks</h2>
+<p>These timing, audio, input, fullscreen, and complete-play checks cannot be accepted from static
+frames. Run the candidate above and check each item only after observing it in both editions.</p>
+<ol class="live">
+<li><label><input type="checkbox" data-key="live-startup"> Both startup sequences play their
+correct sounds/music without a hang or an orphaned process after exit.</label></li>
+<li><label><input type="checkbox" data-key="live-mac-input"> Macintosh title/easel clicks and the
+selected Yacht-on-water intro skip; the later scorecard “Good luck / I go first” opening remains
+input-locked.</label></li>
+<li><label><input type="checkbox" data-key="live-presentation"> Menus and gameplay remain spatially
+stable in windowed and Alt+Enter fullscreen modes, without black repaint flicker.</label></li>
+<li><label><input type="checkbox" data-key="live-intros"> All five intros in both editions remain
+aligned and solid, without duplicated heads or latent board/menu layers.</label></li>
+<li><label><input type="checkbox" data-key="live-games"> All five games in both editions remain
+playable through a complete result and replay path.</label></li>
+<li><label><input type="checkbox" data-key="live-yacht"> Yacht has no large pre-roll cup, exactly
+one large movie-6020 cup during a roll, none after it, and retains its authored small markers.</label></li>
+</ol><p id="progress"></p></section>
 {''.join(sections)}
 <script>
-for (const box of document.querySelectorAll('input[data-key]')) {{
-  box.checked = localStorage.getItem('mf-accept-' + box.dataset.key) === '1';
-  box.addEventListener('change', () => localStorage.setItem(
-    'mf-accept-' + box.dataset.key, box.checked ? '1' : '0'));
+const boxes = [...document.querySelectorAll('input[data-key]')];
+const acceptancePrefix = 'mf-accept-{candidate_hash}-';
+function updateProgress() {{
+  const accepted = boxes.filter(box => box.checked).length;
+  document.querySelector('#progress').textContent = `${{accepted}} / ${{boxes.length}} checks accepted`;
 }}
+for (const box of boxes) {{
+  const key = acceptancePrefix + box.dataset.key;
+  box.checked = localStorage.getItem(key) === '1';
+  box.addEventListener('change', () => {{
+    localStorage.setItem(key, box.checked ? '1' : '0');
+    updateProgress();
+  }});
+}}
+updateProgress();
 </script>
 """
     (output / "index.html").write_text(page, encoding="utf-8")
