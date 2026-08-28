@@ -113,6 +113,10 @@ media, executable, emulator, installer, sound driver, or loose asset files.
   title's open hand, and Yacht actor/hand/dice/marker/gesture/cup regions. A separate inventory
   accounts for all 225 retained captures
   and fails on any unknown file.
+- All 465 hidden presentation frames are now independently reproducible and content-pinned as two
+  complete ordered corpora after source-reference comparison. Macintosh live play keeps its
+  TickCount-derived QuickDraw seed; only the no-window QA renderer resets to the fixed regression
+  seed, so random openings and outcomes cannot evade the gate by changing between builds.
 - The Dominoes score portrait now uses its independently captured edition-specific origin:
   Macintosh `(11,11)` and DOS `(7,15)`, safely below the DOS menu bar.
 - DOS Backgammon, Checkers, and Go Fish intro actors now resolve the registered points supplied by

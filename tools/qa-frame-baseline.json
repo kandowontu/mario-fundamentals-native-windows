@@ -1,0 +1,20 @@
+{
+  "format": "mario-fundamentals-qa-frame-baseline-v1",
+  "digest_method": "SHA-256 over each case-sensitive UTF-8 filename, NUL, 8-byte big-endian file length, and the 32-byte SHA-256 of the BMP, in ordinal filename order",
+  "editions": {
+    "macintosh": {
+      "frames": 232,
+      "width": 512,
+      "height": 384,
+      "bmp_bytes": 786486,
+      "corpus_sha256": "8E657C4919BDAD1CB3031CEC8170EBAFAD7BB1F75532C07BBFB6031D707601D2"
+    },
+    "dos": {
+      "frames": 233,
+      "width": 320,
+      "height": 200,
+      "bmp_bytes": 256054,
+      "corpus_sha256": "7206677B51E3C32DA22998C88E64C08D6799C9FE690554CCD523BBCD53F35A58"
+    }
+  }
+}

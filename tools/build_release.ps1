@@ -245,6 +245,16 @@ Invoke-PresentationQa -Argument "--render-dos-qa" `
     -OutputDirectory (Join-Path $projectRoot "work/qa/dos") -Label "dos" `
     -ExpectedFrames 233 -ExpectedBytes 256054
 
+# Independent references cover source fidelity at representative instants;
+# this second layer pins every generated state so an unreferenced intro,
+# opening, outcome, or roll frame cannot silently change behind a stable count.
+python (Join-Path $PSScriptRoot "verify_qa_frame_corpus.py") `
+    (Join-Path $PSScriptRoot "qa-frame-baseline.json") `
+    --mac-directory (Join-Path $projectRoot "work/qa/mac") `
+    --dos-directory (Join-Path $projectRoot "work/qa/dos") `
+    --report (Join-Path $auditRoot "qa-frame-corpus-verification.json")
+if ($LASTEXITCODE -ne 0) { throw "Deterministic QA frame corpus verification failed." }
+
 # When the locally retained independent reference sets are available, compare
 # original output with representative native gameplay frames. The captures
 # remain unshipped source evidence, just like the disassembly inputs.

@@ -17,6 +17,16 @@ representative output from all five games in both editions against the newly gen
 The screenshots live below `work/references/`, are excluded from Git and release artifacts, and
 are used only for local preservation QA.
 
+The independently sourced comparisons are complemented by
+`tools/verify_qa_frame_corpus.py`. Runtime Macintosh play continues to seed QuickDraw from the
+source TickCount, but the hidden presentation renderer resets to a fixed source seed. The verifier
+therefore content-pins all 232 Macintosh and 233 DOS BMPs—including the random-dependent states
+outside the 52 source comparisons—by ordered filename, length, and SHA-256. The current complete-
+corpus digests are `8E657C4919BDAD1CB3031CEC8170EBAFAD7BB1F75532C07BBFB6031D707601D2`
+for Macintosh and `7206677B51E3C32DA22998C88E64C08D6799C9FE690554CCD523BBCD53F35A58`
+for DOS. This regression layer prevents an unreferenced frame from changing; it does not replace
+the vanilla screenshots as the fidelity authority.
+
 ## Method and current result
 
 The comparison uses Gaussian-smoothed regional RGB root-mean-square error after normalizing each
@@ -71,7 +81,7 @@ back buffer so the source/browser's black flicker cannot become a port feature.
 | Macintosh | Backgammon character choice | 11.069 | 13.0 |
 | Macintosh | Backgammon setup reveal | 13.142 | 15.0 |
 | Macintosh | Dominoes table | 2.335 | 4.0 |
-| Macintosh | Dominoes score/portrait registration (edge) | 37.429 | 38.0 |
+| Macintosh | Dominoes score/portrait registration (edge) | 37.255 | 38.0 |
 | Macintosh | Checkers chrome | 10.620 | 14.0 |
 | Macintosh | Checkers character choice | 10.073 | 12.0 |
 | Macintosh | Checkers name prompt | 13.793 | 16.0 |

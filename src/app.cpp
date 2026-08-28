@@ -141,6 +141,11 @@ bool App::sourceIntroSkipRegressionTest() {
 
 void App::renderQaFrames(std::wstring_view outputDirectory) {
     audio_.setEnabled(false);
+    // The live Macintosh build retains CODE 13's TickCount-derived QuickDraw
+    // seed. Presentation QA instead begins from the deterministic source
+    // sequence used by the executable regressions, so every opening, deal,
+    // outcome, and late roll frame can be content-pinned rather than counted.
+    random_.setSeed(0x4d415249U);
     const std::filesystem::path root(outputDirectory);
     std::filesystem::create_directories(root);
     const auto save = [this, &root](std::wstring_view name) {

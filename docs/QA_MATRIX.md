@@ -14,6 +14,7 @@ Both historical release entries remain withdrawn until the replacement artifact 
 | No background Mario/audio process after exit | Both window destroy paths cancel their timers, stop voices/effects and music immediately, and terminate their message loops. Every packaged-executable stage has a bounded hidden wait and asserts that no `MarioFundamentals` process exists before or after it; a timeout terminates only the exact QA PID the gate launched. | Automated pass |
 | Frame-to-frame menu/gameplay shifting | `Canvas::present` performs one explicit nearest-neighbour logical-to-client map before a 1:1 upload, eliminating DPI-dependent `StretchBlt` phase changes. Every QA frame is pinned to 512×384 or 320×200. | Automated pass |
 | Port scenes retain original whole-frame geometry | Fifty-two independent comparisons cover Macintosh publisher/title states, the black-cast board silhouette and open right hand, four menu-transition instants plus the exact settled Go Fish actor, stable gameplay geometry in both editions, seven Macintosh and all five DOS game-intro instants, first-use character/name panels, Backgammon setup, DOS Go Fish scoreboard captions plus Go Fish question/transfer states, both Dominoes score-portrait registrations, and focused Yacht dice/marker/actor/hand/gesture/cup regions. A 225-file inventory rejects unaccounted retained captures. `docs/VISUAL_REFERENCE_AUDIT.md` records the method and measured margins. | Automated pass |
+| Every generated presentation state is regression-pinned | The hidden renderer uses fixed edition-specific source seeds without changing live Macintosh TickCount seeding. `tools/verify_qa_frame_corpus.py` validates the BMP structure, logical size, filename, length, and content of the complete ordered 232-frame Macintosh and 233-frame DOS corpora. Thus all sampled intro instants, random openings, outcomes, interaction states, and Yacht roll/settle frames must remain byte-identical, including the states outside the 52 independent-reference cases. | Automated pass |
 | Black repaint flicker | Both shells suppress erase-background; DOS composes the complete logical frame before touching the window DC and clears only the letterbox. | Automated pass |
 | Board flip centered and menu concealed before reveal | Macintosh/DOS dialect-specific MuV/Img ordering is independently validated; the Macintosh title begins with Pak 710 under its black cast, and movie 1125's persistent base frame covers the latent menu. The source silhouette is independently compared and four timeline frames per edition exercise start through terminal reveal. | Automated pass |
 | Clicking the DOS board cannot rewind the reveal | `DosApp::introSkipTarget` advances DimTitle/TalkingTitle to MenuReveal and MenuReveal to the completed menu; `03g/03h` captures exercise the live skip route. | Automated pass |
@@ -42,8 +43,9 @@ Both historical release entries remain withdrawn until the replacement artifact 
 `tools/build_release.ps1` must pass all semantic, asset, audiovisual, presentation, independent
 visual-reference inventory/comparison, fullscreen, function-traceability, preservation,
 PE/dependency, and isolated-runtime checks. It now requires exactly 232 fresh
-Macintosh frames and 233 fresh DOS frames at their native logical dimensions. Any missing, stale,
-wrong-sized, or corrupt frame fails the build.
+Macintosh frames and 233 fresh DOS frames at their native logical dimensions, followed by the
+checked complete-corpus digests. Any missing, stale, renamed, wrong-sized, corrupt, or content-
+changed frame fails the build.
 
 The remaining publication condition is explicit visual acceptance of the corrected candidate. Until
 then, passing this matrix produces only an unreleased QA artifact.

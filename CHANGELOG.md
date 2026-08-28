@@ -19,7 +19,8 @@ All notable native-port changes are documented here.
 - Silent, no-window Macintosh presentation output covering startup, title skip, four board-flip
   positions, every menu pose, 21 points across each game intro, eight opening states per game, and
   stationary/contact cup plus seven Yacht roll/settle states. The release gate regenerates and
-  validates all 232 Macintosh and 233 DOS frames at each edition's exact logical dimensions.
+  validates all 232 Macintosh and 233 DOS frames at each edition's exact logical dimensions, then
+  content-pins the complete ordered corpora instead of accepting count/size alone.
 - A fail-closed 225-file vanilla-capture inventory and 52 independent pixel/edge comparisons,
   including the title silhouette/open hand, four menu selections, Go Fish question/transfer, and
   Yacht dice/marker/composed-hand states.
@@ -53,6 +54,9 @@ All notable native-port changes are documented here.
 - Hidden packaged-executable checks now have bounded waits and fail before or after a stage if a
   `MarioFundamentals` process is already present or remains behind. A timed-out gate kills only the
   exact hidden QA PID that it launched and never searches for or closes unrelated user windows.
+- Macintosh presentation QA now resets only its hidden renderer to a fixed QuickDraw source seed.
+  Live play retains CODE 13's TickCount-derived seeding, while repeated audit runs produce identical
+  opening, deal, result, and late Yacht frames suitable for exhaustive corpus verification.
 
 - Shared game controllers now render and hit-test against each edition's native 512×384 or
   320×200 coordinate system while retaining the recovered source rules and outcomes.
