@@ -10,6 +10,62 @@ constexpr std::array<Point, 4> kSourceDirections{{
     {-1, -1}, {1, -1}, {-1, 1}, {1, 1}
 }};
 
+// CODE 16 $4C44 and DOS overlay 5 $026A store the perspective board
+// registrations explicitly.  These are the centres returned by each Pak
+// 2500 square control, ordered left-to-right across the four playable cells
+// in every row.  The originals do not derive these points by scaling a
+// rectangle: every row has its own authored horizontal spacing.
+constexpr std::array<std::array<Point, 4>, 8> kMacPieceCenters{{
+    {{{141, 198}, {233, 198}, {325, 198}, {417, 198}}},
+    {{{ 88, 219}, {184, 219}, {280, 219}, {376, 219}}},
+    {{{131, 239}, {231, 239}, {331, 239}, {431, 239}}},
+    {{{ 74, 260}, {178, 260}, {282, 260}, {386, 260}}},
+    {{{121, 281}, {229, 281}, {337, 281}, {445, 281}}},
+    {{{ 60, 301}, {172, 301}, {284, 301}, {396, 301}}},
+    {{{111, 322}, {227, 322}, {343, 322}, {458, 322}}},
+    {{{ 48, 342}, {167, 342}, {286, 342}, {406, 342}}},
+}};
+
+constexpr std::array<std::array<Point, 4>, 8> kDosPieceCenters{{
+    {{{79, 104}, {144, 104}, {208, 104}, {272, 104}}},
+    {{{43, 115}, {109, 115}, {176, 115}, {242, 115}}},
+    {{{74, 126}, {143, 126}, {211, 126}, {279, 126}}},
+    {{{36, 137}, {106, 137}, {177, 137}, {248, 137}}},
+    {{{69, 148}, {142, 148}, {214, 148}, {286, 148}}},
+    {{{29, 159}, {103, 159}, {178, 159}, {253, 159}}},
+    {{{64, 170}, {141, 170}, {217, 170}, {293, 170}}},
+    {{{28, 179}, {101, 179}, {179, 179}, {257, 179}}},
+}};
+
+Point sourcePieceAnchor(int frame, bool dosEdition) noexcept {
+    // CODE 16 $2146..$23F8 and DOS overlay 4 $0129 select four
+    // independently registered points.  The tall king cels intentionally
+    // sit much farther above the square than the ordinary front/back cels.
+    if (dosEdition) {
+        if (frame == 4 || frame == 5 || frame == 10) return {-9, -21};
+        if (frame == 6 || frame == 7 || frame == 11) return {-18, -32};
+        if (frame == 2 || frame == 3 || frame == 9) return {-8, -30};
+        return {-8, -16};  // frames 0, 1, and 8
+    }
+    if (frame == 4 || frame == 5 || frame == 10) return {-20, -41};
+    if (frame == 6 || frame == 7 || frame == 11) return {-33, -64};
+    if (frame == 2 || frame == 3 || frame == 9) return {-19, -61};
+    return {-18, -30};  // frames 0, 1, and 8
+}
+
+Point sourcePieceCenter(int square, bool dosEdition) noexcept {
+    const int row = square / 8;
+    const int column = square % 8;
+    return (dosEdition ? kDosPieceCenters : kMacPieceCenters)
+        [static_cast<std::size_t>(row)][static_cast<std::size_t>(column / 2)];
+}
+
+Point sourcePiecePosition(int square, int frame, bool dosEdition) noexcept {
+    const Point center = sourcePieceCenter(square, dosEdition);
+    const Point anchor = sourcePieceAnchor(frame, dosEdition);
+    return {center.x + anchor.x, center.y + anchor.y};
+}
+
 constexpr std::array<std::array<int, 5>, 4> kSourceIdleJokes{{
     {{11704, 11705, 11706, 11707, 11708}},
     {{11702, 11703, 11709, 11710, 11711}},
@@ -618,26 +674,11 @@ bool CheckersGame::tick() {
 }
 
 Point CheckersGame::squareCenter(int square) const {
-    const int row = square / 8;
-    const int column = square % 8;
-    if (dosEdition()) {
-        const double yTop = 96.0 + row * 11.5;
-        const double yMiddle = yTop + 5.75;
-        const double progress = (yMiddle - 96.0) / 92.0;
-        const double left = 34.0 - 33.0 * progress;
-        const double right = 286.0 + 33.0 * progress;
-        const double width = (right - left) / 8.0;
-        return {static_cast<int>(left + (column + 0.5) * width),
-                static_cast<int>(yMiddle)};
-    }
-    const double yTop = 186.0 + row * 21.5;
-    const double yMiddle = yTop + 10.75;
-    const double progress = (yMiddle - 186.0) / 172.0;
-    const double left = 69.0 - 63.0 * progress;
-    const double right = 443.0 + 63.0 * progress;
-    const double width = (right - left) / 8.0;
-    return {static_cast<int>(left + (column + 0.5) * width),
-            static_cast<int>(yMiddle)};
+    return sourcePieceCenter(square, dosEdition());
+}
+
+Point CheckersGame::piecePosition(int square, int frame) const {
+    return sourcePiecePosition(square, frame, dosEdition());
 }
 
 int CheckersGame::hitSquare(Point point) const {
@@ -789,6 +830,27 @@ bool CheckersGame::sourceIdleRegressionTest() {
                                    std::uint32_t{901905533U}} &&
            choose(2) == std::tuple{SourceIdleChoiceKind::Joke, 0, 0,
                                   std::uint32_t{564950498U}};
+}
+
+bool CheckersGame::sourcePieceGeometryRegressionTest() {
+    // Opening rows pin both perspective tables; king/alternate frames pin
+    // all four anchor groups recovered from the original render selectors.
+    const auto at = [](int square, int frame, bool dosEdition, int x, int y) {
+        const Point actual = sourcePiecePosition(square, frame, dosEdition);
+        return actual.x == x && actual.y == y;
+    };
+    return at(1, 5, false, 121, 157) &&
+           at(40, 0, false, 42, 271) &&
+           at(24, 10, false, 54, 219) &&
+           at(24, 11, false, 41, 196) &&
+           at(24, 9, false, 55, 199) &&
+           at(24, 8, false, 56, 230) &&
+           at(1, 5, true, 70, 83) &&
+           at(40, 0, true, 21, 143) &&
+           at(62, 5, true, 248, 158) &&
+           at(62, 0, true, 249, 163) &&
+           at(62, 2, true, 249, 149) &&
+           at(62, 6, true, 239, 147);
 }
 
 bool CheckersGame::sourceFullMatchRegressionTest() {
@@ -974,7 +1036,7 @@ void CheckersGame::render(Canvas& canvas) {
     // head/body visible whenever the animated actor moves away from frame 0.
     if (!hostOwnsFullBody) {
         canvas.sprite(context_.graphics.sprite(9000),
-                      dosEdition() ? 103 : 165, dosEdition() ? 9 : 18, false);
+                      dosEdition() ? 114 : 164, dosEdition() ? 14 : 18, false);
     }
     if (!characterChooser_) (void)host_.render(canvas);
     canvas.pakText(context_.graphics,
@@ -987,9 +1049,9 @@ void CheckersGame::render(Canvas& canvas) {
             if (!piece || (pieceAnimation_.active && index == pieceAnimation_.to)) continue;
             const Point center = squareCenter(index);
             const int frame = pieceFrame(piece);
-            const Sprite& sprite = context_.graphics.sprite(2501, frame);
-            canvas.sprite(sprite, center.x - sprite.width / 2,
-                          center.y - sprite.height + (dosEdition() ? 7 : 13), false);
+            const Point position = piecePosition(index, frame);
+            canvas.sprite(context_.graphics.sprite(2501, frame),
+                          position.x, position.y, false);
             if (index == selected_) {
                 const int halfWidth = dosEdition() ? 10 : 20;
                 const int top = dosEdition() ? 12 : 24;
@@ -1000,21 +1062,20 @@ void CheckersGame::render(Canvas& canvas) {
             }
         }
         if (pieceAnimation_.active) {
-            const Point from = squareCenter(pieceAnimation_.from);
-            const Point to = squareCenter(pieceAnimation_.to);
+            const int frame = pieceFrame(pieceAnimation_.piece);
+            const Point from = piecePosition(pieceAnimation_.from, frame);
+            const Point to = piecePosition(pieceAnimation_.to, frame);
             const unsigned elapsed = std::min(pieceAnimation_.elapsedMilliseconds, 330U);
             const int x = from.x + (to.x - from.x) * static_cast<int>(elapsed) / 330;
             const int y = from.y + (to.y - from.y) * static_cast<int>(elapsed) / 330;
-            const Sprite& sprite = context_.graphics.sprite(2501, pieceFrame(pieceAnimation_.piece));
-            canvas.sprite(sprite, x - sprite.width / 2,
-                          y - sprite.height + (dosEdition() ? 7 : 13), false);
+            canvas.sprite(context_.graphics.sprite(2501, frame), x, y, false);
         }
         const int marioPortrait = context_.playerIsYoshi ? 13 : 12;
         const int playerPortrait = context_.playerIsYoshi ? 12 : 13;
         canvas.sprite(context_.graphics.sprite(2501, marioPortrait),
-                      dosEdition() ? 8 : 16, dosEdition() ? 25 : 51, false);
+                      dosEdition() ? 11 : 14, dosEdition() ? 29 : 49, false);
         canvas.sprite(context_.graphics.sprite(2501, playerPortrait),
-                      dosEdition() ? 281 : 449, dosEdition() ? 25 : 51, false);
+                      dosEdition() ? 286 : 451, dosEdition() ? 29 : 49, false);
     }
     canvas.pakText(context_.graphics,
                    characterChooser_ ? L"Do you want to play as a Yoshi, or as a Koopa?" : status_,

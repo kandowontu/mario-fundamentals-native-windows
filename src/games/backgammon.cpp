@@ -62,6 +62,28 @@ constexpr std::array<BackgammonCheckerBase, 24> kEggCheckerBases{{
     {133, 322}, { 93, 322}, { 55, 322}, { 16, 322},
 }};
 
+// DOS overlay 0 $4FAF/$5056 indexes its own two 24-entry tables. The words
+// survive verbatim in MARIO.EXE at file offsets $36ACC/$36B2C. They are not
+// scaled Macintosh registrations: the DOS board uses four-point groups and
+// different lower-half stack slopes for shells and eggs.
+constexpr std::array<BackgammonCheckerBase, 24> kDosShellCheckerBases{{
+    { 27,  92}, { 48,  92}, { 69,  92}, { 89,  92},
+    {109,  92}, {129,  92}, {173,  92}, {194,  92},
+    {215,  92}, {235,  92}, {256,  92}, {277,  92},
+    {295, 173}, {272, 173}, {248, 173}, {225, 173},
+    {200, 173}, {176, 173}, {127, 173}, {104, 173},
+    { 80, 173}, { 55, 173}, { 32, 173}, {  7, 173},
+}};
+
+constexpr std::array<BackgammonCheckerBase, 24> kDosEggCheckerBases{{
+    { 29,  91}, { 50,  91}, { 69,  91}, { 89,  91},
+    {111,  91}, {131,  91}, {175,  91}, {196,  91},
+    {217,  91}, {237,  91}, {258,  91}, {278,  91},
+    {297, 169}, {273, 169}, {249, 169}, {225, 169},
+    {201, 169}, {178, 169}, {129, 169}, {105, 169},
+    { 82, 169}, { 57, 169}, { 34, 169}, { 10, 169},
+}};
+
 constexpr int sourceCheckerPoint(int nativePoint) noexcept {
     return (nativePoint + 12) % 24;
 }
@@ -93,6 +115,29 @@ Point sourceCheckerPosition(int nativePoint, int frame, int stackIndex) noexcept
             groupDirection * 2 * group,
         base.y + verticalDirection * verticalStep * withinGroup,
     };
+}
+
+Point sourceDosCheckerPosition(int nativePoint, int frame, int stackIndex) noexcept {
+    const int sourcePoint = sourceCheckerPoint(nativePoint);
+    const int boundedIndex = std::clamp(stackIndex, 0, 14);
+    const bool egg = frame == 0;
+    const BackgammonCheckerBase base = egg
+        ? kDosEggCheckerBases[static_cast<std::size_t>(sourcePoint)]
+        : kDosShellCheckerBases[static_cast<std::size_t>(sourcePoint)];
+    const int group = sourcePoint / 4;
+    const int horizontalSlope = (group == 0 || group == 3) ? -1
+        : (group == 2 || group == 5) ? 1 : 0;
+    const int verticalSlope = sourcePoint < 12 ? 4 : -(egg ? 3 : 4);
+    return {
+        base.x + horizontalSlope * boundedIndex,
+        base.y + verticalSlope * boundedIndex,
+    };
+}
+
+Point editionCheckerPosition(int nativePoint, int frame, int stackIndex,
+                             bool dosEdition) noexcept {
+    return dosEdition ? sourceDosCheckerPosition(nativePoint, frame, stackIndex)
+                      : sourceCheckerPosition(nativePoint, frame, stackIndex);
 }
 
 int sourceNonRepeatingBucket(SourceRandom& random, int& previous) {
@@ -1506,6 +1551,10 @@ bool BackgammonGame::sourceCheckerGeometryRegressionTest() {
         const Point actual = sourceCheckerPosition(nativePoint, frame, stackIndex);
         return actual.x == x && actual.y == y;
     };
+    const auto dosAt = [](int nativePoint, int frame, int stackIndex, int x, int y) {
+        const Point actual = sourceDosCheckerPosition(nativePoint, frame, stackIndex);
+        return actual.x == x && actual.y == y;
+    };
 
     // The eight opening stacks prove the native/source point rotation and
     // both decoded coordinate tables against the retained original frame.
@@ -1519,7 +1568,7 @@ bool BackgammonGame::sourceCheckerGeometryRegressionTest() {
     // $558A/$5756 keep fifteen actors per point. Every block of five reuses
     // the vertical lane and moves two pixels sideways; it never clamps at
     // checker five or replaces the remaining actors with a numeric label.
-    return at(12, 0, 4, 39, 209) && at(12, 0, 5, 45, 169) &&
+    const bool macStacks = at(12, 0, 4, 39, 209) && at(12, 0, 5, 45, 169) &&
            at(12, 0, 9, 37, 209) && at(12, 0, 10, 43, 169) &&
            at(12, 0, 14, 35, 209) &&
            at(23, 0, 4, 449, 209) && at(23, 0, 5, 443, 169) &&
@@ -1528,6 +1577,14 @@ bool BackgammonGame::sourceCheckerGeometryRegressionTest() {
            at(0, 1, 10, 473, 333) && at(0, 1, 14, 465, 289) &&
            at(11, 1, 4, 22, 289) && at(11, 1, 5, 12, 333) &&
            at(11, 1, 10, 10, 333) && at(11, 1, 14, 18, 289);
+
+    // These four DOS actors are exact masked sprite matches in the retained
+    // vanilla frame and cover both tables plus the positive/negative slopes.
+    const bool dosStacks =
+        dosAt(12, 1, 1, 26, 96) && dosAt(23, 1, 3, 280, 104) &&
+        dosAt(17, 0, 4, 131, 107) && dosAt(19, 0, 2, 196, 99) &&
+        dosAt(0, 0, 4, 293, 157) && dosAt(11, 1, 4, 11, 157);
+    return macStacks && dosStacks;
 }
 
 void BackgammonGame::setQaSetupRevealPresentation(int revealedCheckers) {
@@ -1558,7 +1615,7 @@ void BackgammonGame::render(Canvas& canvas) {
     const bool hostOwnsFullBody = hostResource >= 9000 && hostResource <= 9002;
     if (!hostOwnsFullBody) {
         canvas.sprite(context_.graphics.sprite(4021),
-                      dosEdition() ? 103 : 165, dosEdition() ? 9 : 18, false);
+                      dosEdition() ? 115 : 165, dosEdition() ? 15 : 16, false);
     }
     if (!characterChooser_) (void)host_.render(canvas);
     canvas.pakText(context_.graphics,
@@ -1592,8 +1649,8 @@ void BackgammonGame::render(Canvas& canvas) {
         for (int index = 0; index < std::min(visibleCount, 15); ++index) {
             const int frame = renderedPoints[point] > 0 ? humanFrame : computerFrame;
             const Sprite& sprite = context_.graphics.sprite(4011, frame);
-            Point position = sourceCheckerPosition(point, frame, index);
-            if (dosEdition()) position = {dosX(position.x), dosY(position.y)};
+            const Point position = editionCheckerPosition(
+                point, frame, index, dosEdition());
             canvas.sprite(sprite, position.x, position.y, false);
         }
         if (selected_ == point)
@@ -1643,9 +1700,7 @@ Point BackgammonGame::checkerPosition(int point, int player, int stackIndex,
                                        const Sprite& sprite) const {
     if (point >= 0 && point < 24) {
         const int frame = sprite.height >= 30 ? 0 : 1;
-        Point position = sourceCheckerPosition(point, frame, stackIndex);
-        if (dosEdition()) position = {dosX(position.x), dosY(position.y)};
-        return position;
+        return editionCheckerPosition(point, frame, stackIndex, dosEdition());
     }
     if ((player > 0 && point == 24) || (player < 0 && point == -1)) {
         return {(dosEdition() ? 160 : 255) - sprite.width / 2,

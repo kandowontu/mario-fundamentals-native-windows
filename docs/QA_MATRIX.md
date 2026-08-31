@@ -2,7 +2,7 @@
 
 This matrix turns the reported defects and release requirements into explicit evidence. `Automated
 pass` means the current hidden gate proves the named invariant; it does not authorize publication.
-The corrected `v2.0.0` artifact was explicitly accepted on 2026-08-28; the obsolete `v1.0.0`
+The corrected `v2.0.1` artifact was explicitly accepted on 2026-08-30; the obsolete `v1.0.0`
 Mac-only entry remains withdrawn.
 
 | Requirement or reported defect | Current evidence | State |
@@ -37,7 +37,7 @@ Mac-only entry remains withdrawn.
 | Alt+Enter fullscreen works in both editions | `tools/test_fullscreen.ps1` exercises fullscreen entry and exact windowed restoration for each edition without changing the Windows display mode. | Automated pass |
 | Repository changes cannot bypass the packaged runtime gate | `.github/workflows/validate.yml` runs `tools/build_release.ps1` on every `main` push and pull request using a clean Windows/MinGW-w64 environment. It builds both editions, runs bounded hidden input/self-tests and presentation sweeps with pre/post process-leak assertions, verifies fullscreen and static self-containment, and performs the independent reproducible build. It has read-only repository permissions and no artifact-upload or release step; unshipped source-media/disassembly/reference evidence remains an additional local gate. | Automated pass |
 | Repository credits/rights are accurate | `CREDITS.md`, source/tooling license boundaries, source-media provenance, and the release-status notices are present. Original game data is explicitly excluded from the source license. | Present |
-| No premature public release | The accepted `v2.0.0` artifact is checksum-bound to the completed gate; obsolete `v1.0.0` remains withdrawn, and CI has no release-write permission. | Enforced |
+| No premature public release | The accepted `v2.0.1` artifact is checksum-bound to the completed gate; obsolete `v1.0.0` remains withdrawn, and CI has no release-write permission. | Enforced |
 
 ## Current gate
 
@@ -50,4 +50,4 @@ changed frame fails the build.
 
 Publication additionally requires explicit visual acceptance under
 [`docs/VISUAL_ACCEPTANCE.md`](VISUAL_ACCEPTANCE.md). That acceptance was recorded for the current
-`v2.0.0` checksum on 2026-08-28; any rebuilt artifact must be accepted separately.
+`v2.0.1` checksum on 2026-08-30; any rebuilt artifact must be accepted separately.

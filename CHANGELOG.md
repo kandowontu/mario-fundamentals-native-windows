@@ -2,6 +2,26 @@
 
 All notable native-port changes are documented here.
 
+## [2.0.1] - 2026-08-30
+
+### Fixed
+
+- Replaced scaled or inferred Checkers geometry with the source-authored square centers and
+  per-frame piece anchors for both editions; corrected the static actor and portrait origins.
+- Restored the DOS Go Fish hand, victory-card, deck, head, and torso registrations and kept
+  opening motion timing edition-specific.
+- Recovered the DOS Backgammon 24-point shell/egg coordinate tables and source stacking slopes.
+- Corrected the DOS Dominoes opening-chain lane and static actor registrations.
+- Restored the DOS Yacht die, held-die, and remaining-roll marker coordinates.
+
+### Validation
+
+- Added focused source-geometry regressions and refreshed only the intentionally changed visual
+  hashes.
+- Re-ran the complete dual-edition release gate: 246 Macintosh frames, 237 DOS frames, all 53
+  independent visual comparisons, hidden input/fullscreen probes, preservation checks, and a
+  byte-identical clean-room rebuild.
+
 ## [2.0.0] - 2026-08-28
 
 ### Added

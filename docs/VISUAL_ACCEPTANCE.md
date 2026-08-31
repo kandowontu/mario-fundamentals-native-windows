@@ -1,8 +1,8 @@
 # Visual acceptance procedure
 
-Automated fidelity is necessary but does not authorize publication. The corrected `v2.0.0`
-executable was explicitly accepted on 2026-08-28 with SHA-256
-`F3469CA3CC46A771EDC696079260E6A9474B518D2F0C20EAEC336647C991BBE1`. Any rebuilt executable must
+Automated fidelity is necessary but does not authorize publication. The corrected `v2.0.1`
+executable was explicitly accepted on 2026-08-30 with SHA-256
+`773EF30CA1C0506D34A26D7D6E70C39ECDDEF50D9695084A5A16E2411CC7A51F`. Any rebuilt executable must
 be reviewed at normal play speed and explicitly accepted under its new checksum before publication.
 
 Run the full hidden gate first, then generate the lossless review packet:

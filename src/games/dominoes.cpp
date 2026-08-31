@@ -602,7 +602,14 @@ bool DominoesGame::sourceOpeningRegressionTest() const {
         dominoOpeningMovie(true, 75) == 10005 &&
         dominoOpeningMovie(false, 49) == 10006 &&
         dominoOpeningMovie(false, 50) == 10008;
-    return routesMatch && std::ranges::all_of(expectedMovies, [&](int movieId) {
+    const Rect firstDomino = chainTileRect(0, 1);
+    const Rect expectedFirstDomino = dosEdition()
+        ? Rect{143, 72, 177, 89} : Rect{228, 128, 284, 156};
+    return routesMatch && firstDomino.left == expectedFirstDomino.left &&
+           firstDomino.top == expectedFirstDomino.top &&
+           firstDomino.right == expectedFirstDomino.right &&
+           firstDomino.bottom == expectedFirstDomino.bottom &&
+           std::ranges::all_of(expectedMovies, [&](int movieId) {
         return context_.assets.contains("MuV ", movieId) &&
                context_.assets.contains("Ply ", movieId) &&
                Movie(context_.assets, movieId).resolved();
@@ -1712,6 +1719,17 @@ void DominoesGame::drawTile(Canvas& canvas, const Tile& tile, Rect rect, bool se
 }
 
 Rect DominoesGame::chainTileRect(int index, int visible) const {
+    if (dosEdition() && index < 8) {
+        // DOS overlay 12 $4E92-$4ECF derives the table centre from its authored
+        // board bounds {3,11,317,150}: (160,80). A horizontal Pak 3100 domino
+        // is 34x17 in the live renderer, so the opening lane is centred at
+        // y=72 with a 34-pixel pitch. Scaling the Mac y=128 lane put every
+        // early-game domino five pixels too high.
+        const int rowCount = std::min(visible, 8);
+        const int startX = 160 - rowCount * 17;
+        return {startX + index * 34, 72,
+                startX + (index + 1) * 34, 89};
+    }
     Rect result{};
     if (index < 8) {
         const int rowCount = std::min(visible, 8);
@@ -1736,15 +1754,13 @@ Rect DominoesGame::chainTileRect(int index, int visible) const {
 void DominoesGame::render(Canvas& canvas) {
     canvas.clear(rgb(0, 0, 0));
     drawBackground(canvas, 3001);
-    // The independently captured vanilla Macintosh scoreboard begins at
-    // (11,11). The DOS panel begins at (7,15), below its nine-pixel menu bar.
-    // Scaling an unverified shared anchor had clipped the DOS portrait under
-    // that bar and left both editions' scoreboard up/left of the source pose.
+    // These registrations are independently pinned against native captures;
+    // neither edition is an integer-scaled version of the other.
     canvas.sprite(context_.graphics.sprite(3700),
-                  dosEdition() ? 7 : 11, dosEdition() ? 15 : 11, false);
+                  dosEdition() ? 7 : 13, dosEdition() ? 15 : 13, false);
     if (characterChooser_ || !host_.render(canvas)) {
         canvas.sprite(context_.graphics.sprite(10000),
-                      dosEdition() ? 17 : 27, dosEdition() ? 19 : 19, false);
+                      dosEdition() ? 18 : 30, dosEdition() ? 24 : 23, false);
     }
     (void)playerResultAnimation_.render(canvas);
     const int visibleDealCount = std::clamp(dealSoundCount_, 0, 7);
@@ -1782,7 +1798,7 @@ void DominoesGame::render(Canvas& canvas) {
     }
     if (!characterChooser_)
         canvas.sprite(context_.graphics.sprite(3100, 9),
-                      dosEdition() ? 299 : 478, dosEdition() ? 149 : 286, false);
+                      dosEdition() ? 299 : 478, dosEdition() ? 155 : 286, false);
     if (!characterChooser_ && boneyard_.size() <= 28) {
         const Sprite& count = context_.graphics.sprite(
             3701, dealComplete_ ? static_cast<int>(boneyard_.size())

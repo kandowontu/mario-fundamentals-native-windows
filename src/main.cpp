@@ -724,7 +724,8 @@ int selfTest(HINSTANCE instance) {
         throw std::runtime_error("Dominoes blocked-tie/replay music regression");
     auto checkers = std::make_unique<mf::CheckersGame>(context);
     if (!checkers->sourceStrategyRegressionTest() ||
-        !mf::CheckersGame::sourceIdleRegressionTest()) {
+        !mf::CheckersGame::sourceIdleRegressionTest() ||
+        !mf::CheckersGame::sourcePieceGeometryRegressionTest()) {
         throw std::runtime_error("Checkers source strategy regression");
     }
     auto checkersFullMatch = std::make_unique<mf::CheckersGame>(context);
@@ -1128,6 +1129,7 @@ int selfTest(HINSTANCE instance) {
     auto dosCheckersFirstMario = std::make_unique<mf::CheckersGame>(dosContext);
     auto dosCheckersLaterMario = std::make_unique<mf::CheckersGame>(dosContext);
     if (!dosCheckers->sourceStrategyRegressionTest() ||
+        !mf::CheckersGame::sourcePieceGeometryRegressionTest() ||
         !dosCheckers->sourceReplayRegressionTest()) {
         throw std::runtime_error("DOS Checkers native behavior regression");
     }

@@ -106,15 +106,15 @@ constexpr Point dosCharacterQuestionPoint(int gameIndex) {
 }
 
 constexpr std::array<std::uint64_t, 3> kDosCharacterQuestionQaHashes{
-    0xC52CEFC40E134C64ULL, 0xD4A8DF111A71BA1FULL, 0x753AF8B08643B4DDULL};
+    0x4403D48536E848F4ULL, 0xD4A8DF111A71BA1FULL, 0xAECCE423E7019DF4ULL};
 constexpr std::array<std::uint64_t, 3> kDosCharacterChoiceQaHashes{
-    0x5ECB5FF01CC23392ULL, 0xBB7CCF36B37D9131ULL, 0xFC049B8CCAD7E8E8ULL};
+    0xF23CEB2BCB592885ULL, 0x62AD4CBF81728BC9ULL, 0x3A97D71EE32D20B5ULL};
 constexpr std::array<std::uint64_t, 5> kDosNamePromptQaHashes{
-    0x92F8BACD0F4D7E58ULL, 0x0665714D87179076ULL, 0x44524397F669CCE0ULL,
-    0x8301F9BED88DE3E3ULL, 0xDB68C1B280DB61A1ULL};
+    0xE75C57E467FDBCBBULL, 0x5D0DF6C61D1B7B1EULL, 0xAE31D998415A237CULL,
+    0x65917D284519172EULL, 0xDB68C1B280DB61A1ULL};
 constexpr std::array<std::uint64_t, 2> kDosGoFishScoreboardQaHashes{
     0x30BDE2EDD196DDFBULL, 0xC5478D472EF086DEULL};
-constexpr std::uint64_t kDosYachtIdleActorQaHash = 0xD58D8A2935D94949ULL;
+constexpr std::uint64_t kDosYachtIdleActorQaHash = 0xFEA6182FBB37E949ULL;
 
 }  // namespace
 
@@ -549,13 +549,13 @@ void DosApp::renderQaFrames(std::wstring_view outputDirectory) {
             canvas_.pixelHash({218, 10, 315, 55}) != kDosGoFishScoreboardQaHashes[1]) {
             throw std::runtime_error("DOS Go Fish scoreboard captions or values changed");
         }
-        if (canvas_.pixelHash({145, 20, 177, 42}) != 0x5E37997BB4C35C26ULL)
+        if (canvas_.pixelHash({145, 20, 177, 42}) != 0x011BAB521C9D21424ULL)
             throw std::runtime_error("DOS Go Fish idle head is not the solid source actor");
         goFish->setQaQuestionPresentation();
         save(L"35-gofish-question.bmp");
         goFish->setQaHandSlotsPresentation(true);
         save(L"35-gofish-hand-transfer.bmp");
-        if (canvas_.pixelHash({145, 20, 177, 42}) != 0x5E37997BB4C35C26ULL)
+        if (canvas_.pixelHash({145, 20, 177, 42}) != 0x011BAB521C9D21424ULL)
             throw std::runtime_error("DOS Go Fish question card damaged the idle head");
     }
     for (const int letters : std::array{0, 3, 7}) {

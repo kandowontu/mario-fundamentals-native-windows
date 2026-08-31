@@ -485,13 +485,13 @@ void App::renderQaFrames(std::wstring_view outputDirectory) {
     if (auto* goFish = dynamic_cast<GoFishGame*>(game_.get())) {
         goFish->setQaHandSlotsPresentation(false);
         save(L"35-gofish-hand.bmp");
-        if (canvas_.pixelHash({230, 35, 283, 75}) != 0x6F80822EB2A44F3DULL)
+        if (canvas_.pixelHash({230, 35, 283, 75}) != 0x9091685618124CDEULL)
             throw std::runtime_error("Macintosh Go Fish idle head is not the solid source actor");
         goFish->setQaQuestionPresentation();
         save(L"35-gofish-question.bmp");
         goFish->setQaHandSlotsPresentation(true);
         save(L"35-gofish-hand-transfer.bmp");
-        if (canvas_.pixelHash({230, 35, 283, 75}) != 0x6F80822EB2A44F3DULL)
+        if (canvas_.pixelHash({230, 35, 283, 75}) != 0x9091685618124CDEULL)
             throw std::runtime_error("Macintosh Go Fish question card damaged the idle head");
     }
     for (const int letters : std::array{0, 3, 7}) {

@@ -29,6 +29,14 @@ constexpr int kHeldDieTop = 284;
 constexpr int kDieWidth = 39;
 constexpr int kDieHeight = 38;
 
+// DOS overlay 28 $2626/$26DD uses a separate 23-pixel lane pitch and fixed
+// y registrations.  These are not scaled Macintosh coordinates.
+constexpr std::array<int, 5> kDosDieLefts{103, 126, 149, 172, 195};
+constexpr int kDosRerollDieTop = 145;
+constexpr int kDosHeldDieTop = 155;
+constexpr int kDosDieWidth = 22;
+constexpr int kDosDieHeight = 19;
+
 // CODE 18 registers every Macintosh Yacht gameplay actor against the same
 // center-stage origin.  The DOS HostAnimation callbacks below deliberately
 // retain their edition-specific coordinates.
@@ -45,6 +53,18 @@ constexpr Rect kMacYachtRollButton{218, 129, 296, 228};
 // Preserve the previously source-verified DOS hit rectangle exactly instead
 // of deriving it from the corrected Macintosh registration.
 constexpr Rect kDosYachtRollButton{135, 86, 184, 140};
+
+Rect sourceYachtDieRect(int index, bool held, bool dosEdition) noexcept {
+    if (index < 0 || index >= static_cast<int>(kDieLefts.size())) return {};
+    if (dosEdition) {
+        const int left = kDosDieLefts[static_cast<std::size_t>(index)];
+        const int top = held ? kDosHeldDieTop : kDosRerollDieTop;
+        return {left, top, left + kDosDieWidth, top + kDosDieHeight};
+    }
+    const int left = kDieLefts[static_cast<std::size_t>(index)];
+    const int top = held ? kHeldDieTop : kRerollDieTop;
+    return {left, top, left + kDieWidth, top + kDieHeight};
+}
 
 constexpr std::array<std::array<int, 5>, 4> kYachtIdleJokes{{
     {{11455, 11456, 11459, 11460, 11461}},
@@ -115,10 +135,7 @@ int yachtScoreCategoryAt(Point point) {
 }
 
 Rect yachtDieRect(int index, bool held) {
-    if (index < 0 || index >= static_cast<int>(kDieLefts.size())) return {};
-    const int left = kDieLefts[static_cast<std::size_t>(index)];
-    const int top = held ? kHeldDieTop : kRerollDieTop;
-    return {left, top, left + kDieWidth, top + kDieHeight};
+    return sourceYachtDieRect(index, held, false);
 }
 
 int yachtRemainingRollMarkers(int completedRolls, bool rollPending) {
@@ -1338,9 +1355,9 @@ bool YachtGame::sourceFullMatchRegressionTest() {
                     sawPlayerRoll = matchSawPlayerRoll = true;
                 } else if (rolls_ == 1) {
                     for (const int index : {0, 2}) {
-                        Rect rect = yachtDieRect(index, held_[static_cast<std::size_t>(index)]);
+                        Rect rect = sourceYachtDieRect(
+                            index, held_[static_cast<std::size_t>(index)], dosEdition());
                         Point point{(rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2};
-                        if (dosEdition()) point = {dosX(point.x), dosY(point.y)};
                         click(point);
                         if (!held_[static_cast<std::size_t>(index)]) return fail();
                     }
@@ -1351,9 +1368,8 @@ bool YachtGame::sourceFullMatchRegressionTest() {
                 } else if (rolls_ == 2) {
                     for (const int index : {0, 1}) {
                         const bool wasHeld = held_[static_cast<std::size_t>(index)];
-                        Rect rect = yachtDieRect(index, wasHeld);
+                        Rect rect = sourceYachtDieRect(index, wasHeld, dosEdition());
                         Point point{(rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2};
-                        if (dosEdition()) point = {dosX(point.x), dosY(point.y)};
                         click(point);
                         if (held_[static_cast<std::size_t>(index)] == wasHeld) return fail();
                     }
@@ -1612,10 +1628,8 @@ void YachtGame::click(Point point) {
         computerRerollStage_ != 0) return;
     if (rolls_ > 0 && rolls_ < 3) {
         for (int index = 0; index < 5; ++index) {
-            Rect die = yachtDieRect(index, held_[static_cast<std::size_t>(index)]);
-            if (dosEdition()) {
-                die = {dosX(die.left), dosY(die.top), dosX(die.right), dosY(die.bottom)};
-            }
+            const Rect die = sourceYachtDieRect(
+                index, held_[static_cast<std::size_t>(index)], dosEdition());
             if (die.contains(point)) {
                 held_[index] = !held_[index];
                 context_.audio.playSound(5028);
@@ -1679,10 +1693,7 @@ void YachtGame::render(Canvas& canvas) {
         if (pendingRollPlayer_ != 0 && rerolled &&
             (rollAnimation_.active() || index >= settlingDieIndex_)) continue;
         const int frame = std::clamp(dice_[dieIndex] - 1 + (held_[dieIndex] ? 6 : 0), 0, 11);
-        Rect rect = yachtDieRect(index, held_[dieIndex]);
-        if (dosEdition()) {
-            rect = {dosX(rect.left), dosY(rect.top), dosX(rect.right), dosY(rect.bottom)};
-        }
+        const Rect rect = sourceYachtDieRect(index, held_[dieIndex], dosEdition());
         canvas.sprite(context_.graphics.sprite(6010, frame), rect.left, rect.top, false);
     }
     if (introPhase_ == IntroPhase::Complete && !winner_) {
@@ -1693,14 +1704,14 @@ void YachtGame::render(Canvas& canvas) {
                 computerAttempt_, pendingRollPlayer_ < 0);
             for (int index = 0; index < remaining; ++index)
                 canvas.sprite(context_.graphics.sprite(6010, 13),
-                              (dosEdition() ? 92 : 147) + (dosEdition() ? 17 : 27) * index,
-                              dosEdition() ? 95 : 182, false);
+                              (dosEdition() ? 105 : 147) + (dosEdition() ? 12 : 27) * index,
+                              dosEdition() ? 104 : 182, false);
         } else if (!computerTurn) {
             const int remaining = yachtRemainingRollMarkers(rolls_, pendingRollPlayer_ > 0);
             for (int index = 0; index < remaining; ++index)
                 canvas.sprite(context_.graphics.sprite(6010, 14),
-                              (dosEdition() ? 256 : 409) + (dosEdition() ? 20 : 33) * index,
-                              dosEdition() ? 171 : 328, false);
+                              (dosEdition() ? 246 : 409) + (dosEdition() ? 17 : 33) * index,
+                              dosEdition() ? 180 : 328, false);
         }
     }
     (void)outcomeAnimation_.render(canvas);

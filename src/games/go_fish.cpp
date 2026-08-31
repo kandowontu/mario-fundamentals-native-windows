@@ -6,24 +6,50 @@ namespace mf {
 
 namespace {
 
-constexpr std::array<Point, 7> victoryLetterPositions{{
+constexpr std::array<Point, 7> kMacVictoryLetterPositions{{
     {161, 200}, {220, 200}, {279, 200},
     {135, 281}, {194, 281}, {253, 281}, {313, 281},
 }};
+// DOS overlay 18's retained seven-record table is present verbatim in the
+// original executable at file offset $39714.
+constexpr std::array<Point, 7> kDosVictoryLetterPositions{{
+    {105, 107}, {137, 107}, {169, 107},
+    { 90, 148}, {122, 148}, {154, 148}, {186, 148},
+}};
+
+constexpr Point sourceVictoryLetterPosition(std::size_t index,
+                                            bool dosEdition) noexcept {
+    return (dosEdition ? kDosVictoryLetterPositions : kMacVictoryLetterPositions)[index];
+}
 
 // CODE 17 $371A-$3852 builds thirteen persistent hand records. Pak 5005 is
 // 54x76; the source adds five pixels to its width and uses that 59-pixel pitch.
 // Records 0..6 form the lower row, but the static source map rotates their
 // physical positions: records 0..5 occupy x=104..399 and record 6 wraps to
 // x=45. The overflow row uses the same rotation.
-constexpr std::array<Point, 13> humanSlotPositions{{
+constexpr std::array<Point, 13> kMacHumanSlotPositions{{
     {104, 281}, {163, 281}, {222, 281}, {281, 281},
     {340, 281}, {399, 281}, {45, 281},
     {133, 200}, {192, 200}, {251, 200},
     {310, 200}, {369, 200}, {74, 200},
 }};
+// DOS overlay 18 $327B-$3395 derives the card positions from the decoded
+// 28-pixel Pak 5005 width plus its authored five-pixel gap. Records 0..6 use
+// ``table * 33 + 40`` at y=148; records 7..12 use
+// ``(table - 7) * 33 + 58`` at y=107. The retained vanilla frame confirms
+// the first row at x=106,139,172,205, so these must not be scaled Mac points.
+constexpr std::array<Point, 13> kDosHumanSlotPositions{{
+    {106, 148}, {139, 148}, {172, 148}, {205, 148},
+    {238, 148}, {271, 148}, {73, 148},
+    {124, 107}, {157, 107}, {190, 107},
+    {223, 107}, {256, 107}, {91, 107},
+}};
 constexpr int humanCardWidth = 54;
 constexpr int humanCardHeight = 76;
+
+constexpr Point sourceHumanSlotPosition(std::size_t index, bool dosEdition) noexcept {
+    return (dosEdition ? kDosHumanSlotPositions : kMacHumanSlotPositions)[index];
+}
 
 std::vector<int> makeSourceDeck(SourceRandom& random) {
     std::vector<int> deck(52);
@@ -370,8 +396,10 @@ void GoFishGame::initializeHumanHandSlots(std::span<const int> cards) {
 void GoFishGame::beginOpeningCardMotion(
     int sourceSlot, int destinationSlot, HumanHandSlot movingCard,
     bool destinationWasOccupied) {
-    const Point source = humanSlotPositions[static_cast<std::size_t>(sourceSlot)];
-    const Point destination = humanSlotPositions[static_cast<std::size_t>(destinationSlot)];
+    const Point source = sourceHumanSlotPosition(
+        static_cast<std::size_t>(sourceSlot), dosEdition());
+    const Point destination = sourceHumanSlotPosition(
+        static_cast<std::size_t>(destinationSlot), dosEdition());
     // CODE 17 $3022 divides the largest axis distance by fourteen and supplies
     // that pass count to the shared actor constructor at $698.
     const int distance = std::max(
@@ -491,11 +519,10 @@ void GoFishGame::clearHumanRankDisplay(int value) {
 int GoFishGame::humanRankAtPoint(const HumanHandSlots& slots, Point point) const {
     for (std::size_t index = 0; index < slots.size(); ++index) {
         if (slots[index].count == 0) continue;
-        Point position = humanSlotPositions[index];
+        Point position = sourceHumanSlotPosition(index, dosEdition());
         int width = humanCardWidth;
         int height = humanCardHeight;
         if (dosEdition()) {
-            position = {dosX(position.x), dosY(position.y)};
             const Sprite& card = context_.graphics.sprite(5005, 0);
             width = card.width;
             height = card.height;
@@ -711,17 +738,27 @@ bool GoFishGame::sourceHandSlotRegressionTest() const {
     slots.fill({});
     for (int value = 0; value < 13; ++value) addHumanRankToSlots(slots, value);
     if (slots[7].rank != 7 || slots[12].rank != 12 ||
-        humanSlotPositions[0].x != 104 || humanSlotPositions[0].y != 281 ||
-        humanSlotPositions[5].x != 399 || humanSlotPositions[5].y != 281 ||
-        humanSlotPositions[6].x != 45 || humanSlotPositions[6].y != 281 ||
-        humanSlotPositions[7].x != 133 || humanSlotPositions[7].y != 200 ||
-        humanSlotPositions[12].x != 74 || humanSlotPositions[12].y != 200) return false;
+        kMacHumanSlotPositions[0].x != 104 || kMacHumanSlotPositions[0].y != 281 ||
+        kMacHumanSlotPositions[5].x != 399 || kMacHumanSlotPositions[5].y != 281 ||
+        kMacHumanSlotPositions[6].x != 45 || kMacHumanSlotPositions[6].y != 281 ||
+        kMacHumanSlotPositions[7].x != 133 || kMacHumanSlotPositions[7].y != 200 ||
+        kMacHumanSlotPositions[12].x != 74 || kMacHumanSlotPositions[12].y != 200 ||
+        kDosHumanSlotPositions[0].x != 106 || kDosHumanSlotPositions[0].y != 148 ||
+        kDosHumanSlotPositions[5].x != 271 || kDosHumanSlotPositions[5].y != 148 ||
+        kDosHumanSlotPositions[6].x != 73 || kDosHumanSlotPositions[6].y != 148 ||
+        kDosHumanSlotPositions[7].x != 124 || kDosHumanSlotPositions[7].y != 107 ||
+        kDosHumanSlotPositions[12].x != 91 || kDosHumanSlotPositions[12].y != 107 ||
+        sourceVictoryLetterPosition(0, true).x != 105 ||
+        sourceVictoryLetterPosition(0, true).y != 107 ||
+        sourceVictoryLetterPosition(6, true).x != 186 ||
+        sourceVictoryLetterPosition(6, true).y != 148) {
+        return false;
+    }
     const auto cardRect = [this](std::size_t index) {
-        Point position = humanSlotPositions[index];
+        Point position = sourceHumanSlotPosition(index, dosEdition());
         int width = humanCardWidth;
         int height = humanCardHeight;
         if (dosEdition()) {
-            position = {dosX(position.x), dosY(position.y)};
             const Sprite& card = context_.graphics.sprite(5005, 0);
             width = card.width;
             height = card.height;
@@ -783,7 +820,8 @@ bool GoFishGame::sourceOpeningDealRegressionTest() {
            dealTicks == std::vector<int>{6, 9, 12, 15, 18, 21, 24} &&
            motions == std::vector<std::pair<int, int>>{
                {6, 1}, {3, 2}, {4, 3}, {5, 4}} &&
-           motionPasses == std::vector<int>{8, 4, 4, 4} &&
+           motionPasses == (dosEdition() ? std::vector<int>{4, 2, 2, 2}
+                                         : std::vector<int>{8, 4, 4, 4}) &&
            occupiedDestinations == std::vector<bool>{true, true, false, false} &&
            slotIs(0, 7, 1) && slotIs(1, 12, 2) && slotIs(2, 8, 2) &&
            slotIs(3, 5, 1) && slotIs(4, 3, 1) &&
@@ -1047,10 +1085,11 @@ bool GoFishGame::sourceEmptyHandRefillRegressionTest() {
     }
 
     host_.stop();
+    const Point slotPosition = sourceHumanSlotPosition(0, dosEdition());
+    const Sprite& card = context_.graphics.sprite(5005, 0);
     Point slotCenter{
-        humanSlotPositions[0].x + humanCardWidth / 2,
-        humanSlotPositions[0].y + humanCardHeight / 2};
-    if (dosEdition()) slotCenter = {dosX(slotCenter.x), dosY(slotCenter.y)};
+        slotPosition.x + (dosEdition() ? card.width : humanCardWidth) / 2,
+        slotPosition.y + (dosEdition() ? card.height : humanCardHeight) / 2};
     click(slotCenter);
     return !humanTurn_ && computerTurnWaiting_ && humanQuestionMemory_[0] == 6;
 }
@@ -1129,10 +1168,11 @@ bool GoFishGame::sourceFullMatchRegressionTest() {
                 if (occupied == humanHandSlots_.end()) return fail();
                 const std::size_t slot = static_cast<std::size_t>(
                     occupied - humanHandSlots_.begin());
+                const Point position = sourceHumanSlotPosition(slot, dosEdition());
+                const Sprite& card = context_.graphics.sprite(5005, 0);
                 Point point{
-                    humanSlotPositions[slot].x + humanCardWidth / 2,
-                    humanSlotPositions[slot].y + humanCardHeight / 2};
-                if (dosEdition()) point = {dosX(point.x), dosY(point.y)};
+                    position.x + (dosEdition() ? card.width : humanCardWidth) / 2,
+                    position.y + (dosEdition() ? card.height : humanCardHeight) / 2};
                 click(point);
                 sawHumanInput = true;
                 matchHadHumanInput = true;
@@ -1315,9 +1355,8 @@ bool GoFishGame::tickOutcome() {
             // positions. They flip the completed message away together.
             victoryLetterCount_ = 0;
             for (std::size_t index = 0; index < victoryCardFlips_.size(); ++index) {
-                victoryCardFlips_[index]->play(
-                    5210, victoryLetterPositions[index].x,
-                    victoryLetterPositions[index].y, false);
+                const Point position = sourceVictoryLetterPosition(index, dosEdition());
+                victoryCardFlips_[index]->play(5210, position.x, position.y, false);
             }
             outcomeDelayTicks_ = 40;
             outcomePhase_ = OutcomePhase::FlipLetters;
@@ -1469,7 +1508,7 @@ void GoFishGame::render(Canvas& canvas) {
     // 11000/5090 head actor over it; drawing the torso afterward covered the
     // lower face with its red collar and looked like a duplicated head.
     canvas.sprite(context_.graphics.sprite(5300),
-                  dosEdition() ? 119 : 191, dosEdition() ? 52 : 100, false);
+                  dosEdition() ? 122 : 196, dosEdition() ? 55 : 102, false);
     if (!host_.render(canvas)) {
         // Pak 5090 frame zero is only the base layer of movie 5090: its eyes
         // are transparent holes filled by frames 1/2 while that movie plays.
@@ -1477,10 +1516,10 @@ void GoFishGame::render(Canvas& canvas) {
         // face. Pak 11000 frame zero is the source's complete neutral head in
         // both asset dialects.
         canvas.sprite(context_.graphics.sprite(11000, 0),
-                      dosEdition() ? 126 : 202, dosEdition() ? 9 : 18, false);
+                      dosEdition() ? 128 : 206, dosEdition() ? 14 : 18, false);
     }
     canvas.sprite(context_.graphics.sprite(5100),
-                  dosEdition() ? 217 : 347, dosEdition() ? 89 : 170, false);
+                  dosEdition() ? 200 : 343, dosEdition() ? 92 : 170, false);
     const std::wstring_view playerLabel =
         context_.playerName.empty() ? std::wstring_view{L"My Friend"}
                                     : std::wstring_view{context_.playerName};
@@ -1536,8 +1575,7 @@ void GoFishGame::render(Canvas& canvas) {
                 static_cast<int>(index) == openingCardMotion_.destinationSlot) continue;
             const HumanHandSlot& slot = slots[index];
             if (slot.count == 0) continue;
-            Point position = humanSlotPositions[index];
-            if (dosEdition()) position = {dosX(position.x), dosY(position.y)};
+            const Point position = sourceHumanSlotPosition(index, dosEdition());
             canvas.sprite(context_.graphics.sprite(5005, slot.rank), position.x, position.y, false);
             // CODE 17 $3416/$349A/$3588/$36EC selects Pak 5006 frames
             // zero through three for counts one through four. These are the
@@ -1546,17 +1584,16 @@ void GoFishGame::render(Canvas& canvas) {
                           position.x, position.y, false);
         }
         if (openingCardMotion_.active) {
-            const Point source = humanSlotPositions[
-                static_cast<std::size_t>(openingCardMotion_.sourceSlot)];
-            const Point destination = humanSlotPositions[
-                static_cast<std::size_t>(openingCardMotion_.destinationSlot)];
+            const Point source = sourceHumanSlotPosition(
+                static_cast<std::size_t>(openingCardMotion_.sourceSlot), dosEdition());
+            const Point destination = sourceHumanSlotPosition(
+                static_cast<std::size_t>(openingCardMotion_.destinationSlot), dosEdition());
             const int numerator = std::clamp(
                 openingCardMotion_.elapsedPasses, 0, openingCardMotion_.totalPasses);
             const int denominator = std::max(1, openingCardMotion_.totalPasses);
             Point position{
                 source.x + (destination.x - source.x) * numerator / denominator,
                 source.y + (destination.y - source.y) * numerator / denominator};
-            if (dosEdition()) position = {dosX(position.x), dosY(position.y)};
             canvas.sprite(context_.graphics.sprite(5005, openingCardMotion_.rank),
                           position.x, position.y, false);
             canvas.sprite(context_.graphics.sprite(
@@ -1570,8 +1607,8 @@ void GoFishGame::render(Canvas& canvas) {
                       dosEdition() ? 113 : 181, dosEdition() ? 18 : 34, false);
     }
     for (int index = 0; index < victoryLetterCount_; ++index) {
-        Point position = victoryLetterPositions[static_cast<std::size_t>(index)];
-        if (dosEdition()) position = {dosX(position.x), dosY(position.y)};
+        const Point position = sourceVictoryLetterPosition(
+            static_cast<std::size_t>(index), dosEdition());
         canvas.sprite(context_.graphics.sprite(5211, index), position.x, position.y, false);
     }
     for (const auto& flip : victoryCardFlips_) (void)flip->render(canvas);

@@ -17,6 +17,7 @@ public:
     [[nodiscard]] unsigned postFinishDelayMilliseconds() const noexcept override { return 0; }
     [[nodiscard]] bool sourceStrategyRegressionTest() const;
     [[nodiscard]] static bool sourceIdleRegressionTest();
+    [[nodiscard]] static bool sourcePieceGeometryRegressionTest();
     [[nodiscard]] bool sourceFullMatchRegressionTest();
     [[nodiscard]] bool sourceOutcomeRegressionTest(int outcomeVariant);
     [[nodiscard]] bool sourceReplayRegressionTest();
@@ -83,6 +84,7 @@ private:
     [[nodiscard]] int sourceSearchDepth() const;
     [[nodiscard]] int pieceFrame(int piece) const;
     [[nodiscard]] Point squareCenter(int square) const;
+    [[nodiscard]] Point piecePosition(int square, int frame) const;
     [[nodiscard]] int hitSquare(Point point) const;
     [[nodiscard]] static int owner(int piece) { return (piece > 0) - (piece < 0); }
 

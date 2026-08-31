@@ -1,6 +1,6 @@
 # Mario's Game Gallery / FUNdamentals — native Windows preservation collection
 
-Version `v2.0.0` is the accepted dual-edition release. The obsolete Mac-only `v1.0.0` artifact
+Version `v2.0.1` is the current accepted dual-edition release. The obsolete Mac-only `v1.0.0` artifact
 remains a withdrawn draft and is not endorsed for redistribution.
 
 This repository contains clean native Win32 compatibility ports of Mario's Game Gallery DOS 1.0
@@ -305,6 +305,7 @@ artwork.
 - [Fidelity and release-withdrawal matrix](docs/QA_MATRIX.md)
 - [Visual acceptance procedure](docs/VISUAL_ACCEPTANCE.md)
 - [Asset catalog](docs/ASSET_CATALOG.md)
+- [Version 2.0.1 release notes](docs/RELEASE_NOTES_2.0.1.md)
 - [Version 2.0.0 release notes](docs/RELEASE_NOTES_2.0.0.md)
 - Machine-readable disassembly, decoded DATA image, overlay records, movie catalogs, converted
   media, and visual QA captures are generated under ignored `work/` directories. The Macintosh
